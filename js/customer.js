@@ -487,7 +487,7 @@ const Customer = {
         <!-- Boutique Contact & Directions -->
         <div style="font-size:0.84rem;color:var(--mu);margin-bottom:16px;line-height:1.5">
           📍 ${Security.escapeHTML(c.address)}<br>
-          📞 Phone: <a href="tel:${Security.escapeHTML(c.shopPhone)}" style="color:var(--br);font-weight:700;text-decoration:none">+${Security.escapeHTML(c.shopPhone)}</a>
+          📞 Phone: <a href="tel:+${typeof getIntlPhone === 'function' ? getIntlPhone(c.shopPhone) : c.shopPhone}" style="color:var(--br);font-weight:700;text-decoration:none">${typeof formatPhone === 'function' ? Security.escapeHTML(formatPhone(c.shopPhone)) : '+' + Security.escapeHTML(c.shopPhone)}</a>
         </div>
 
         <div style="display:flex;gap:10px">
@@ -912,7 +912,7 @@ const Customer = {
           </p>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
             <button class="btn s" onclick="if($('tk')){$('tk').value='';$('tk').focus();}">Try Another Order ID</button>
-            <a class="btn s g" href="https://wa.me/${S.cfg.shopPhone}?text=${encodeURIComponent('Hello Saifa Designs, could you please help me find my order status for Order ' + no + '?')}" target="_blank" rel="noopener">
+            <a class="btn s g" href="https://wa.me/${typeof getIntlPhone === 'function' ? getIntlPhone(S.cfg.shopPhone) : S.cfg.shopPhone}?text=${encodeURIComponent('Hello Saifa Designs, could you please help me find my order status for Order ' + no + '?')}" target="_blank" rel="noopener">
               💬 Ask Atelier on WhatsApp
             </a>
           </div>
@@ -1359,7 +1359,7 @@ const Customer = {
           <span class="info-icon">📞</span>
           <div style="flex:1">
             <span class="info-lbl">Direct Phone &amp; WhatsApp</span>
-            <div class="info-val"><a href="tel:${E(c.shopPhone)}" style="color:var(--br);text-decoration:none;font-weight:700">+${E(c.shopPhone)}</a></div>
+            <div class="info-val"><a href="tel:+${typeof getIntlPhone === 'function' ? getIntlPhone(c.shopPhone) : c.shopPhone}" style="color:var(--br);text-decoration:none;font-weight:700">${typeof formatPhone === 'function' ? Security.escapeHTML(formatPhone(c.shopPhone)) : '+' + Security.escapeHTML(c.shopPhone)}</a></div>
           </div>
         </li>
         <li class="info-item">
@@ -1376,14 +1376,18 @@ const Customer = {
     if ($("mapl")) $("mapl").href = mapUrl;
     if ($("fmap")) $("fmap").href = mapUrl;
 
-    const waLink = "https://wa.me/" + c.shopPhone + "?text=" + encodeURIComponent("Hello Saifa Designs, I would like to consult with your stylist regarding bespoke designs & outfits.");
+    const formattedPhone = typeof formatPhone === "function" ? formatPhone(c.shopPhone) : `+${c.shopPhone}`;
+    const intlPhone = typeof getIntlPhone === "function" ? getIntlPhone(c.shopPhone) : String(c.shopPhone || "").replace(/\D/g, "");
+
+    const waLink = `https://wa.me/${intlPhone}?text=${encodeURIComponent("Hello Saifa Designs, I would like to consult with your stylist regarding bespoke designs & outfits.")}`;
     if ($("wal")) $("wal").href = waLink;
-    if ($("fwa")) $("fwa").href = "https://wa.me/" + c.shopPhone;
-    if ($("walBtnText")) $("walBtnText").innerHTML = `<span>💬 Chat on Official WhatsApp (+${Security.escapeHTML(c.shopPhone)})</span>`;
-    if ($("contactPhoneSub")) $("contactPhoneSub").textContent = `Instant design consultation: +${c.shopPhone}`;
+    if ($("fwa")) $("fwa").href = `https://wa.me/${intlPhone}`;
+    if ($("walBtnText")) $("walBtnText").innerHTML = `<span>💬 Chat on Official WhatsApp (${Security.escapeHTML(formattedPhone)})</span>`;
+    if ($("contactPhoneSub")) $("contactPhoneSub").textContent = `Instant design consultation: ${formattedPhone}`;
+    if ($("contactAddressSub")) $("contactAddressSub").textContent = c.address ? (c.address.length > 55 ? c.address.slice(0, 52) + "..." : c.address) : "Walk-ins, fitting trials & fabric curation";
 
     if ($("foot")) {
-      $("foot").innerHTML = `© 2026 SAIFA DESIGNS · Ladies Tailor &amp; Boutique · 📍 ${Security.escapeHTML(c.address)} · 📞 +${Security.escapeHTML(c.shopPhone)} · ${Security.escapeHTML(c.hours)}`;
+      $("foot").innerHTML = `© 2026 SAIFA DESIGNS · Ladies Tailor &amp; Boutique · 📍 ${Security.escapeHTML(c.address)} · 📞 ${Security.escapeHTML(formattedPhone)} · ${Security.escapeHTML(c.hours)}`;
     }
 
     // Dynamically calculate and render customer rating system

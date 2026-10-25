@@ -51,7 +51,7 @@ const DEF = {
     "Blouse": 350,
     "Salwar Suit": 700,
     "Lehenga": 2500,
-    "Gown / Anarkali": 1800,
+    "Gown & Anarkali": 1800,
     "Kurti": 450,
     "Saree Fall & Pico": 120,
     "Alteration": 80
@@ -60,7 +60,7 @@ const DEF = {
     "Blouse": 120,
     "Salwar Suit": 250,
     "Lehenga": 700,
-    "Gown / Anarkali": 500,
+    "Gown & Anarkali": 500,
     "Kurti": 150,
     "Saree Fall & Pico": 30,
     "Alteration": 40,

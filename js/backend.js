@@ -86,6 +86,45 @@ if (!Array.isArray(S.cfg.measurements) || !S.cfg.measurements.length) {
 if (!S.cfg.prices) S.cfg.prices = (typeof DEF !== "undefined" && DEF.prices) ? { ...DEF.prices } : {};
 if (!S.cfg.pay) S.cfg.pay = (typeof DEF !== "undefined" && DEF.pay) ? { ...DEF.pay } : {};
 
+// Migrate legacy "Gown / Anarkali" key to "Gown & Anarkali" for Firebase key safety
+if (S.cfg.prices && S.cfg.prices["Gown / Anarkali"]) {
+  S.cfg.prices["Gown & Anarkali"] = S.cfg.prices["Gown / Anarkali"];
+  delete S.cfg.prices["Gown / Anarkali"];
+  saveLS("cfg", S.cfg);
+}
+if (S.cfg.pay && S.cfg.pay["Gown / Anarkali"]) {
+  S.cfg.pay["Gown & Anarkali"] = S.cfg.pay["Gown / Anarkali"];
+  delete S.cfg.pay["Gown / Anarkali"];
+  saveLS("cfg", S.cfg);
+}
+
+// Global Phone Formatting & Internationalization Helpers
+function formatPhone(ph) {
+  const raw = String(ph || "").replace(/\D/g, "");
+  if (raw.length === 10) return `+91 ${raw.slice(0, 5)} ${raw.slice(5)}`;
+  if (raw.length === 12 && raw.startsWith("91")) return `+91 ${raw.slice(2, 7)} ${raw.slice(7)}`;
+  return ph ? (String(ph).startsWith("+") ? ph : `+${ph}`) : "+91 99999 99999";
+}
+
+function getIntlPhone(ph) {
+  const raw = String(ph || "").replace(/\D/g, "");
+  if (raw.length === 10) return "91" + raw;
+  return raw || "919999999999";
+}
+
+// Firebase RTDB Key Sanitizer (replaces illegal characters . # $ / [ ])
+function sanitizeFirebaseData(data) {
+  if (data === null || data === undefined) return null;
+  if (typeof data !== "object") return data;
+  if (Array.isArray(data)) return data.map(sanitizeFirebaseData);
+  const out = {};
+  for (const key of Object.keys(data)) {
+    const safeKey = key.replace(/[.#$\/\[\]]/g, "_");
+    out[safeKey] = sanitizeFirebaseData(data[key]);
+  }
+  return out;
+}
+
 // Dynamic Category, Subcategory, Garment and Measurement helpers
 function getMeasurements() {
   if (S.cfg && Array.isArray(S.cfg.measurements) && S.cfg.measurements.length > 0) {
@@ -112,7 +151,7 @@ function getGarmentTypes() {
   if (S.cfg && S.cfg.prices && Object.keys(S.cfg.prices).length > 0) {
     return Object.keys(S.cfg.prices);
   }
-  return typeof DEF !== "undefined" && DEF.prices ? Object.keys(DEF.prices) : ["Blouse", "Salwar Suit", "Lehenga", "Gown / Anarkali", "Kurti", "Saree Fall & Pico", "Alteration"];
+  return typeof DEF !== "undefined" && DEF.prices ? Object.keys(DEF.prices) : ["Blouse", "Salwar Suit", "Lehenga", "Gown & Anarkali", "Kurti", "Saree Fall & Pico", "Alteration"];
 }
 
 function getGarmentPrice(garment) {
@@ -412,8 +451,11 @@ function findWorkerByLoginId(identifier) {
             saveLS("cfg", S.cfg);
             if (typeof refresh === "function") refresh();
           } else {
-            rtdb.ref("config/main").set(S.cfg || DEF).catch(() => {});
+            const cleanCfg = typeof sanitizeFirebaseData === "function" ? sanitizeFirebaseData(S.cfg || DEF) : (S.cfg || DEF);
+            rtdb.ref("config/main").set(cleanCfg).catch(err => console.warn("Firebase RTDB config seed error:", err));
           }
+        }, err => {
+          console.warn("Firebase RTDB config read notice:", err);
         });
 
         if (typeof Realtime !== "undefined") {
@@ -480,7 +522,8 @@ function put(col, data, id) {
 
   // Cloud Realtime Database Sync
   if (window._rtdb) {
-    window._rtdb.ref(stateKey + "/" + id).set(row).catch(() => {});
+    const cleanRow = typeof sanitizeFirebaseData === "function" ? sanitizeFirebaseData(row) : row;
+    window._rtdb.ref(stateKey + "/" + id).set(cleanRow).catch(err => console.warn("RTDB put error:", err));
   }
 
   // Cloud Firestore Sync
@@ -507,7 +550,8 @@ function upd(col, id, patch) {
 
   // Cloud Realtime Database Sync
   if (window._rtdb) {
-    window._rtdb.ref(stateKey + "/" + id).update(patch).catch(() => {});
+    const cleanPatch = typeof sanitizeFirebaseData === "function" ? sanitizeFirebaseData(patch) : patch;
+    window._rtdb.ref(stateKey + "/" + id).update(cleanPatch).catch(err => console.warn("RTDB upd error:", err));
   }
 
   // Cloud Firestore Sync
@@ -580,7 +624,8 @@ function saveCfg() {
 
   // Cloud Realtime Database Sync across all devices
   if (window._rtdb) {
-    window._rtdb.ref("config/main").set(S.cfg).catch(err => console.warn("RTDB config sync:", err));
+    const cleanCfg = typeof sanitizeFirebaseData === "function" ? sanitizeFirebaseData(S.cfg) : S.cfg;
+    window._rtdb.ref("config/main").set(cleanCfg).catch(err => console.warn("RTDB config sync:", err));
   }
 
   // Cloud Firestore Sync across all devices
@@ -760,7 +805,7 @@ function upiLink(amt, note) {
 // Generates an automated WhatsApp link for sharing order details with admin
 function getAdminWhatsAppOrderLink(o) {
   const c = S.cfg;
-  const adminPhone = c.shopPhone;
+  const adminPhone = typeof getIntlPhone === "function" ? getIntlPhone(c.shopPhone) : (c.shopPhone || "919999999999");
   const trackUrl = `${window.location.origin}${window.location.pathname}#track?id=${o.no}&phone=${o.phone}`;
   const itemsText = o.type === 'Stitch' 
     ? `${o.garment} (Measurements: ${Object.entries(o.measure || {}).map(([k,v]) => k + ': ' + v + '"').join(', ')})`
@@ -783,7 +828,7 @@ ${o.coupon ? `*Coupon Applied:* ${o.coupon} (-₹${o.discount})\n` : ''}
 *Live Order Tracking Link:*
 ${trackUrl}`;
 
-  return `https://wa.me/91${np(adminPhone)}?text=${encodeURIComponent(msg)}`;
+  return `https://wa.me/${adminPhone}?text=${encodeURIComponent(msg)}`;
 }
 
 // ---------- coupon validation & engine ----------

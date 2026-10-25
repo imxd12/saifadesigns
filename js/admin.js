@@ -4697,10 +4697,14 @@ function saveAllSettings() {
   c.closeTime = $("s_close") ? $("s_close").value : (c.closeTime || "21:00");
   c.mondayClosed = $("s_monday") ? $("s_monday").checked : (c.mondayClosed !== false);
   c.offlineNotice = $("s_offline") ? $("s_offline").value.trim() : (c.offlineNotice || "");
-  c.upi = $("s_upi").value.trim() || c.upi;
-  c.payee = $("s_pay").value.trim() || c.payee;
-  c.shopPhone = np($("s_ph").value) || c.shopPhone;
-  c.hours = $("s_h").value;
+  c.upi = $("s_upi") ? $("s_upi").value.trim() : c.upi;
+  c.payee = $("s_pay") ? $("s_pay").value.trim() : (c.payee || "SAIFA DESIGNS");
+  const rawPh = $("s_ph") ? $("s_ph").value.trim() : "";
+  if (rawPh) {
+    const digits = rawPh.replace(/\D/g, "");
+    c.shopPhone = digits.length === 10 ? ("91" + digits) : digits;
+  }
+  c.hours = $("s_h") ? $("s_h").value : (c.hours || "Tue–Sun 10:30 AM – 9:00 PM");
   c.address = $("s_ad").value;
   c.map = $("s_m").value;
   c.offer = $("s_o").value;

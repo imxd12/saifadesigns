@@ -35,6 +35,7 @@ let S = {
   payouts: loadLS("payouts", []),
   attendance: loadLS("attendance", []),
   coupons: loadLS("coupons", SEED_COUPONS),
+  reviews: loadLS("reviews", []),
   cfg: loadLS("cfg", JSON.parse(JSON.stringify(DEF))),
   cart: loadLS("cart", []),
   appliedCoupon: null,
@@ -71,6 +72,69 @@ if (Array.isArray(S.orders) && S.orders.some(o => o.id === "ord_demo_1" || o.id 
 let db = null;
 let sample = null;
 
+// Ensure dynamic categories, subcategories & measurements exist in S.cfg
+if (!S.cfg) S.cfg = JSON.parse(JSON.stringify(DEF));
+if (!Array.isArray(S.cfg.materialSubcats) || !S.cfg.materialSubcats.length) {
+  S.cfg.materialSubcats = (typeof DEF !== "undefined" && DEF.materialSubcats) ? [...DEF.materialSubcats] : ["Pure Silk & Banarasi", "Flowy Georgette & Chiffon", "Breathable Cotton & Linen", "Embroidered Organza & Net"];
+}
+if (!Array.isArray(S.cfg.readymadeSubcats) || !S.cfg.readymadeSubcats.length) {
+  S.cfg.readymadeSubcats = (typeof DEF !== "undefined" && DEF.readymadeSubcats) ? [...DEF.readymadeSubcats] : ["Bridal & Party Lehengas", "Designer Salwar Suits", "Anarkalis & Kurtis", "Pre-pleated Ready Sarees", "Readymade Padded Blouses"];
+}
+if (!Array.isArray(S.cfg.measurements) || !S.cfg.measurements.length) {
+  S.cfg.measurements = (typeof DEF !== "undefined" && DEF.measurements) ? [...DEF.measurements] : ["Bust", "Waist", "Hip", "Length", "Shoulder", "Sleeve"];
+}
+if (!S.cfg.prices) S.cfg.prices = (typeof DEF !== "undefined" && DEF.prices) ? { ...DEF.prices } : {};
+if (!S.cfg.pay) S.cfg.pay = (typeof DEF !== "undefined" && DEF.pay) ? { ...DEF.pay } : {};
+
+// Dynamic Category, Subcategory, Garment and Measurement helpers
+function getMeasurements() {
+  if (S.cfg && Array.isArray(S.cfg.measurements) && S.cfg.measurements.length > 0) {
+    return S.cfg.measurements;
+  }
+  return typeof DEF !== "undefined" && DEF.measurements ? DEF.measurements : ["Bust", "Waist", "Hip", "Length", "Shoulder", "Sleeve"];
+}
+
+function getMaterialSubcats() {
+  if (S.cfg && Array.isArray(S.cfg.materialSubcats) && S.cfg.materialSubcats.length > 0) {
+    return S.cfg.materialSubcats;
+  }
+  return typeof DEF !== "undefined" && DEF.materialSubcats ? DEF.materialSubcats : ["Pure Silk & Banarasi", "Flowy Georgette & Chiffon", "Breathable Cotton & Linen", "Embroidered Organza & Net"];
+}
+
+function getReadymadeSubcats() {
+  if (S.cfg && Array.isArray(S.cfg.readymadeSubcats) && S.cfg.readymadeSubcats.length > 0) {
+    return S.cfg.readymadeSubcats;
+  }
+  return typeof DEF !== "undefined" && DEF.readymadeSubcats ? DEF.readymadeSubcats : ["Bridal & Party Lehengas", "Designer Salwar Suits", "Anarkalis & Kurtis", "Pre-pleated Ready Sarees", "Readymade Padded Blouses"];
+}
+
+function getGarmentTypes() {
+  if (S.cfg && S.cfg.prices && Object.keys(S.cfg.prices).length > 0) {
+    return Object.keys(S.cfg.prices);
+  }
+  return typeof DEF !== "undefined" && DEF.prices ? Object.keys(DEF.prices) : ["Blouse", "Salwar Suit", "Lehenga", "Gown / Anarkali", "Kurti", "Saree Fall & Pico", "Alteration"];
+}
+
+function getGarmentPrice(garment) {
+  if (S.cfg && S.cfg.prices && S.cfg.prices[garment] !== undefined) {
+    return Number(S.cfg.prices[garment]) || 0;
+  }
+  if (typeof DEF !== "undefined" && DEF.prices && DEF.prices[garment] !== undefined) {
+    return Number(DEF.prices[garment]) || 0;
+  }
+  return 350;
+}
+
+function getGarmentPay(garment) {
+  if (S.cfg && S.cfg.pay && S.cfg.pay[garment] !== undefined) {
+    return Number(S.cfg.pay[garment]) || 0;
+  }
+  if (typeof DEF !== "undefined" && DEF.pay && DEF.pay[garment] !== undefined) {
+    return Number(DEF.pay[garment]) || 0;
+  }
+  return 120;
+}
+
 // Selectors
 const products = () => (Array.isArray(S.prod) ? S.prod : SEED_PROD);
 const team = () => (Array.isArray(S.team) ? S.team.slice().sort((a, b) => (a.ord || 0) - (b.ord || 0)) : []);
@@ -78,6 +142,36 @@ const orders = () => (Array.isArray(S.orders) ? S.orders : []);
 const custs = () => S.customers || [];
 const workers = () => (Array.isArray(S.workers) ? S.workers : []);
 const coupons = () => (Array.isArray(S.coupons) ? S.coupons : []);
+const reviews = () => (Array.isArray(S.reviews) ? S.reviews : []);
+
+// Customer Ratings & Boutique Trust Score Analytics
+function getShopRatingStats() {
+  const allReviews = reviews().filter(r => r.status !== "Hidden");
+  const total = allReviews.length;
+  if (!total) {
+    return {
+      average: 5.0,
+      averageFormatted: "5.0",
+      totalCount: 0,
+      stars: 5,
+      breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+    };
+  }
+  const sum = allReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+  const avg = Math.round((sum / total) * 10) / 10;
+  const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  allReviews.forEach(r => {
+    const star = Math.min(5, Math.max(1, Math.round(Number(r.rating) || 5)));
+    breakdown[star] = (breakdown[star] || 0) + 1;
+  });
+  return {
+    average: avg,
+    averageFormatted: avg.toFixed(1),
+    totalCount: total,
+    stars: Math.round(avg),
+    breakdown
+  };
+}
 
 // Worker & Salary calculations
 const monKey = ts => {
@@ -241,16 +335,13 @@ function getShopLiveStatus() {
 
 function setShopLiveStatus(newStatus) {
   S.cfg.shopStatus = newStatus;
-  saveLS("cfg", S.cfg);
+  saveCfg();
   if (typeof Realtime !== "undefined") {
-    Realtime.broadcast("SETTINGS_UPDATED", S.cfg);
     Realtime.broadcast("SHOP_STATUS_CHANGED", { status: newStatus });
   }
-  put("config", S.cfg, "main").then(() => {
-    toast(`Shop status updated to "${newStatus}" 🏪`);
-    if (typeof panel === "function" && S.tab) panel();
-    if (typeof renderFront === "function") renderFront();
-  });
+  toast(`Shop status updated to "${newStatus}" 🏪`);
+  if (typeof panel === "function" && S.tab) panel();
+  if (typeof renderFront === "function") renderFront();
 }
 
 function findWorkerByLoginId(identifier) {
@@ -289,7 +380,7 @@ function findWorkerByLoginId(identifier) {
         window._rtdb = rtdb;
         cloudActive = true;
 
-        const collections = ["prod", "orders", "customers", "team", "workers", "work", "coupons", "payouts", "attendance"];
+        const collections = ["prod", "orders", "customers", "team", "workers", "work", "coupons", "payouts", "attendance", "reviews"];
         collections.forEach(col => {
           rtdb.ref(col).on("value", snapshot => {
             const val = snapshot.val();
@@ -335,7 +426,7 @@ function findWorkerByLoginId(identifier) {
         db = fstore;
         cloudActive = true;
 
-        ["products", "orders", "customers", "team", "workers", "work", "coupons", "payouts", "attendance"].forEach(col => {
+        ["products", "orders", "customers", "team", "workers", "work", "coupons", "payouts", "attendance", "reviews"].forEach(col => {
           fstore.collection(col).onSnapshot(sn => {
             const mapped = sn.docs.map(d => ({ ...d.data(), id: d.id }));
             const stateKey = col === "products" ? "prod" : col;
@@ -487,22 +578,17 @@ function saveCfg() {
     Realtime.broadcast("SETTINGS_UPDATED", S.cfg);
   }
 
-  // Cloud Realtime Database Sync
+  // Cloud Realtime Database Sync across all devices
   if (window._rtdb) {
-    window._rtdb.ref("config/main").set(S.cfg).catch(() => {});
+    window._rtdb.ref("config/main").set(S.cfg).catch(err => console.warn("RTDB config sync:", err));
   }
 
-  // Cloud Firestore Sync
+  // Cloud Firestore Sync across all devices
   if (db && db.collection) {
-    db.collection("config").doc("main").set(S.cfg).catch(() => {});
+    db.collection("config").doc("main").set(S.cfg).catch(err => console.warn("Firestore config sync:", err));
   }
 
-  put("config", S.cfg, "main").then(id => {
-    if (id) {
-      if (typeof toast === "function") toast("Boutique settings saved ✅");
-      if (typeof refresh === "function") refresh();
-    }
-  });
+  if (typeof refresh === "function") refresh();
 }
 
 // ---------- customers ----------
@@ -851,44 +937,60 @@ function deleteAttendance(wid, date) {
 // ---------- smart revenue analytics engine ----------
 function getRevenueAnalytics(period = "7days") {
   const os = orders();
+  const validOrders = os.filter(x => x.status !== "Cancelled");
   const now = new Date();
   const todayStr = now.toDateString();
   const curMonthNum = now.getMonth();
   const curYearNum = now.getFullYear();
 
-  // 1. Lifetime Totals
-  const lifetimeRev = os.reduce((a, x) => a + (Number(x.total) || 0), 0);
-  const totalPaidRev = os.filter(x => x.paid === "Paid").reduce((a, x) => a + (Number(x.total) || 0), 0);
-  const totalClaimedRev = os.filter(x => x.paid === "Claimed").reduce((a, x) => a + (Number(x.total) || 0), 0);
-  const totalUnpaidRev = os.filter(x => x.paid === "Unpaid" || !x.paid).reduce((a, x) => a + (Number(x.total) || 0), 0);
+  // Segregate orders by payment confirmation status (Strict financial separation)
+  const paidOrders = validOrders.filter(x => x.paid === "Paid");
+  const claimedOrders = validOrders.filter(x => x.paid === "Claimed");
+  const unpaidOrders = validOrders.filter(x => x.paid === "Unpaid" || !x.paid);
 
-  // 2. Today's Revenue
-  const todayOrders = os.filter(x => new Date(x.ts).toDateString() === todayStr);
-  const todayRev = todayOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
-  const todayPaidRev = todayOrders.filter(x => x.paid === "Paid").reduce((a, x) => a + (Number(x.total) || 0), 0);
+  // 1. Confirmed Lifetime Totals: Counted ONLY when payment is confirmed as Paid
+  const lifetimeRev = paidOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const totalPaidRev = lifetimeRev;
+  const totalClaimedRev = claimedOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const totalUnpaidRev = unpaidOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const totalBilledRev = lifetimeRev + totalClaimedRev + totalUnpaidRev;
 
-  // 3. This Week's Revenue (Last 7 days)
+  // 2. Today's Financials
+  const todayOrders = validOrders.filter(x => new Date(x.ts).toDateString() === todayStr);
+  const todayPaidOrders = todayOrders.filter(x => x.paid === "Paid");
+  const todayRev = todayPaidOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const todayPaidRev = todayRev;
+  const todayClaimedRev = todayOrders.filter(x => x.paid === "Claimed").reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const todayUnpaidRev = todayOrders.filter(x => x.paid === "Unpaid" || !x.paid).reduce((a, x) => a + (Number(x.total) || 0), 0);
+
+  // 3. This Week's Financials (Last 7 days)
   const oneWeekAgo = new Date(now.getTime() - 7 * 86400000);
-  const weekOrders = os.filter(x => new Date(x.ts) >= oneWeekAgo);
-  const weekRev = weekOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
-  const weekPaidRev = weekOrders.filter(x => x.paid === "Paid").reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const weekOrders = validOrders.filter(x => new Date(x.ts) >= oneWeekAgo);
+  const weekPaidOrders = weekOrders.filter(x => x.paid === "Paid");
+  const weekRev = weekPaidOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const weekPaidRev = weekRev;
+  const weekClaimedRev = weekOrders.filter(x => x.paid === "Claimed").reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const weekUnpaidRev = weekOrders.filter(x => x.paid === "Unpaid" || !x.paid).reduce((a, x) => a + (Number(x.total) || 0), 0);
 
-  // 4. This Month's Revenue
-  const monthOrders = os.filter(x => {
+  // 4. This Month's Financials
+  const monthOrders = validOrders.filter(x => {
     const d = new Date(x.ts);
     return d.getMonth() === curMonthNum && d.getFullYear() === curYearNum;
   });
-  const monthRev = monthOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
-  const monthPaidRev = monthOrders.filter(x => x.paid === "Paid").reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const monthPaidOrders = monthOrders.filter(x => x.paid === "Paid");
+  const monthRev = monthPaidOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const monthPaidRev = monthRev;
+  const monthClaimedRev = monthOrders.filter(x => x.paid === "Claimed").reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const monthUnpaidRev = monthOrders.filter(x => x.paid === "Unpaid" || !x.paid).reduce((a, x) => a + (Number(x.total) || 0), 0);
 
-  // 5. Highest Revenue Day
+  // 5. Highest Revenue Day (Based strictly on confirmed Paid sales)
   const dayMap = {};
-  os.forEach(x => {
+  paidOrders.forEach(x => {
     const d = new Date(x.ts);
     const dStr = d.toISOString().slice(0, 10);
     dayMap[dStr] = (dayMap[dStr] || 0) + (Number(x.total) || 0);
   });
-  let highestDay = { date: "No sales yet", amount: 0, dateFormatted: "N/A" };
+  let highestDay = { date: "No paid sales yet", amount: 0, dateFormatted: "N/A" };
   Object.entries(dayMap).forEach(([dt, amt]) => {
     if (amt > highestDay.amount) {
       const parts = dt.split("-");
@@ -912,35 +1014,43 @@ function getRevenueAnalytics(period = "7days") {
     const dtIso = d.toISOString().slice(0, 10);
     const dayName = d.toLocaleDateString("en-IN", { weekday: "short" });
     const dayNum = d.getDate();
-    const dayOrders = os.filter(x => new Date(x.ts).toDateString() === d.toDateString());
-    const dayRev = dayOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
-    const dayPaidRev = dayOrders.filter(x => x.paid === "Paid").reduce((a, x) => a + (Number(x.total) || 0), 0);
-    const isHighest = highestDay.amount > 0 && dayRev === highestDay.amount;
+    const dayOrders = validOrders.filter(x => new Date(x.ts).toDateString() === d.toDateString());
+    const dayPaidOrders = dayOrders.filter(x => x.paid === "Paid");
+    const dayClaimedOrders = dayOrders.filter(x => x.paid === "Claimed");
+    const dayUnpaidOrders = dayOrders.filter(x => x.paid === "Unpaid" || !x.paid);
+
+    const dayPaidRev = dayPaidOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
+    const dayClaimedRev = dayClaimedOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
+    const dayUnpaidRev = dayUnpaidOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
+    const isHighest = highestDay.amount > 0 && dayPaidRev === highestDay.amount;
 
     series.push({
       iso: dtIso,
       label: daysCount <= 7 ? `${dayName} ${dayNum}` : `${dayNum}`,
       fullDate: d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-      amount: dayRev,
+      amount: dayPaidRev, // Confirmed paid revenue
       paidAmount: dayPaidRev,
-      ordersCount: dayOrders.length,
+      claimedAmount: dayClaimedRev,
+      unpaidAmount: dayUnpaidRev,
+      ordersCount: dayPaidOrders.length,
+      totalOrdersCount: dayOrders.length,
       isHighest
     });
   }
   const peakChartAmt = Math.max(1, ...series.map(s => s.amount));
 
-  // 7. Segment Split: Stitching vs Readymade
-  const stitchingRev = os.filter(x => x.type === "Stitch").reduce((a, x) => a + (Number(x.total) || 0), 0);
-  const readymadeRev = os.filter(x => x.type !== "Stitch").reduce((a, x) => a + (Number(x.total) || 0), 0);
+  // 7. Confirmed Segment Split: Bespoke Stitching vs Readymade
+  const stitchingRev = paidOrders.filter(x => x.type === "Stitch").reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const readymadeRev = paidOrders.filter(x => x.type !== "Stitch").reduce((a, x) => a + (Number(x.total) || 0), 0);
 
-  // 8. Payment Modes
-  const upiRev = os.filter(x => (x.pay || "").includes("UPI")).reduce((a, x) => a + (Number(x.total) || 0), 0);
-  const cashRev = os.filter(x => (x.pay || "").toLowerCase().includes("cash") || (x.pay || "").toLowerCase().includes("shop")).reduce((a, x) => a + (Number(x.total) || 0), 0);
+  // 8. Payment Modes on confirmed paid orders
+  const upiRev = paidOrders.filter(x => (x.pay || "").includes("UPI")).reduce((a, x) => a + (Number(x.total) || 0), 0);
+  const cashRev = paidOrders.filter(x => (x.pay || "").toLowerCase().includes("cash") || (x.pay || "").toLowerCase().includes("shop")).reduce((a, x) => a + (Number(x.total) || 0), 0);
   const otherPayRev = Math.max(0, lifetimeRev - upiRev - cashRev);
 
   // 9. Popular Garments in Stitching
   const stitchGarmentCounts = {};
-  os.filter(x => x.type === "Stitch").forEach(x => {
+  validOrders.filter(x => x.type === "Stitch").forEach(x => {
     const g = x.garment || "Custom Stitch";
     stitchGarmentCounts[g] = (stitchGarmentCounts[g] || 0) + 1;
   });
@@ -953,15 +1063,25 @@ function getRevenueAnalytics(period = "7days") {
     totalPaidRev,
     totalClaimedRev,
     totalUnpaidRev,
+    totalBilledRev,
     todayRev,
     todayPaidRev,
-    todayOrders: todayOrders.length,
+    todayClaimedRev,
+    todayUnpaidRev,
+    todayOrders: todayPaidOrders.length,
+    todayTotalOrders: todayOrders.length,
     weekRev,
     weekPaidRev,
-    weekOrders: weekOrders.length,
+    weekClaimedRev,
+    weekUnpaidRev,
+    weekOrders: weekPaidOrders.length,
+    weekTotalOrders: weekOrders.length,
     monthRev,
     monthPaidRev,
-    monthOrders: monthOrders.length,
+    monthClaimedRev,
+    monthUnpaidRev,
+    monthOrders: monthPaidOrders.length,
+    monthTotalOrders: monthOrders.length,
     highestDay,
     series,
     peakChartAmt,
@@ -971,7 +1091,13 @@ function getRevenueAnalytics(period = "7days") {
     cashRev,
     otherPayRev,
     topGarments,
-    totalOrdersCount: os.length
+    totalOrdersCount: validOrders.length,
+    paidCount: paidOrders.length,
+    claimedCount: claimedOrders.length,
+    unpaidCount: unpaidOrders.length,
+    paidOrders,
+    claimedOrders,
+    unpaidOrders
   };
 }
 
@@ -1074,7 +1200,7 @@ function recordSalaryPayout(wid, amount, mode = "Cash", note = "") {
 // ---------- export & import system ----------
 function exportDatabaseJSON() {
   const backup = {
-    version: "2.1",
+    version: "2.2",
     exportDate: new Date().toISOString(),
     config: S.cfg,
     products: S.prod,
@@ -1085,7 +1211,8 @@ function exportDatabaseJSON() {
     work: S.work,
     payouts: S.payouts,
     attendance: S.attendance,
-    team: S.team
+    team: S.team,
+    reviews: S.reviews
   };
   const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
   const a = document.createElement("a");
@@ -1111,8 +1238,9 @@ function importDatabaseJSON(jsonStr) {
     if (Array.isArray(data.payouts)) S.payouts = data.payouts;
     if (Array.isArray(data.attendance)) S.attendance = data.attendance;
     if (Array.isArray(data.team)) S.team = data.team;
+    if (Array.isArray(data.reviews)) S.reviews = data.reviews;
 
-    ["prod", "orders", "customers", "coupons", "workers", "work", "payouts", "attendance", "team", "cfg"].forEach(k => {
+    ["prod", "orders", "customers", "coupons", "workers", "work", "payouts", "attendance", "team", "reviews", "cfg"].forEach(k => {
       saveLS(k, S[k]);
     });
 
@@ -1173,3 +1301,33 @@ function exportCustomersCSV() {
   a.click();
   a.remove();
 }
+
+function exportReviewsCSV() {
+  const rList = typeof reviews === "function" ? reviews() : (S.reviews || []);
+  const headers = ["Review ID", "Date", "Customer Name", "Phone", "Rating", "Service", "Order No", "Status", "Review Text"];
+  const rows = rList.map(r => [
+    r.id,
+    new Date(r.updatedAt || r.createdAt || Date.now()).toLocaleDateString("en-IN"),
+    `"${(r.name || "").replace(/"/g, '""')}"`,
+    r.phone || "",
+    r.rating || 5,
+    `"${(r.service || "").replace(/"/g, '""')}"`,
+    r.orderNo || "",
+    r.status || "Active",
+    `"${(r.review || "").replace(/"/g, '""')}"`
+  ]);
+  const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+  const a = document.createElement("a");
+  a.setAttribute("href", encodeURI(csvContent));
+  a.setAttribute("download", `saifa_reviews_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+window.reviews = reviews;
+window.getShopRatingStats = getShopRatingStats;
+window.exportReviewsCSV = exportReviewsCSV;
+window.saveCfg = saveCfg;
+window.setShopLiveStatus = setShopLiveStatus;
+

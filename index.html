@@ -44,6 +44,8 @@
         <a class="lk" href="#about">About</a>
         <a class="lk" href="#faq">FAQ</a>
         <a class="lk" href="#track">Track Order</a>
+        <a class="lk" href="#reviews">Ratings</a>
+        <a class="lk" href="#contact">Visit Us</a>
       </div>
 
       <!-- Right Header Actions Cluster -->
@@ -93,11 +95,11 @@
         <div class="timings-schedule-info" onclick="Customer.showShopScheduleModal()" style="cursor:pointer"
           title="Click to view detailed boutique schedule">
           <span class="timings-hours-chip">
-            <span class="timings-icon">🕒</span> <span>Hours: <b>10:30 AM – 9:00 PM</b></span>
+            <span class="timings-icon">🕒</span> <span>Hours: <b id="hdrHoursText">10:30 AM – 9:00 PM</b></span>
           </span>
           <span class="timings-divider">·</span>
           <span class="timings-closed-chip">
-            <span class="timings-icon">📅</span> <span><b>Mon Closed</b> (Atelier Rest Day)</span>
+            <span class="timings-icon">📅</span> <span id="hdrMondayText"><b>Mon Closed</b> (Atelier Rest Day)</span>
           </span>
           <span class="timings-divider">·</span>
           <span class="timings-service-chip">
@@ -122,6 +124,8 @@
         <a class="mob-lk" href="#about" onclick="Customer.closeMobileNav()">🏛️ About Our Boutique</a>
         <a class="mob-lk" href="#faq" onclick="Customer.closeMobileNav()">❓ FAQ &amp; Guides</a>
         <a class="mob-lk" href="#track" onclick="Customer.closeMobileNav()">📦 Track My Order</a>
+        <a class="mob-lk" href="#reviews" onclick="Customer.closeMobileNav()">⭐ Client Ratings</a>
+        <a class="mob-lk" href="#contact" onclick="Customer.closeMobileNav()">🏛️ Visit Boutique</a>
       </div>
     </div>
   </header>
@@ -147,6 +151,7 @@
     <div class="stat"><span class="stat-emoji">👗</span><b>Ready</b><span>Readymade in all sizes</span></div>
     <div class="stat"><span class="stat-emoji">🧵</span><b>Fabrics</b><span>Silk, georgette &amp; linen</span></div>
     <div class="stat"><span class="stat-emoji">⚡</span><b>Express</b><span>48h trial &amp; delivery</span></div>
+    <div class="stat" style="cursor:pointer" onclick="const r=$('reviews');if(r)r.scrollIntoView({behavior:'smooth'})" title="Click to view verified boutique client ratings"><span class="stat-emoji">⭐</span><b id="heroRatingStat">5.0 ★</b><span id="heroRatingCount">Verified Ratings</span></div>
   </div>
 
   <section id="shop">
@@ -325,6 +330,60 @@
     </div>
   </section>
 
+  <!-- ==========================================
+       REAL-TIME BOUTIQUE RATINGS & TRUST SECTION
+       ========================================== -->
+  <section id="reviews">
+    <div class="sh">
+      <span class="eyebrow">Client Trust &amp; Ratings</span>
+      <h2>Atelier Rating &amp; Excellence</h2>
+      <p style="color:var(--mu);max-width:560px;margin:auto">
+        Crafted with precision, measured with perfection. See how our bespoke clients rate their experience with Saifa Designs.
+      </p>
+    </div>
+
+    <div class="rating-homepage-deck">
+      <!-- Main Rating Score Card -->
+      <div class="rating-display-card">
+        <div class="rating-big-badge">
+          <span class="rating-big-num" id="ratingBigScore">5.0</span>
+          <div class="rating-stars-row" id="ratingStarsVisual" aria-label="5 out of 5 stars">
+            ★★★★★
+          </div>
+          <div class="rating-verified-tag">
+            <span class="verified-shield">🛡️</span> Verified Client Ratings
+          </div>
+          <div class="rating-count-text" id="ratingCountLabel">
+            Calculating verified ratings...
+          </div>
+        </div>
+
+        <!-- Rating Star Breakdown Bar Meter -->
+        <div class="rating-bars-container" id="ratingBarsContainer">
+          <!-- Dynamically populated 5 star to 1 star percentage bars -->
+        </div>
+      </div>
+
+      <!-- Customer Action / Submission Card -->
+      <div class="rating-cta-card">
+        <div class="rating-cta-icon">⭐</div>
+        <h3>Rate Your Saifa Designs Experience</h3>
+        <p>
+          Whether you purchased luxury fabrics, had an outfit bespoke tailored, or visited our atelier studio, we value your feedback.
+        </p>
+        <div class="rating-privacy-badge">
+          <span>🔒</span> <b>Privacy Assured:</b> Your written review and contact details remain private with our master atelier team. Only your star rating contributes to our overall score.
+        </div>
+        <button class="btn p rating-open-modal-btn" type="button" onclick="Customer.openRateBoutiqueModal()">
+          <span>⭐ Rate &amp; Review Your Experience</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       VISIT OUR BOUTIQUE & CONSULT OUR STYLIST
+       ========================================== -->
   <section id="contact">
     <div class="sh">
       <span class="eyebrow">Visit Our Boutique</span>
@@ -339,7 +398,7 @@
             <div class="contact-card-icon">🏛️</div>
             <div>
               <h3>Boutique Studio &amp; Atelier</h3>
-              <small>Walk-ins, fitting trials &amp; fabric curation</small>
+              <small id="contactAddressSub">Walk-ins, fitting trials &amp; fabric curation</small>
             </div>
           </div>
           <ul class="info" id="info"></ul>
@@ -358,7 +417,7 @@
             <div class="contact-card-icon" style="background:color-mix(in srgb, #25d366 15%, transparent);color:#25d366">💬</div>
             <div>
               <h3>Direct Boutique WhatsApp</h3>
-              <small>Instant design consultation &amp; order inquiries</small>
+              <small id="contactPhoneSub">Instant design consultation &amp; order inquiries</small>
             </div>
           </div>
 
@@ -371,7 +430,7 @@
               Have questions about customized designs, bridal fabrics, or trial fittings? Connect directly with our atelier team.
             </p>
             <a class="btn g whatsapp-action-btn" id="wal" target="_blank" rel="noopener">
-              <span>💬 Chat on Official WhatsApp</span>
+              <span id="walBtnText">💬 Chat on Official WhatsApp</span>
             </a>
           </div>
 

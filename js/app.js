@@ -70,7 +70,7 @@ const App = {
 
       // If customer storefront is visible, update catalogue & cart counts
       if (typeof Customer !== "undefined") {
-        if (["PRODUCT_UPDATED", "COUPON_UPDATED", "SETTINGS_UPDATED", "ORDER_CREATED", "ORDER_UPDATED"].includes(type)) {
+        if (["PRODUCT_UPDATED", "COUPON_UPDATED", "SETTINGS_UPDATED", "ORDER_CREATED", "ORDER_UPDATED", "REVIEW_SUBMITTED", "REVIEW_UPDATED", "REVIEW_DELETED"].includes(type)) {
           Customer.renderFront();
         }
       }
@@ -90,6 +90,8 @@ const App = {
         toast(`🔔 New order #${payload?.orderNo || ""} received!`);
       } else if (type === "ORDER_UPDATED" && S.me && S.me.role === "worker") {
         toast(`✂️ Order #${payload?.orderNo || ""} assigned / updated!`);
+      } else if ((type === "REVIEW_SUBMITTED" || type === "REVIEW_UPDATED") && S.me && S.me.role === "admin") {
+        toast(`⭐ New verified client rating (${payload?.rating || 5}★) received!`);
       }
     });
   },

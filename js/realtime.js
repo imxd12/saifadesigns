@@ -61,6 +61,10 @@ const Realtime = {
         this.channel.postMessage(msg);
       } catch (e) {}
     }
+
+    try {
+      window.dispatchEvent(new CustomEvent("saifa_realtime_event", { detail: msg }));
+    } catch (e) {}
   },
 
   handleIncomingMessage(msg) {
@@ -94,7 +98,16 @@ const Realtime = {
       case "COUPON_UPDATED":
         S.coupons = loadLS("coupons", []);
         break;
+      case "REVIEW_SUBMITTED":
+      case "REVIEW_UPDATED":
+      case "REVIEW_DELETED":
+        S.reviews = loadLS("reviews", []);
+        break;
     }
+
+    try {
+      window.dispatchEvent(new CustomEvent("saifa_realtime_event", { detail: msg }));
+    } catch (e) {}
 
     if (typeof refresh === "function") {
       refresh();

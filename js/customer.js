@@ -205,11 +205,13 @@ const Customer = {
 
     let subcats = [];
     if (S.cat === "Material") {
-      subcats = MATERIAL_SUBCATS;
+      subcats = typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS;
     } else if (S.cat === "Readymade") {
-      subcats = READYMADE_SUBCATS;
+      subcats = typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS;
     } else {
-      subcats = [...MATERIAL_SUBCATS.slice(0, 2), ...READYMADE_SUBCATS.slice(0, 2)];
+      const mats = typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS;
+      const readys = typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS;
+      subcats = [...mats.slice(0, 3), ...readys.slice(0, 3)];
     }
 
     const allProds = products();
@@ -441,6 +443,10 @@ const Customer = {
   showShopScheduleModal() {
     const liveStatus = typeof getShopLiveStatus === "function" ? getShopLiveStatus() : { isOpen: true, label: "Open Now", badgeClass: "open", message: "Open today" };
     const c = S.cfg || DEF;
+    const openFmt = typeof formatTime12 === "function" ? formatTime12(c.openTime || "10:30") : (c.openTime || "10:30 AM");
+    const closeFmt = typeof formatTime12 === "function" ? formatTime12(c.closeTime || "21:00") : (c.closeTime || "9:00 PM");
+    const normalHoursText = `${openFmt} – ${closeFmt}`;
+    const mapUrl = c.map && c.map.trim() !== "" ? c.map : `https://maps.google.com/?q=${encodeURIComponent('Saifa Designs, ' + (c.address || ''))}`;
 
     modal(`
       <div style="text-align:center;padding:10px 4px">
@@ -465,27 +471,27 @@ const Customer = {
           <b style="font-size:0.86rem;color:var(--tx)">📅 Weekly Atelier Schedule:</b>
           <table class="schedule-table">
             <tr>
-              <td><b>Tuesday – Sunday</b></td>
-              <td style="text-align:right"><b>10:30 AM – 9:00 PM</b></td>
+              <td><b>${c.mondayClosed !== false ? "Tuesday – Sunday" : "Monday – Sunday (All 7 Days)"}</b></td>
+              <td style="text-align:right"><b>${Security.escapeHTML(c.hours || normalHoursText)}</b></td>
             </tr>
-            <tr style="color:var(--bad)">
+            <tr style="color:${c.mondayClosed !== false ? 'var(--bad)' : 'var(--ok)'}">
               <td><b>Monday</b></td>
-              <td style="text-align:right"><b>Closed (Atelier Rest Day)</b></td>
+              <td style="text-align:right"><b>${c.mondayClosed !== false ? 'Closed (Atelier Rest Day)' : 'Open (' + normalHoursText + ')'}</b></td>
             </tr>
           </table>
           <p style="font-size:0.76rem;color:var(--mu);margin:6px 0 0">
-            * Monday is our dedicated artisan handcrafting and fabric sourcing rest day. Online orders &amp; bespoke WhatsApp inquiries remain open 24/7.
+            * Online orders, fabric browsing &amp; bespoke WhatsApp inquiries remain active 24/7.
           </p>
         </div>
 
         <!-- Boutique Contact & Directions -->
         <div style="font-size:0.84rem;color:var(--mu);margin-bottom:16px;line-height:1.5">
           📍 ${Security.escapeHTML(c.address)}<br>
-          📞 Phone: +${Security.escapeHTML(c.shopPhone)}
+          📞 Phone: <a href="tel:${Security.escapeHTML(c.shopPhone)}" style="color:var(--br);font-weight:700;text-decoration:none">+${Security.escapeHTML(c.shopPhone)}</a>
         </div>
 
         <div style="display:flex;gap:10px">
-          <a class="btn p" style="flex:1" href="${c.map}" target="_blank" rel="noopener">📍 Open in Google Maps</a>
+          <a class="btn p" style="flex:1" href="${mapUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>
           <button class="btn" style="flex:1" onclick="closeM()">Close</button>
         </div>
       </div>
@@ -1190,12 +1196,15 @@ const Customer = {
         </div>
 
         <div class="meas" style="margin:16px 0;gap:8px">
-          ${MEAS.map(k => `
-            <div style="background:var(--sf2);padding:10px 12px;border-radius:10px;border:1px solid var(--ln)">
-              <small style="color:var(--mu);display:block;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em">${k}</small>
-              <b style="font-size:1.1rem;color:var(--tx)">${Security.escapeHTML(m[k] && m[k] !== '-' ? m[k] + '"' : '-')}</b>
-            </div>
-          `).join("")}
+          ${(() => {
+            const keys = Array.from(new Set([...(typeof getMeasurements === "function" ? getMeasurements() : MEAS), ...Object.keys(m)]));
+            return keys.map(k => `
+              <div style="background:var(--sf2);padding:10px 12px;border-radius:10px;border:1px solid var(--ln)">
+                <small style="color:var(--mu);display:block;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em">${k}</small>
+                <b style="font-size:1.1rem;color:var(--tx)">${Security.escapeHTML(m[k] && m[k] !== '-' ? m[k] + '"' : '-')}</b>
+              </div>
+            `).join("");
+          })()}
         </div>
 
         ${o.note ? `<div style="font-size:0.84rem;color:var(--tx);background:color-mix(in srgb,var(--br) 6%,var(--sf));padding:10px 14px;border-radius:10px;margin-bottom:14px">📝 <b>Special Styling Note:</b> <i>"${Security.escapeHTML(o.note)}"</i></div>` : ''}
@@ -1268,7 +1277,7 @@ const Customer = {
   renderFront() {
     this.renderShop();
     this.renderTeam();
-    const c = S.cfg;
+    const c = S.cfg || DEF;
 
     // Dynamically sync live shop status pill with operating schedule & Monday rest day
     const liveStatus = typeof getShopLiveStatus === "function" ? getShopLiveStatus() : { isOpen: true, label: "Open · 10:30 AM–9:00 PM", badgeClass: "open", message: "Boutique Open" };
@@ -1281,6 +1290,18 @@ const Customer = {
       if (badgeEl) {
         badgeEl.textContent = liveStatus.isOpen ? "Atelier Open" : (liveStatus.isMondayClosed ? "Monday Closed" : "Atelier Closed");
       }
+    }
+
+    // Header Operating Hours Chips
+    const hdrHours = $("hdrHoursText");
+    if (hdrHours) {
+      hdrHours.textContent = c.hours || "Tue–Sun 10:30 AM – 9:00 PM";
+    }
+    const hdrMon = $("hdrMondayText");
+    if (hdrMon) {
+      hdrMon.innerHTML = c.mondayClosed !== false 
+        ? "<b>Mon Closed</b> (Atelier Rest Day)" 
+        : "<b>Open 7 Days</b> (Atelier Open)";
     }
 
     // Announcement offer banner with live active offers
@@ -1302,14 +1323,15 @@ const Customer = {
       }
     }
 
+    // Visit Our Boutique Studio & Atelier Card Details
     const infoEl = $("info");
     if (infoEl) {
       infoEl.innerHTML = `
         <li class="info-item">
           <span class="info-icon">📍</span>
           <div style="flex:1">
-            <span class="info-lbl">Boutique Address</span>
-            <div class="info-val">${E(c.address)}</div>
+            <span class="info-lbl">Boutique Atelier Address</span>
+            <div class="info-val" style="font-weight:600;color:var(--tx)">${E(c.address)}</div>
           </div>
         </li>
         <li class="info-item">
@@ -1330,31 +1352,42 @@ const Customer = {
           <span class="info-icon">📅</span>
           <div style="flex:1">
             <span class="info-lbl">Monday Atelier Rest Day</span>
-            <div class="info-val">Artisan handcrafting & fabric curation (Online 24/7)</div>
+            <div class="info-val">${c.mondayClosed !== false ? "Artisan handcrafting & fabric curation (Online orders active 24/7)" : "Open for in-person fitting visits"}</div>
           </div>
         </li>
         <li class="info-item">
           <span class="info-icon">📞</span>
           <div style="flex:1">
-            <span class="info-lbl">Direct Phone & WhatsApp</span>
-            <div class="info-val"><a href="tel:${E(c.shopPhone)}" style="color:var(--br);text-decoration:none;font-weight:600">+${E(c.shopPhone)}</a></div>
+            <span class="info-lbl">Direct Phone &amp; WhatsApp</span>
+            <div class="info-val"><a href="tel:${E(c.shopPhone)}" style="color:var(--br);text-decoration:none;font-weight:700">+${E(c.shopPhone)}</a></div>
           </div>
         </li>
         <li class="info-item">
           <span class="info-icon">💳</span>
           <div style="flex:1">
-            <span class="info-lbl">Instant UPI & QR Payments</span>
-            <div class="info-val"><code style="font-size:0.8rem;background:var(--sf);padding:2px 6px;border-radius:4px">${E(c.upi)}</code> · Scan QR / Pay at Shop</div>
+            <span class="info-lbl">Instant UPI &amp; QR Payments</span>
+            <div class="info-val"><code style="font-size:0.8rem;background:var(--sf);padding:2px 6px;border-radius:4px">${E(c.upi)}</code> · Scan Standee QR / Pay at Shop</div>
           </div>
         </li>
       `;
     }
 
-    if ($("mapl")) $("mapl").href = c.map;
-    if ($("fmap")) $("fmap").href = c.map;
+    const mapUrl = c.map && c.map.trim() !== "" ? c.map : `https://maps.google.com/?q=${encodeURIComponent('Saifa Designs, ' + (c.address || ''))}`;
+    if ($("mapl")) $("mapl").href = mapUrl;
+    if ($("fmap")) $("fmap").href = mapUrl;
+
+    const waLink = "https://wa.me/" + c.shopPhone + "?text=" + encodeURIComponent("Hello Saifa Designs, I would like to consult with your stylist regarding bespoke designs & outfits.");
+    if ($("wal")) $("wal").href = waLink;
     if ($("fwa")) $("fwa").href = "https://wa.me/" + c.shopPhone;
-    if ($("wal")) $("wal").href = "https://wa.me/" + c.shopPhone;
-    if ($("foot")) $("foot").textContent = `© 2026 SAIFA DESIGNS · Ladies Tailor & Boutique · ${c.hours}`;
+    if ($("walBtnText")) $("walBtnText").innerHTML = `<span>💬 Chat on Official WhatsApp (+${Security.escapeHTML(c.shopPhone)})</span>`;
+    if ($("contactPhoneSub")) $("contactPhoneSub").textContent = `Instant design consultation: +${c.shopPhone}`;
+
+    if ($("foot")) {
+      $("foot").innerHTML = `© 2026 SAIFA DESIGNS · Ladies Tailor &amp; Boutique · 📍 ${Security.escapeHTML(c.address)} · 📞 +${Security.escapeHTML(c.shopPhone)} · ${Security.escapeHTML(c.hours)}`;
+    }
+
+    // Dynamically calculate and render customer rating system
+    this.renderRatingWidget();
 
     const fsbox = $("fsbox");
     if (fsbox && !fsbox.dataset.ok) {
@@ -1371,6 +1404,271 @@ const Customer = {
         this.renderTrackingResult(activeOrder);
       }
     }
+  },
+
+  // ------------------------------------------
+  // Real-Time Customer Rating & Trust System
+  // ------------------------------------------
+  renderRatingWidget() {
+    const stats = typeof getShopRatingStats === "function" 
+      ? getShopRatingStats() 
+      : { average: 5.0, averageFormatted: "5.0", totalCount: 0, stars: 5, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } };
+
+    // 1. Big Score Display Number
+    const bigScore = $("ratingBigScore");
+    if (bigScore) {
+      bigScore.textContent = stats.averageFormatted;
+    }
+
+    // 2. Stars Visual Row (e.g. ★★★★★)
+    const starsRow = $("ratingStarsVisual");
+    if (starsRow) {
+      const fullStars = Math.min(5, Math.max(1, Math.round(stats.average)));
+      starsRow.innerHTML = "★".repeat(fullStars) + "☆".repeat(5 - fullStars);
+      starsRow.setAttribute("aria-label", `${stats.averageFormatted} out of 5 stars`);
+    }
+
+    // 3. Verified Count Label
+    const countLabel = $("ratingCountLabel");
+    if (countLabel) {
+      if (stats.totalCount > 0) {
+        countLabel.textContent = `Based on ${stats.totalCount} verified client rating${stats.totalCount === 1 ? '' : 's'}`;
+      } else {
+        countLabel.textContent = `Be the first verified client to rate our atelier!`;
+      }
+    }
+
+    // 4. Hero & Stats Bar Chip
+    const heroStat = $("heroRatingStat");
+    if (heroStat) {
+      heroStat.textContent = `${stats.averageFormatted} ★`;
+    }
+    const heroCount = $("heroRatingCount");
+    if (heroCount) {
+      heroCount.textContent = stats.totalCount > 0 ? `${stats.totalCount} Verified Ratings` : `New Boutique Atelier`;
+    }
+
+    // 5. Star Distribution Progress Bars
+    const barsContainer = $("ratingBarsContainer");
+    if (barsContainer) {
+      let barsHtml = "";
+      for (let s = 5; s >= 1; s--) {
+        const count = stats.breakdown[s] || 0;
+        const pct = stats.totalCount > 0 ? Math.round((count / stats.totalCount) * 100) : (s === 5 ? 100 : 0);
+        barsHtml += `
+          <div class="rating-bar-row">
+            <span class="rating-bar-star-label">${s} ★</span>
+            <div class="rating-bar-track">
+              <div class="rating-bar-fill" style="width:${pct}%"></div>
+            </div>
+            <span class="rating-bar-pct-label">${count}</span>
+          </div>
+        `;
+      }
+      barsContainer.innerHTML = barsHtml;
+    }
+  },
+
+  openRateBoutiqueModal() {
+    modal(`
+      <div style="padding:6px 4px">
+        <div style="text-align:center;margin-bottom:16px">
+          <div style="width:58px;height:58px;border-radius:50%;background:color-mix(in srgb,var(--gd) 18%,transparent);color:var(--gd);display:grid;place-items:center;font-size:2rem;margin:0 auto 10px;box-shadow:0 6px 20px color-mix(in srgb,var(--gd) 25%,transparent)">
+            ⭐
+          </div>
+          <h2 style="color:var(--br);margin:0 0 4px;font-size:1.4rem">Rate Saifa Designs</h2>
+          <p style="font-size:0.84rem;color:var(--mu);margin:0">
+            Ladies Tailor, Boutique &amp; Bespoke Atelier
+          </p>
+        </div>
+
+        <!-- Dynamic Welcome / Existing Review Alert Notice -->
+        <div id="existingReviewAlert" style="display:none;margin-bottom:14px;background:color-mix(in srgb,var(--ok) 12%,var(--sf));border:1px solid var(--ok);border-radius:12px;padding:10px 14px;font-size:0.84rem;color:var(--tx)">
+          <span style="font-weight:700;color:var(--ok)">✓ Previous Rating Found:</span>
+          <span id="existingReviewAlertMsg">You can update your star rating and review below.</span>
+        </div>
+
+        <!-- Interactive 1-5 Star Selector -->
+        <div style="text-align:center;background:var(--sf2);padding:16px 12px;border-radius:14px;border:1px solid var(--ln);margin-bottom:16px">
+          <label style="display:block;font-size:0.86rem;color:var(--tx);font-weight:700;margin-bottom:8px">
+            Select Your Rating *
+          </label>
+          <div id="modalStarPicker" class="star-rating-picker" style="display:inline-flex;gap:8px;font-size:2.2rem;cursor:pointer">
+            <span class="star-item on" data-star="1" onclick="Customer.setModalStar(1)">★</span>
+            <span class="star-item on" data-star="2" onclick="Customer.setModalStar(2)">★</span>
+            <span class="star-item on" data-star="3" onclick="Customer.setModalStar(3)">★</span>
+            <span class="star-item on" data-star="4" onclick="Customer.setModalStar(4)">★</span>
+            <span class="star-item on" data-star="5" onclick="Customer.setModalStar(5)">★</span>
+          </div>
+          <div id="modalStarFeedbackText" style="font-size:0.85rem;color:var(--br);font-weight:700;margin-top:6px">
+            ⭐⭐⭐⭐⭐ Exceptional Fit &amp; Luxury Craftsmanship
+          </div>
+          <input type="hidden" id="rev_star" value="5">
+        </div>
+
+        <!-- Verification & Details Form -->
+        <div class="g2">
+          <div>
+            <label>Your Full Name *</label>
+            <input id="rev_name" placeholder="e.g. Fatima Sheikh" required style="margin-bottom:10px">
+          </div>
+          <div>
+            <label>Mobile Number (For Verification) *</label>
+            <input id="rev_phone" type="tel" placeholder="10-digit mobile number" maxlength="14" required style="margin-bottom:10px" oninput="Customer.onReviewPhoneInput(this.value)">
+          </div>
+        </div>
+
+        <div class="g2">
+          <div>
+            <label>Experience / Service Type</label>
+            <select id="rev_service" style="margin-bottom:10px">
+              <option value="Bespoke Stitching">✂️ Bespoke Custom Stitching</option>
+              <option value="Readymade Ensemble">👗 Readymade Boutique Outfit</option>
+              <option value="Bridal &amp; Festive Wear">👰 Bridal &amp; Festive Collection</option>
+              <option value="Fabrics &amp; Materials">🧵 Luxury Fabrics by Meter</option>
+              <option value="Fitting &amp; Alterations">♻️ Minor Alterations &amp; Fitting</option>
+              <option value="Boutique Studio Visit">🏛️ Atelier Studio Walk-in Visit</option>
+            </select>
+          </div>
+          <div>
+            <label>Order ID (Optional)</label>
+            <input id="rev_order_no" placeholder="e.g. SD4K9XQ" style="margin-bottom:10px">
+          </div>
+        </div>
+
+        <div>
+          <label>Written Review &amp; Private Feedback (Optional)</label>
+          <textarea id="rev_comment" rows="3" placeholder="Share your experience about the fitting, stitching neatness, fabric feel, or boutique service..." style="margin-bottom:12px"></textarea>
+        </div>
+
+        <!-- Privacy & Verification Guarantee Badge -->
+        <div style="background:var(--sf2);padding:10px 14px;border-radius:12px;border:1px solid var(--ln);font-size:0.8rem;color:var(--mu);margin-bottom:16px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:1.3rem">🔒</span>
+          <div>
+            <b>Client Privacy Guarantee:</b> Your written review and mobile number remain private with our atelier admin team. Only the aggregate star score and count appear on the public website.
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn" type="button" onclick="closeM()">Cancel</button>
+          <button class="btn p" id="revSubmitBtn" type="button" style="padding:10px 20px;font-weight:700" onclick="Customer.submitRatingReview()">
+            ⭐ Submit Verified Rating
+          </button>
+        </div>
+      </div>
+    `);
+  },
+
+  setModalStar(star) {
+    const starInput = $("rev_star");
+    if (starInput) starInput.value = star;
+
+    const picker = $("modalStarPicker");
+    if (picker) {
+      const starSpans = picker.querySelectorAll(".star-item");
+      starSpans.forEach(s => {
+        const val = Number(s.dataset.star) || 1;
+        if (val <= star) {
+          s.classList.add("on");
+          s.textContent = "★";
+        } else {
+          s.classList.remove("on");
+          s.textContent = "☆";
+        }
+      });
+    }
+
+    const feedbackText = $("modalStarFeedbackText");
+    if (feedbackText) {
+      const labels = {
+        5: "⭐⭐⭐⭐⭐ Exceptional Fit & Luxury Craftsmanship",
+        4: "⭐⭐⭐⭐ Very Good Quality & Service",
+        3: "⭐⭐⭐ Good / Average Experience",
+        2: "⭐⭐ Needs Improvement",
+        1: "⭐ Disappointed with Fit/Service"
+      };
+      feedbackText.textContent = labels[star] || `${star} Stars`;
+    }
+  },
+
+  onReviewPhoneInput(rawPhone) {
+    const clean = np(rawPhone);
+    const alertBox = $("existingReviewAlert");
+    const alertMsg = $("existingReviewAlertMsg");
+    const submitBtn = $("revSubmitBtn");
+
+    if (clean.length === 10) {
+      const existing = (reviews() || []).find(r => np(r.phone) === clean);
+      if (existing) {
+        if (alertBox && alertMsg) {
+          const dateStr = existing.updatedAt ? new Date(existing.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "";
+          alertMsg.textContent = `Welcome back, ${existing.name || 'valued client'}! You previously rated us ${existing.rating}★ on ${dateStr}. Submitting will update your rating record.`;
+          alertBox.style.display = "block";
+        }
+        if (submitBtn) {
+          submitBtn.innerHTML = "🔄 Update My Rating &amp; Review";
+        }
+        // Prefill existing review details
+        if ($("rev_name") && !$("rev_name").value) $("rev_name").value = existing.name || "";
+        if ($("rev_comment") && !$("rev_comment").value) $("rev_comment").value = existing.review || "";
+        if ($("rev_service") && existing.service) $("rev_service").value = existing.service;
+        if ($("rev_order_no") && existing.orderNo) $("rev_order_no").value = existing.orderNo;
+        if (existing.rating) this.setModalStar(existing.rating);
+        return;
+      }
+    }
+
+    if (alertBox) alertBox.style.display = "none";
+    if (submitBtn) submitBtn.innerHTML = "⭐ Submit Verified Rating";
+  },
+
+  async submitRatingReview() {
+    const starVal = Number($("rev_star") ? $("rev_star").value : 5) || 5;
+    const nameVal = $("rev_name") ? $("rev_name").value.trim() : "";
+    const phoneVal = $("rev_phone") ? $("rev_phone").value.trim() : "";
+    const cleanPhone = np(phoneVal);
+    const serviceVal = $("rev_service") ? $("rev_service").value : "Bespoke Stitching";
+    const orderNoVal = $("rev_order_no") ? $("rev_order_no").value.trim() : "";
+    const commentVal = $("rev_comment") ? $("rev_comment").value.trim() : "";
+
+    if (!nameVal || nameVal.length < 2) {
+      return toast("Please enter your name");
+    }
+    if (cleanPhone.length !== 10) {
+      return toast("Please enter a valid 10-digit mobile number for verification");
+    }
+
+    // Check for existing review by this phone number
+    const existing = (reviews() || []).find(r => np(r.phone) === cleanPhone);
+
+    const reviewData = {
+      id: existing ? existing.id : ("rev_" + uid()),
+      name: Security.escapeHTML(nameVal),
+      phone: cleanPhone,
+      rating: Math.min(5, Math.max(1, starVal)),
+      service: serviceVal,
+      orderNo: orderNoVal,
+      review: Security.escapeHTML(commentVal),
+      status: "Active",
+      createdAt: existing ? (existing.createdAt || Date.now()) : Date.now(),
+      updatedAt: Date.now()
+    };
+
+    await put("reviews", reviewData, reviewData.id);
+
+    if (typeof Realtime !== "undefined" && Realtime.broadcast) {
+      Realtime.broadcast(existing ? "REVIEW_UPDATED" : "REVIEW_SUBMITTED", {
+        rating: reviewData.rating,
+        id: reviewData.id
+      });
+    }
+
+    closeM();
+    toast(existing 
+      ? `Thank you ${nameVal}! Your rating was updated to ${starVal}★ 🔄` 
+      : `Thank you ${nameVal}! Your verified ${starVal}★ rating has been recorded ⭐`);
+
+    this.renderRatingWidget();
   },
 
   // ------------------------------------------
@@ -1708,7 +2006,7 @@ function prefill(p) {
       if ($(p + "a") && !$(p + "a").value) $(p + "a").value = c.address || "";
       const last = (c.measures || [])[0];
       if (last && last.m) {
-        MEAS.forEach((m, i) => {
+        (typeof getMeasurements === "function" ? getMeasurements() : MEAS).forEach((m, i) => {
           const mEl = $(p + "m" + i);
           if (mEl && last.m[m]) mEl.value = last.m[m];
         });
@@ -1783,7 +2081,7 @@ function sForm(p, admin = false) {
     </div>
 
     <div class="meas">
-      ${MEAS.map((m, i) => `
+      ${(typeof getMeasurements === "function" ? getMeasurements() : MEAS).map((m, i) => `
         <div>
           <label style="font-size:0.75rem">${m}</label>
           <input id="${p}m${i}" type="number" step="0.5" inputmode="decimal" placeholder='e.g. 36"'>
@@ -1848,7 +2146,8 @@ function submitStitch(p, admin = false) {
   const g = $(p + "g") ? $(p + "g").value : "Blouse";
   const f = $(p + "f") ? $(p + "f").value : "Provide My Own Fabric";
   const m = {};
-  MEAS.forEach((measName, i) => {
+  const activeMeas = typeof getMeasurements === "function" ? getMeasurements() : MEAS;
+  activeMeas.forEach((measName, i) => {
     const el = $(p + "m" + i);
     m[measName] = (el && el.value) ? el.value : "-";
   });
@@ -1880,7 +2179,7 @@ function submitStitch(p, admin = false) {
       if ($(p + "p")) $(p + "p").value = "";
       if ($(p + "a")) $(p + "a").value = "";
       if ($(p + "note")) $(p + "note").value = "";
-      MEAS.forEach((_, i) => {
+      activeMeas.forEach((_, i) => {
         if ($(p + "m" + i)) $(p + "m" + i).value = "";
       });
       Customer.showOrderConfirmation(o);

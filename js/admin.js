@@ -4,6 +4,7 @@
 
 const TABS = [
   { id: "Dashboard", label: "Dashboard", icon: "📊", group: "Overview" },
+  { id: "Reviews", label: "Client Reviews", icon: "⭐", group: "Store" },
   { id: "AI", label: "AI Business Suite", icon: "✨", group: "Overview" },
   { id: "Orders", label: "Orders & Invoices", icon: "📦", group: "Store" },
   { id: "Stitching", label: "Stitching Queue", icon: "✂️", group: "Store" },
@@ -239,6 +240,7 @@ function panel() {
   let body = "";
   switch (S.tab) {
     case "Dashboard": body = renderDash(); break;
+    case "Reviews": body = renderReviewsTab(); break;
     case "AI": body = renderAITab(); break;
     case "Orders": body = renderOrdersTab(); break;
     case "Stitching": body = renderStitchingTab(); break;
@@ -277,6 +279,7 @@ function panel() {
             ${TABS.filter(t => t.group === grp).map(t => {
               let badge = "";
               if (t.id === "Orders" && oCount) badge = `<span class="nav-badge">${oCount}</span>`;
+              if (t.id === "Reviews" && reviews().length) badge = `<span class="nav-badge" style="background:#f59e0b;color:#fff">${reviews().length}</span>`;
               if (t.id === "Stitching" && pendingVerificationOrders) badge = `<span class="nav-badge" style="background:var(--warn)">${pendingVerificationOrders} check</span>`;
               if (t.id === "Products" && lowCount) badge = `<span class="nav-badge" style="background:var(--warn)">${lowCount}</span>`;
               if (t.id === "Coupons") badge = `<span class="nav-badge" style="background:var(--br2)">${coupons().filter(c=>c.active).length}</span>`;
@@ -457,36 +460,105 @@ function renderDash() {
       </div>
     </div>
 
+    <!-- Dedicated Financial Integrity & Payment Segregation Deck -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:14px;margin-bottom:18px">
+      <!-- 1. Verified Paid Revenue -->
+      <div class="box" style="margin:0;border:1.5px solid var(--ok);background:color-mix(in srgb,var(--ok) 6%,var(--sf));border-radius:16px;padding:16px 18px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <span style="font-size:0.75rem;font-weight:700;color:var(--ok);letter-spacing:0.06em;text-transform:uppercase">
+              🟢 Confirmed Paid Revenue
+            </span>
+            <div style="font-size:1.85rem;font-weight:800;color:var(--ok);margin:4px 0 2px">
+              ${R(analytics.totalPaidRev)}
+            </div>
+            <div style="font-size:0.8rem;color:var(--mu)">
+              <b>${analytics.paidCount}</b> verified bills realized in bank / UPI / shop cash.
+            </div>
+          </div>
+          <span style="font-size:2rem">💰</span>
+        </div>
+        <div style="margin-top:10px;padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--ok) 30%,transparent);display:flex;justify-content:space-between;align-items:center;font-size:0.78rem">
+          <span style="color:var(--ok);font-weight:600">✓ Official Realized Revenue</span>
+          <button class="btn s ok" style="padding:3px 10px;font-size:0.74rem" onclick="S.dashBillFilter='Paid';panel()">View Paid Bills (${analytics.paidCount}) ➔</button>
+        </div>
+      </div>
+
+      <!-- 2. Claimed Payments (Awaiting Verification) -->
+      <div class="box" style="margin:0;border:1.5px solid var(--warn);background:color-mix(in srgb,var(--warn) 7%,var(--sf));border-radius:16px;padding:16px 18px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <span style="font-size:0.75rem;font-weight:700;color:var(--warn);letter-spacing:0.06em;text-transform:uppercase">
+              🟡 Customer Claimed Payments
+            </span>
+            <div style="font-size:1.85rem;font-weight:800;color:var(--warn);margin:4px 0 2px">
+              ${R(analytics.totalClaimedRev)}
+            </div>
+            <div style="font-size:0.8rem;color:var(--mu)">
+              <b>${analytics.claimedCount}</b> payment claims pending verification.
+            </div>
+          </div>
+          <span style="font-size:2rem">⚠️</span>
+        </div>
+        <div style="margin-top:10px;padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--warn) 30%,transparent);display:flex;justify-content:space-between;align-items:center;font-size:0.78rem">
+          <span style="color:var(--warn);font-weight:600">Pending Bank Check · Excluded from Revenue</span>
+          <button class="btn s" style="padding:3px 10px;font-size:0.74rem;border-color:var(--warn);color:var(--warn)" onclick="S.dashBillFilter='Claimed';panel()">Review Claims (${analytics.claimedCount}) ➔</button>
+        </div>
+      </div>
+
+      <!-- 3. Unpaid & COD Balance -->
+      <div class="box" style="margin:0;border:1.5px solid var(--bad);background:color-mix(in srgb,var(--bad) 6%,var(--sf));border-radius:16px;padding:16px 18px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <span style="font-size:0.75rem;font-weight:700;color:var(--bad);letter-spacing:0.06em;text-transform:uppercase">
+              🔴 Unpaid &amp; Pending Balance Due
+            </span>
+            <div style="font-size:1.85rem;font-weight:800;color:var(--bad);margin:4px 0 2px">
+              ${R(analytics.totalUnpaidRev)}
+            </div>
+            <div style="font-size:0.8rem;color:var(--mu)">
+              <b>${analytics.unpaidCount}</b> bills pending payment upon delivery/fitting.
+            </div>
+          </div>
+          <span style="font-size:2rem">⏳</span>
+        </div>
+        <div style="margin-top:10px;padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--bad) 30%,transparent);display:flex;justify-content:space-between;align-items:center;font-size:0.78rem">
+          <span style="color:var(--bad);font-weight:600">Not Paid Yet · Excluded from Revenue</span>
+          <button class="btn s" style="padding:3px 10px;font-size:0.74rem;border-color:var(--bad);color:var(--bad)" onclick="S.dashBillFilter='Unpaid';panel()">View Due (${analytics.unpaidCount}) ➔</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Top KPI Grid: Comprehensive Revenue & Volume Metrics -->
     <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));">
       <!-- 1. Today's Revenue -->
       <div class="kpi-card" style="border-top: 3px solid var(--ok);">
         <div class="kpi-icon">💵</div>
-        <small>Today's Sales</small>
-        <b style="color:var(--ok)">${R(analytics.todayRev)}</b>
-        <span class="trend up">${analytics.todayOrders} order(s) placed today</span>
+        <small>Today's Confirmed Sales</small>
+        <b style="color:var(--ok)">${R(analytics.todayPaidRev)}</b>
+        <span class="trend up">${analytics.todayOrders} paid order(s) today</span>
       </div>
 
       <!-- 2. This Week's Revenue -->
       <div class="kpi-card" style="border-top: 3px solid var(--br);">
         <div class="kpi-icon">📅</div>
-        <small>This Week's Revenue</small>
-        <b>${R(analytics.weekRev)}</b>
-        <span class="trend up">${analytics.weekOrders} orders (last 7 days)</span>
+        <small>This Week's Confirmed Sales</small>
+        <b>${R(analytics.weekPaidRev)}</b>
+        <span class="trend up">${analytics.weekOrders} paid orders (7 days)</span>
       </div>
 
       <!-- 3. This Month's Revenue -->
       <div class="kpi-card" style="border-top: 3px solid var(--gd);">
         <div class="kpi-icon">🗓️</div>
-        <small>Current Month Total</small>
-        <b style="color:var(--gd)">${R(analytics.monthRev)}</b>
-        <span class="trend up">${analytics.monthOrders} orders in ${new Date().toLocaleDateString('en-IN', {month: 'long'})}</span>
+        <small>Current Month Total (Paid)</small>
+        <b style="color:var(--gd)">${R(analytics.monthPaidRev)}</b>
+        <span class="trend up">${analytics.monthOrders} paid in ${new Date().toLocaleDateString('en-IN', {month: 'long'})}</span>
       </div>
 
       <!-- 4. Highest Revenue Day -->
       <div class="kpi-card" style="border-top: 3px solid #f59e0b; background: linear-gradient(135deg, color-mix(in srgb, #f59e0b 8%, var(--sf)), var(--sf));">
         <div class="kpi-icon">⭐</div>
-        <small>Highest Revenue Day</small>
+        <small>Highest Paid Day</small>
         <b style="color:#d97706">${R(analytics.highestDay.amount)}</b>
         <span class="trend" style="color:#b45309;font-weight:600">🌟 Peak: ${analytics.highestDay.dateFormatted}</span>
       </div>
@@ -494,9 +566,9 @@ function renderDash() {
       <!-- 5. Lifetime Store Revenue -->
       <div class="kpi-card">
         <div class="kpi-icon">💰</div>
-        <small>Total Lifetime Sales</small>
+        <small>Total Realized Revenue</small>
         <b>${R(analytics.lifetimeRev)}</b>
-        <span class="trend">${analytics.totalOrdersCount} total orders recorded</span>
+        <span class="trend">${analytics.paidCount} paid / ${analytics.totalOrdersCount} orders</span>
       </div>
 
       <!-- 6. Active In-Progress Orders -->
@@ -521,6 +593,14 @@ function renderDash() {
         <small>Payments To Verify</small>
         <b style="color:${claimed.length ? 'var(--warn)' : 'var(--ok)'}">${claimed.length}</b>
         <span class="trend ${claimed.length ? 'alert' : ''}">${claimed.length ? '⚠️ Customer Claimed UPI' : '✅ All verified'}</span>
+      </div>
+
+      <!-- 9. Client Ratings & Reviews -->
+      <div class="kpi-card" style="border-top:3px solid #f59e0b;cursor:pointer;background:linear-gradient(135deg,color-mix(in srgb,#f59e0b 6%,var(--sf)),var(--sf))" onclick="S.tab='Reviews';panel()" title="Click to view private client reviews & moderate ratings">
+        <div class="kpi-icon">⭐</div>
+        <small>Client Ratings &amp; Reviews</small>
+        <b style="color:#d97706">${(typeof getShopRatingStats === 'function' ? getShopRatingStats().averageFormatted : '5.0')} ★</b>
+        <span class="trend up" style="color:#b45309;font-weight:600">${reviews().length} verified reviews · Manage ➔</span>
       </div>
     </div>
 
@@ -784,6 +864,142 @@ function renderDash() {
       </div>
     </div>
 
+    <!-- Dedicated Boutique Financial Bills Ledger & Payment Verification Center -->
+    ${(() => {
+      const billFilter = S.dashBillFilter || "All";
+      const billSearch = (S.dashBillSearch || "").trim().toLowerCase();
+      let billList = os.filter(x => x.status !== "Cancelled");
+      if (billFilter === "Paid") billList = billList.filter(x => x.paid === "Paid");
+      else if (billFilter === "Claimed") billList = billList.filter(x => x.paid === "Claimed");
+      else if (billFilter === "Unpaid") billList = billList.filter(x => x.paid === "Unpaid" || !x.paid);
+
+      if (billSearch) {
+        billList = billList.filter(x => 
+          (x.no && String(x.no).toLowerCase().includes(billSearch)) ||
+          (x.customer && x.customer.toLowerCase().includes(billSearch)) ||
+          (x.phone && x.phone.includes(billSearch)) ||
+          (x.cid && x.cid.toLowerCase().includes(billSearch)) ||
+          (x.pay && x.pay.toLowerCase().includes(billSearch))
+        );
+      }
+
+      billList.sort((a, b) => b.ts - a.ts);
+      const displayBills = billList.slice(0, 10);
+
+      return `
+        <div class="box" style="margin-bottom:20px;border-top:3px solid var(--br)">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+            <div>
+              <b>📑 Boutique Financial Ledger &amp; Payment Reconciliation</b>
+              <p style="font-size:0.8rem;color:var(--mu);margin:3px 0 0">
+                Organized breakdown of Paid, Claimed, and Unpaid bills. Revenue is counted <b>only</b> on confirmed payment.
+              </p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn s" onclick="exportOrdersCSV()">📄 Export Bills CSV</button>
+              <button class="btn s p" onclick="S.tab='Orders';panel()">All Orders (${os.length}) ➔</button>
+            </div>
+          </div>
+
+          <!-- Payment Filter Tabs & Search Bar -->
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--ln)">
+            <div class="tabs" style="justify-content:flex-start;margin:0">
+              <span class="chip ${billFilter === 'All' ? 'on' : ''}" onclick="S.dashBillFilter='All';panel()">All Bills (${analytics.totalOrdersCount})</span>
+              <span class="chip ${billFilter === 'Paid' ? 'on' : ''}" style="${analytics.paidCount ? 'color:var(--ok);font-weight:700' : ''}" onclick="S.dashBillFilter='Paid';panel()">🟢 Paid (${analytics.paidCount}) · ${R(analytics.totalPaidRev)}</span>
+              <span class="chip ${billFilter === 'Claimed' ? 'on' : ''}" style="${analytics.claimedCount ? 'border-color:var(--warn);color:var(--warn);font-weight:700' : ''}" onclick="S.dashBillFilter='Claimed';panel()">🟡 Claimed (${analytics.claimedCount}) · ${R(analytics.totalClaimedRev)}</span>
+              <span class="chip ${billFilter === 'Unpaid' ? 'on' : ''}" style="${analytics.unpaidCount ? 'border-color:var(--bad);color:var(--bad);font-weight:700' : ''}" onclick="S.dashBillFilter='Unpaid';panel()">🔴 Unpaid (${analytics.unpaidCount}) · ${R(analytics.totalUnpaidRev)}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input id="dashBillSearchInput" placeholder="🔍 Search bill #, client, phone..." value="${Security.escapeHTML(S.dashBillSearch || '')}" oninput="S.dashBillSearch=this.value.trim().toLowerCase();panel()" style="margin:0;padding:6px 12px;font-size:0.84rem;width:220px">
+              ${S.dashBillSearch ? `<button class="btn s" onclick="S.dashBillSearch='';panel()" style="padding:6px 10px">✕</button>` : ''}
+            </div>
+          </div>
+
+          <!-- Bills Table -->
+          <div style="overflow-x:auto;margin-top:14px">
+            <table>
+              <thead>
+                <tr>
+                  <th>Bill / Invoice #</th>
+                  <th>Date</th>
+                  <th>Client</th>
+                  <th>Type &amp; Garment / Items</th>
+                  <th>Amount ₹</th>
+                  <th>Payment Mode</th>
+                  <th>Payment Status</th>
+                  <th style="text-align:right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${displayBills.map(o => {
+                  const isPaid = o.paid === "Paid";
+                  const isClaimed = o.paid === "Claimed";
+                  const statusPill = isPaid 
+                    ? `<span class="pill ok" style="font-weight:700">✓ Paid</span>` 
+                    : isClaimed 
+                    ? `<span class="pill w" style="font-weight:700">⚠️ Claimed</span>` 
+                    : `<span class="pill bad" style="font-weight:700">🔴 Unpaid</span>`;
+
+                  return `
+                    <tr>
+                      <td>
+                        <b style="color:var(--tx)">#${Security.escapeHTML(o.no)}</b><br>
+                        <small style="color:var(--mu)">ID: ${Security.escapeHTML(o.cid || 'N/A')}</small>
+                      </td>
+                      <td style="font-size:0.82rem;white-space:nowrap">${new Date(o.ts).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</td>
+                      <td>
+                        <b>${Security.escapeHTML(o.customer)}</b><br>
+                        <small style="color:var(--mu)">+91 ${Security.escapeHTML(o.phone)}</small>
+                      </td>
+                      <td>
+                        <span class="tag" style="font-size:0.72rem">${o.type === 'Stitch' ? '✂️ Stitching' : '👗 Readymade'}</span>
+                        <small style="color:var(--tx);font-weight:600;display:block;margin-top:2px">
+                          ${Security.escapeHTML(o.type === 'Stitch' ? (o.garment || 'Custom Stitch') : (o.items || []).map(i => i.n + ' (x' + i.q + ')').join(', ') || 'Boutique Collection')}
+                        </small>
+                      </td>
+                      <td>
+                        <b style="font-size:0.95rem;color:${isPaid ? 'var(--ok)' : isClaimed ? 'var(--warn)' : 'var(--tx)'}">${R(o.total)}</b>
+                        ${o.discount ? `<br><small style="color:var(--ok)">-${R(o.discount)} off</small>` : ''}
+                      </td>
+                      <td>
+                        <span style="font-size:0.82rem;color:var(--mu)">${Security.escapeHTML(o.pay || 'UPI')}</span>
+                      </td>
+                      <td>
+                        ${statusPill}
+                      </td>
+                      <td style="text-align:right">
+                        <div style="display:inline-flex;gap:4px">
+                          ${!isPaid ? `
+                            <button class="btn s ok" style="padding:4px 8px;font-size:0.75rem;font-weight:700" onclick="onOrderPaymentChange('${o.id}', 'Paid')" title="Confirm that money is received in bank/cash">
+                              ✓ Verify Paid
+                            </button>
+                          ` : ''}
+                          <button class="btn s" style="padding:4px 8px;font-size:0.75rem" onclick="printInvoice('${o.id}')" title="Print Professional Boutique Invoice">
+                            🧾 Receipt
+                          </button>
+                          <button class="btn s g" style="padding:4px 8px;font-size:0.75rem" onclick="sendWhatsAppInvoice('${o.id}')" title="Send Invoice on WhatsApp">
+                            💬
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join("") || `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--mu)">No bills match the selected filter "${Security.escapeHTML(billFilter)}".</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+          ${billList.length > 10 ? `
+            <div style="text-align:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--ln);font-size:0.84rem">
+              <span style="color:var(--mu)">Showing 10 of <b>${billList.length}</b> bills in this view.</span>
+              <button class="btn s" style="margin-left:8px" onclick="S.tab='Orders';S.ofilter='${billFilter === 'Paid' ? 'Paid' : billFilter === 'Claimed' ? 'Pending Payment' : 'All'}';panel()">
+                View All ${billList.length} Orders ➔
+              </button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    })()}
+
     <!-- AI Boutique Health Score & Strategy -->
     <div class="box">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:10px">
@@ -935,89 +1151,212 @@ function sendWhatsAppUpdate(orderId) {
   window.open(`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
+function toggleInvoicePrintFormat(format) {
+  const el = $("invoice-print-area");
+  const a4Btn = $("btn-inv-a4");
+  const thermalBtn = $("btn-inv-thermal");
+  if (!el) return;
+  if (format === "thermal") {
+    el.classList.add("thermal-mode");
+    if (a4Btn) a4Btn.classList.remove("on");
+    if (thermalBtn) thermalBtn.classList.add("on");
+  } else {
+    el.classList.remove("thermal-mode");
+    if (a4Btn) a4Btn.classList.add("on");
+    if (thermalBtn) thermalBtn.classList.remove("on");
+  }
+}
+
 function printInvoice(orderId) {
   const o = orders().find(x => x.id == orderId);
   if (!o) return;
   const c = S.cfg;
+  const isPaid = o.paid === "Paid";
+  const isClaimed = o.paid === "Claimed";
+  const stampClass = isPaid ? "paid" : isClaimed ? "claimed" : "unpaid";
+  const stampText = isPaid ? "✓ Confirmed & Paid" : isClaimed ? "⚠️ Claimed (Pending Check)" : "Unpaid / Balance Due";
+  const activeMeas = typeof getMeasurements === "function" ? getMeasurements() : MEAS;
+  const measKeys = Array.from(new Set([...activeMeas, ...Object.keys(o.measure || {})]));
+  const hasMeas = o.type === "Stitch" && o.measure && Object.values(o.measure).some(v => v && v !== "-");
+
   modal(`
+    <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div class="tabs" style="margin:0">
+        <span id="btn-inv-a4" class="chip on" onclick="toggleInvoicePrintFormat('a4')">📄 Standard A4 Invoice</span>
+        <span id="btn-inv-thermal" class="chip" onclick="toggleInvoicePrintFormat('thermal')">🧾 80mm Receipt Size</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn s g" onclick="sendWhatsAppInvoice('${o.id}')" title="Send official invoice summary to client via WhatsApp">💬 WhatsApp</button>
+        <button class="btn s p" onclick="window.print()" title="Print invoice to paper or save as PDF">🖨️ Print Now</button>
+        <button class="btn s" onclick="closeM()">✕</button>
+      </div>
+    </div>
+
     <div id="invoice-print-area" class="invoice-sheet">
-      <div class="invoice-header">
-        <div>
-          <h2 style="color:var(--br);margin:0">${E(c.payee)}</h2>
-          <small style="color:var(--mu)">${E(c.address)}<br>Phone: +${E(c.shopPhone)}</small>
+      <!-- Luxury Atelier Header -->
+      <div class="invoice-header-luxury">
+        <div class="invoice-atelier-crest">
+          <div class="invoice-crest-icon">⚜️</div>
+          <div>
+            <h1 class="invoice-brand-h1">${Security.escapeHTML(c.payee || "SAIFA DESIGNS")}</h1>
+            <div class="invoice-brand-sub">Haute Couture · Bespoke Ladies Atelier · Luxury Fabrics</div>
+            <div style="font-size:0.78rem;color:#4b5563;margin-top:4px;line-height:1.4">
+              ${Security.escapeHTML(c.address || "Shop No. 12, Gulshan Market, Main Road, New Delhi 110025")}<br>
+              Atelier Phone: <b>+${Security.escapeHTML(c.shopPhone || "919999999999")}</b> · UPI: <b>${Security.escapeHTML(c.upi || "saifadesigns@okhdfcbank")}</b>
+            </div>
+          </div>
         </div>
-        <div style="text-align:right">
-          <h3 style="margin:0;color:var(--gd)">RETAIL INVOICE</h3>
-          <p style="margin:2px 0"><b>Invoice No:</b> #${E(o.no)}</p>
-          <small>Date: ${new Date(o.ts).toLocaleDateString("en-IN")}</small>
+
+        <div class="invoice-meta-box">
+          <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1.1rem;color:#8e1647">OFFICIAL RETAIL INVOICE</div>
+          <div style="margin:3px 0"><b>Invoice No:</b> #${Security.escapeHTML(o.no)}</div>
+          <div><b>Booking Date:</b> ${new Date(o.ts).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+          <div><b>Trial / Delivery:</b> ${o.due ? Security.escapeHTML(o.due) : "Priority Service"}</div>
+          <div>
+            <span class="invoice-pill-stamp ${stampClass}">${stampText}</span>
+          </div>
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;font-size:0.88rem">
+      <!-- Customer & Transaction Details Grid -->
+      <div class="invoice-info-grid">
         <div>
-          <b>Billed To:</b><br>
-          ${E(o.customer)}<br>
-          Phone: ${E(o.phone)}<br>
-          Client ID: <b>${E(o.cid)}</b><br>
-          ${E(o.address)}
+          <b style="color:#8e1647;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.04em">Client Information:</b>
+          <div style="font-size:1.05rem;font-weight:700;margin:3px 0 1px;color:#111">${Security.escapeHTML(o.customer)}</div>
+          <div>Mobile: <b>+91 ${Security.escapeHTML(o.phone)}</b></div>
+          <div>Client Profile ID: <b>#${Security.escapeHTML(o.cid || "SAIFA-CLIENT")}</b></div>
+          <div style="color:#4b5563;margin-top:2px">Fitting / Address: ${Security.escapeHTML(o.address || "Boutique Counter Pickup / Trial")}</div>
         </div>
-        <div style="text-align:right">
-          <b>Payment Details:</b><br>
-          Mode: ${E(o.pay)}<br>
-          Status: <b>${E(o.paid)}</b><br>
-          Order Status: <b>${E(o.status)}</b>
+
+        <div style="border-left:1px solid #e5e7eb;padding-left:14px">
+          <b style="color:#8e1647;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.04em">Transaction &amp; Order Specs:</b>
+          <div style="margin-top:3px">Order Type: <b>${o.type === 'Stitch' ? '✂️ Bespoke Custom Stitching' : '👗 Ready-to-Wear / Fabric'}</b></div>
+          <div>Payment Channel: <b>${Security.escapeHTML(o.pay || "UPI")}</b></div>
+          <div>Payment Status: <b style="color:${isPaid ? '#059669' : isClaimed ? '#d97706' : '#dc2626'}">${Security.escapeHTML(o.paid || "Unpaid")}</b></div>
+          <div>Order Status: <b>${Security.escapeHTML(o.status || "Confirmed")}</b></div>
         </div>
       </div>
 
-      ${o.type === "Stitch" && o.measure ? `
-        <div style="background:#f9f5f6;padding:10px;border-radius:10px;margin-bottom:14px;font-size:0.84rem">
-          <b>Tailoring Measurements (${E(o.garment)}):</b><br>
-          ${MEAS.map(m => `${m}: <b>${E(o.measure[m] || "-")}"</b>`).join(" · ")}
-        </div>
-      ` : ""}
-
-      <table>
+      <!-- Itemized Products / Tailoring Table -->
+      <table class="invoice-table">
         <thead>
           <tr>
-            <th>Item Description</th>
-            <th style="text-align:center">Qty</th>
-            <th style="text-align:right">Price</th>
-            <th style="text-align:right">Amount</th>
+            <th style="text-align:left">Item &amp; Specifications</th>
+            <th style="text-align:center;width:60px">Qty</th>
+            <th style="text-align:right;width:110px">Rate (₹)</th>
+            <th style="text-align:right;width:120px">Total (₹)</th>
           </tr>
         </thead>
         <tbody>
           ${o.type === "Stitch" ? `
             <tr>
-              <td>${E(o.garment)} Tailoring & Stitching</td>
-              <td style="text-align:center">1</td>
+              <td>
+                <b style="font-size:0.95rem;color:#111">${Security.escapeHTML(o.garment || "Custom Garment")} Tailoring &amp; Crafting</b><br>
+                <span style="color:#4b5563;font-size:0.8rem">Fabric: ${Security.escapeHTML(o.fabric || "Client's Own Fabric")}</span>
+                ${o.note ? `<br><small style="color:#6b7280;font-style:italic">Design Note: "${Security.escapeHTML(o.note)}"</small>` : ""}
+              </td>
+              <td style="text-align:center;font-weight:600">1</td>
               <td style="text-align:right">${R(o.total + (o.discount || 0))}</td>
-              <td style="text-align:right">${R(o.total + (o.discount || 0))}</td>
+              <td style="text-align:right;font-weight:700">${R(o.total + (o.discount || 0))}</td>
             </tr>
           ` : (o.items || []).map(it => `
             <tr>
               <td>
-                <b>${E(it.n)}</b>
-                ${(it.size || it.color) ? `<br><small style="color:var(--mu)">${it.size ? 'Size: ' + E(it.size) : ''}${it.size && it.color ? ' · ' : ''}${it.color ? 'Color: ' + E(it.color) : ''}</small>` : ''}
+                <b style="font-size:0.92rem;color:#111">${Security.escapeHTML(it.n)}</b>
+                ${(it.size || it.color) ? `
+                  <br><span style="display:inline-block;background:#f3f4f6;padding:1px 6px;border-radius:4px;font-size:0.75rem;color:#374151">
+                    ${it.size ? 'Size: <b>' + Security.escapeHTML(it.size) + '</b>' : ''}${it.size && it.color ? ' · ' : ''}${it.color ? 'Color: <b>' + Security.escapeHTML(it.color) + '</b>' : ''}
+                  </span>
+                ` : ""}
               </td>
-              <td style="text-align:center">${it.q}</td>
+              <td style="text-align:center;font-weight:600">${it.q || 1}</td>
               <td style="text-align:right">${R(it.p)}</td>
-              <td style="text-align:right">${R(it.p * it.q)}</td>
+              <td style="text-align:right;font-weight:700">${R((it.p || 0) * (it.q || 1))}</td>
             </tr>
           `).join("")}
         </tbody>
       </table>
 
-      <div style="margin-top:14px;text-align:right">
-        ${o.discount ? `<p style="color:var(--ok)">Coupon Discount: -${R(o.discount)}</p>` : ""}
-        <h3 style="color:var(--br);margin:4px 0">Grand Total: ${R(o.total)}</h3>
+      <!-- Itemized Tailoring Measurements Section (Inches) -->
+      ${hasMeas ? `
+        <div style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <b style="font-size:0.8rem;color:#8e1647;text-transform:uppercase;letter-spacing:0.04em">
+              📐 Bespoke Master Fitting Measurements (${Security.escapeHTML(o.garment)}):
+            </b>
+            <span style="font-size:0.74rem;color:#6b7280">All dimensions in inches (")</span>
+          </div>
+          <div class="invoice-meas-grid">
+            ${measKeys.map(k => `
+              <div class="invoice-meas-cell">
+                <small style="color:#6b7280;display:block;font-size:0.7rem;text-transform:uppercase;font-weight:600">${k}</small>
+                <b style="font-size:0.95rem;color:#111">${Security.escapeHTML((o.measure && o.measure[k] && o.measure[k] !== '-') ? o.measure[k] + '"' : "-")}</b>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      ` : ""}
+
+      <!-- Summary & Financial Totals Block -->
+      <div class="invoice-totals-box">
+        <div style="display:flex;justify-content:space-between;width:240px;color:#4b5563">
+          <span>Subtotal:</span>
+          <span>${R(o.total + (o.discount || 0))}</span>
+        </div>
+        ${o.discount ? `
+          <div style="display:flex;justify-content:space-between;width:240px;color:#059669;font-weight:600">
+            <span>Coupon Discount:</span>
+            <span>-${R(o.discount)}</span>
+          </div>
+        ` : ""}
+        <div style="display:flex;justify-content:space-between;width:240px;border-top:1.5px solid #8e1647;padding-top:6px;margin-top:4px" class="invoice-grand-total">
+          <span style="font-size:1.05rem;color:#111">Grand Total:</span>
+          <span style="color:#8e1647">${R(o.total)}</span>
+        </div>
+        <div style="font-size:0.78rem;color:${isPaid ? '#059669' : '#b45309'};margin-top:2px">
+          ${isPaid ? '✓ Full payment confirmed & verified' : isClaimed ? '⚠️ Payment claimed by client — awaiting bank check' : '⚠️ Outstanding payment balance due upon delivery/trial'}
+        </div>
       </div>
 
-      <div style="margin-top:20px;border-top:1px dashed #ccc;padding-top:12px;display:flex;justify-content:space-between;align-items:center;font-size:0.8rem">
-        <p>Thank you for choosing SAIFA DESIGNS!<br>Alterations are supported on request.</p>
-        <button class="btn p s" onclick="window.print()">🖨️ Print Invoice</button>
+      <!-- Atelier Guarantee Terms & Signatory Footer -->
+      <div class="invoice-footer-terms">
+        <div style="max-width:440px">
+          <b style="color:#374151">Saifa Designs Boutique Guarantee:</b>
+          <div style="margin-top:2px;line-height:1.4">
+            • Complimentary trial fitting &amp; adjustments within 7 days of collection.<br>
+            • Dry cleaning strongly recommended for delicate zari, organza, banarasi, and hand-embroidered silks.
+          </div>
+        </div>
+        <div style="text-align:center;min-width:180px">
+          <div style="border-bottom:1px solid #111;height:38px;margin-bottom:4px"></div>
+          <b>Authorized Atelier Signatory</b><br>
+          <small style="color:#6b7280">SAIFA DESIGNS BOUTIQUE</small>
+        </div>
       </div>
     </div>
   `);
+}
+
+function sendWhatsAppInvoice(orderId) {
+  const o = orders().find(x => x.id == orderId);
+  if (!o) return;
+  const c = S.cfg;
+  const cleanPhone = np(o.phone);
+  const itemsText = o.type === "Stitch" 
+    ? `${o.garment} Tailoring (${o.fabric || 'Bespoke'})`
+    : (o.items || []).map(i => `${i.n} (${i.q}x${R(i.p)})`).join(', ');
+
+  const msg = `✨ *SAIFA DESIGNS ATELIER INVOICE*\n` +
+    `Invoice No: #${o.no}\n` +
+    `Client: ${o.customer} (ID: ${o.cid})\n` +
+    `Items/Craft: ${itemsText}\n` +
+    `Total Amount: ₹${o.total}\n` +
+    `Payment Status: *${o.paid}* (${o.pay})\n` +
+    `Order Status: ${o.status}\n` +
+    `Due Date: ${o.due || 'Priority'}\n\n` +
+    `Thank you for choosing Saifa Designs! Please save this invoice for trials & fittings.`;
+
+  window.open(`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
 function openOrderEdit(orderId) {
@@ -1547,14 +1886,20 @@ function openEditStitchingModal(orderId) {
     </div>
 
     <div style="margin:14px 0 8px">
-      <label style="font-weight:600">Fit Measurements (Inches)</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <label style="font-weight:600;margin:0">Fit Measurements (Inches)</label>
+        <span style="font-size:0.75rem;color:var(--mu)">All points in inches (step 0.5)</span>
+      </div>
       <div class="meas">
-        ${MEAS.map((m, i) => `
-          <div>
-            <label style="font-size:0.75rem">${m}</label>
-            <input id="es_m_${i}" type="number" step="0.5" value="${(o.measure && o.measure[m] !== '-' && o.measure[m]) ? o.measure[m] : ''}" placeholder="-">
-          </div>
-        `).join("")}
+        ${(() => {
+          const measList = Array.from(new Set([...(typeof getMeasurements === "function" ? getMeasurements() : MEAS), ...Object.keys(o.measure || {})]));
+          return measList.map((m, i) => `
+            <div>
+              <label style="font-size:0.75rem">${m}</label>
+              <input id="es_m_${i}" data-meas="${Security.escapeHTML(m)}" type="number" step="0.5" value="${(o.measure && o.measure[m] !== '-' && o.measure[m]) ? o.measure[m] : ''}" placeholder="-">
+            </div>
+          `).join("");
+        })()}
       </div>
     </div>
 
@@ -1571,9 +1916,12 @@ function saveEditedStitching(orderId) {
   if (!o) return;
 
   const m = {};
-  MEAS.forEach((measName, i) => {
-    const el = $("es_m_" + i);
-    m[measName] = (el && el.value) ? el.value : "-";
+  const measInputs = document.querySelectorAll('[id^="es_m_"]');
+  measInputs.forEach(el => {
+    const measKey = el.dataset.meas || el.getAttribute("data-meas");
+    if (measKey) {
+      m[measKey] = el.value ? el.value : "-";
+    }
   });
 
   const newPaid = $("es_paid").value;
@@ -2000,119 +2348,751 @@ function saveEditedCoupon(id) {
 }
 
 // ------------------------------------------
-// 5. Products Management with Image Upload & AI
+// 4B. Dedicated Client Reviews & Ratings Management Tab
+// ------------------------------------------
+function renderReviewsTab() {
+  const allRev = typeof reviews === "function" ? reviews() : (S.reviews || []);
+  const stats = typeof getShopRatingStats === "function" 
+    ? getShopRatingStats() 
+    : { average: 5.0, averageFormatted: "5.0", totalCount: 0, stars: 5, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } };
+  const search = (S.reviewSearch || "").trim().toLowerCase();
+  const starFilter = S.reviewStarFilter || "All";
+  const statusFilter = S.reviewStatusFilter || "All";
+
+  // Filter list
+  let filtered = allRev.filter(r => {
+    if (starFilter !== "All" && Math.round(Number(r.rating) || 5) !== Number(starFilter)) return false;
+    if (statusFilter === "Active" && r.status === "Hidden") return false;
+    if (statusFilter === "Hidden" && r.status !== "Hidden") return false;
+    if (search) {
+      const match = `${r.name || ''} ${r.phone || ''} ${r.review || ''} ${r.orderNo || ''} ${r.service || ''}`.toLowerCase();
+      if (!match.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Sort: newest first
+  filtered.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+
+  const activeCount = allRev.filter(r => r.status !== "Hidden").length;
+  const hiddenCount = allRev.filter(r => r.status === "Hidden").length;
+
+  return `
+    <!-- Top Metrics Deck: Overall Rating Score & Breakdown -->
+    <div class="box" style="border:1px solid var(--br);background:linear-gradient(135deg,color-mix(in srgb,var(--br) 6%,var(--sf)),var(--sf));margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.8rem">⭐</span>
+            <b style="font-size:1.25rem;color:var(--br)">Boutique Ratings &amp; Client Feedback Management</b>
+          </div>
+          <p style="font-size:0.84rem;color:var(--mu);margin:4px 0 0">
+            Real-time verified client reviews and ratings. Manage feedback, moderate visibility, and contact clients directly.
+          </p>
+        </div>
+
+        <!-- Privacy Shield Indicator Pill -->
+        <div style="background:var(--sf2);padding:8px 14px;border-radius:12px;border:1px solid var(--ln);display:flex;align-items:center;gap:8px">
+          <span style="font-size:1.1rem">🔒</span>
+          <span style="font-size:0.8rem;color:var(--tx);font-weight:600">
+            Private Admin Vault · Written reviews &amp; numbers are kept strictly confidential
+          </span>
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:16px">
+        <div style="background:var(--sf);padding:14px;border-radius:14px;border:1px solid var(--ln);text-align:center">
+          <div style="font-size:2.2rem;font-weight:800;color:var(--br);line-height:1;font-family:'Playfair Display',serif">
+            ${stats.averageFormatted} <span style="font-size:1.2rem;color:#f59e0b">★</span>
+          </div>
+          <div style="color:#f59e0b;font-size:1.1rem;margin:3px 0">
+            ${"★".repeat(stats.stars) + "☆".repeat(5 - stats.stars)}
+          </div>
+          <span style="font-size:0.75rem;color:var(--mu);font-weight:600">Live Homepage Score</span>
+        </div>
+
+        <div style="background:var(--sf);padding:14px;border-radius:14px;border:1px solid var(--ln);text-align:center">
+          <div style="font-size:2.2rem;font-weight:800;color:var(--tx);line-height:1">
+            ${allRev.length}
+          </div>
+          <div style="font-size:0.8rem;color:var(--ok);font-weight:700;margin:4px 0">
+            ${activeCount} Active on Score
+          </div>
+          <span style="font-size:0.75rem;color:var(--mu);font-weight:600">Total Client Reviews</span>
+        </div>
+
+        <div style="background:var(--sf);padding:14px;border-radius:14px;border:1px solid var(--ln);text-align:center">
+          <div style="font-size:2.2rem;font-weight:800;color:${hiddenCount ? 'var(--warn)' : 'var(--mu)'};line-height:1">
+            ${hiddenCount}
+          </div>
+          <div style="font-size:0.8rem;color:var(--mu);margin:4px 0">
+            Excluded from calculation
+          </div>
+          <span style="font-size:0.75rem;color:var(--mu);font-weight:600">Moderated / Hidden</span>
+        </div>
+
+        <!-- Star Distribution Mini-Bars -->
+        <div style="background:var(--sf);padding:12px 16px;border-radius:14px;border:1px solid var(--ln);display:flex;flex-direction:column;justify-content:center;gap:4px">
+          ${[5, 4, 3, 2, 1].map(s => {
+            const cnt = stats.breakdown[s] || 0;
+            const pct = allRev.length > 0 ? Math.round((cnt / allRev.length) * 100) : 0;
+            return `
+              <div style="display:flex;align-items:center;gap:6px;font-size:0.75rem">
+                <span style="width:24px;color:var(--tx);font-weight:600">${s}★</span>
+                <div style="flex:1;height:6px;background:var(--sf2);border-radius:99px;overflow:hidden">
+                  <div style="width:${pct}%;height:100%;background:#f59e0b;border-radius:99px"></div>
+                </div>
+                <span style="width:20px;text-align:right;color:var(--mu)">${cnt}</span>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Deck & Search -->
+    <div class="box" style="margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <!-- Star Filters -->
+        <div class="tabs" style="margin:0">
+          <span class="chip ${starFilter === 'All' ? 'on' : ''}" onclick="S.reviewStarFilter='All';panel()">
+            All Stars (${allRev.length})
+          </span>
+          <span class="chip ${starFilter === '5' ? 'on' : ''}" onclick="S.reviewStarFilter='5';panel()">
+            ⭐⭐⭐⭐⭐ (${stats.breakdown[5] || 0})
+          </span>
+          <span class="chip ${starFilter === '4' ? 'on' : ''}" onclick="S.reviewStarFilter='4';panel()">
+            ⭐⭐⭐⭐ (${stats.breakdown[4] || 0})
+          </span>
+          <span class="chip ${starFilter === '3' ? 'on' : ''}" onclick="S.reviewStarFilter='3';panel()">
+            ⭐⭐⭐ (${stats.breakdown[3] || 0})
+          </span>
+          <span class="chip ${starFilter === '2' ? 'on' : ''}" onclick="S.reviewStarFilter='2';panel()">
+            ⭐⭐ (${stats.breakdown[2] || 0})
+          </span>
+          <span class="chip ${starFilter === '1' ? 'on' : ''}" onclick="S.reviewStarFilter='1';panel()">
+            ⭐ (${stats.breakdown[1] || 0})
+          </span>
+        </div>
+
+        <!-- Moderation Status Filter & CSV Export -->
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:0.8rem;color:var(--mu);font-weight:600">Status:</span>
+            <select style="margin:0;padding:5px 10px;font-size:0.84rem;width:auto" onchange="S.reviewStatusFilter=this.value;panel()">
+              <option value="All" ${statusFilter === 'All' ? 'selected' : ''}>All Reviews</option>
+              <option value="Active" ${statusFilter === 'Active' ? 'selected' : ''}>Active (Contributes to Score)</option>
+              <option value="Hidden" ${statusFilter === 'Hidden' ? 'selected' : ''}>Hidden / Moderated</option>
+            </select>
+          </div>
+          <button class="btn s" onclick="exportReviewsCSV()" title="Download Client Reviews in CSV spreadsheet format" style="padding:5px 12px;font-size:0.82rem">
+            📄 Export Reviews (CSV)
+          </button>
+        </div>
+      </div>
+
+      <!-- Search Input -->
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <input style="margin:0;flex:1" placeholder="🔍 Search client name, mobile number, review text or order ID..." value="${Security.escapeHTML(S.reviewSearch || '')}" oninput="S.reviewSearch=this.value.trim().toLowerCase();panel()">
+        ${S.reviewSearch ? `<button class="btn s" onclick="S.reviewSearch='';panel()">Clear</button>` : ''}
+      </div>
+    </div>
+
+    <!-- Client Reviews List -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${filtered.length === 0 ? `
+        <div class="box" style="text-align:center;padding:48px 20px">
+          <div style="font-size:2.8rem;margin-bottom:10px">⭐</div>
+          <b style="font-size:1.1rem;color:var(--tx)">No Reviews Found</b>
+          <p style="font-size:0.85rem;color:var(--mu);max-width:440px;margin:6px auto 14px">
+            ${search || starFilter !== 'All' ? 'No reviews matched your current filters. Try resetting search or star filters.' : 'Client reviews submitted from the homepage rating section will appear here in real time.'}
+          </p>
+          ${search || starFilter !== 'All' || statusFilter !== 'All' ? `
+            <button class="btn s" onclick="S.reviewSearch='';S.reviewStarFilter='All';S.reviewStatusFilter='All';panel()">
+              Reset All Filters
+            </button>
+          ` : ''}
+        </div>
+      ` : filtered.map(r => {
+        const starNum = Number(r.rating) || 5;
+        const dateStr = r.updatedAt 
+          ? new Date(r.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) 
+          : "Recently";
+        const isHidden = r.status === "Hidden";
+        const waMsg = encodeURIComponent(`Hello ${r.name || 'Ji'}, thank you for sharing your valuable review for Saifa Designs! We truly appreciate your feedback and look forward to styling your next fit.`);
+
+        return `
+          <div class="box" style="margin:0;border:1px solid ${isHidden ? 'color-mix(in srgb,var(--warn) 40%,var(--ln))' : 'var(--ln)'};background:${isHidden ? 'color-mix(in srgb,var(--warn) 4%,var(--sf))' : 'var(--sf)'};padding:18px 20px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+              <div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                  <b style="font-size:1.1rem;color:var(--tx)">${Security.escapeHTML(r.name || 'Anonymous Client')}</b>
+                  <span class="pill ok" style="font-size:0.72rem;padding:2px 8px">✓ Mobile Verified</span>
+                  <span class="pill" style="font-size:0.72rem;background:#fef3c7;color:#b45309;font-weight:700">
+                    ${"★".repeat(starNum)} ${starNum}.0 / 5
+                  </span>
+                  ${isHidden ? `<span class="pill warn" style="font-size:0.72rem">Hidden from Public Score</span>` : ''}
+                </div>
+
+                <div style="display:flex;align-items:center;gap:12px;margin-top:6px;font-size:0.8rem;color:var(--mu);flex-wrap:wrap">
+                  <span>📱 <b>+91 ${Security.escapeHTML(r.phone || '')}</b></span>
+                  <span>·</span>
+                  <span>🏷️ <b>${Security.escapeHTML(r.service || 'Boutique Service')}</b></span>
+                  ${r.orderNo ? `<span>·</span><span>📋 Order: <b>#${Security.escapeHTML(r.orderNo)}</b></span>` : ''}
+                  <span>·</span>
+                  <span>🕒 Submitted: ${dateStr}</span>
+                </div>
+              </div>
+
+              <!-- Action Controls -->
+              <div style="display:flex;gap:8px;align-items:center">
+                <a class="btn s g" href="https://wa.me/91${r.phone}?text=${waMsg}" target="_blank" rel="noopener" title="Thank client on WhatsApp">
+                  <span>💬 WhatsApp</span>
+                </a>
+                <button class="btn s" onclick="toggleReviewVisibility('${r.id}')" title="${isHidden ? 'Include in public score calculation' : 'Hide from public score calculation'}">
+                  ${isHidden ? "👁️ Unhide (Include)" : "👁️ Hide (Exclude)"}
+                </button>
+                <button class="btn s d" onclick="requestDelete('reviews','${r.id}','${Security.escapeHTML(r.name)}\\'s review')" title="Delete Review">
+                  🗑️
+                </button>
+              </div>
+            </div>
+
+            <!-- Written Review Content -->
+            <div style="margin-top:12px;background:var(--sf2);padding:14px 16px;border-radius:12px;border:1px solid var(--ln);font-size:0.9rem;line-height:1.55;color:var(--tx)">
+              ${r.review && r.review.trim() !== "" ? `
+                <i style="color:var(--br);font-size:1.2rem;margin-right:4px">“</i>${Security.escapeHTML(r.review)}<i style="color:var(--br);font-size:1.2rem;margin-left:4px">”</i>
+              ` : `
+                <span style="color:var(--mu);font-style:italic">Client gave a verified ${starNum}-star rating without additional written comments.</span>
+              `}
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function toggleReviewVisibility(id) {
+  const r = (reviews() || []).find(x => x.id == id);
+  if (!r) return;
+  const newStatus = r.status === "Hidden" ? "Active" : "Hidden";
+  upd("reviews", id, { status: newStatus }).then(() => {
+    toast(`Review ${newStatus === "Hidden" ? "hidden from score" : "activated on score"} ✅`);
+    if (typeof panel === "function") panel();
+    if (typeof renderFront === "function") renderFront();
+  });
+}
+
+// ------------------------------------------
+// 5. Products & Inventory Management (Search, Filters, Sort, Large Datasets & Edit Modal)
 // ------------------------------------------
 function onProductCategoryChange(cat) {
   const subSel = $("psubcat");
   if (!subSel) return;
-  const list = cat === "Material" ? MATERIAL_SUBCATS : READYMADE_SUBCATS;
+  const list = cat === "Material" 
+    ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS)
+    : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS);
   subSel.innerHTML = list.map(s => `<option value="${Security.escapeHTML(s)}">${Security.escapeHTML(s)}</option>`).join("");
 }
 
-function renderProductsTab() {
-  return `
-    <div class="box">
-      <b>👗 Add New Boutique Garment / Fabric Collection</b>
-      <div class="g2" style="margin-top:8px">
-        <div><label>Product Name</label><input id="pn1" placeholder="e.g. Zari Silk Lehenga"></div>
-        <div>
-          <label>Category</label>
-          <select id="pc" onchange="onProductCategoryChange(this.value)">
-            <option value="Material">Material (Dress Fabrics &amp; Unstitched)</option>
-            <option value="Readymade">Readymade (Pre-Stitched &amp; Occasion Wear)</option>
-          </select>
-        </div>
-        <div>
-          <label>Subcategory</label>
-          <select id="psubcat">
-            ${MATERIAL_SUBCATS.map(s => `<option value="${Security.escapeHTML(s)}">${Security.escapeHTML(s)}</option>`).join("")}
-          </select>
-        </div>
-        <div><label>Selling Price ₹</label><input id="pp" type="number" placeholder="e.g. 2500"></div>
-        <div><label>Initial Stock Units</label><input id="ps" type="number" value="10"></div>
-        <div><label>Fabric Specification</label><input id="pf" placeholder="Pure Chanderi Silk"></div>
-        <div><label>Available Colors</label><input id="pcl" placeholder="Red, Gold, Emerald"></div>
-        <div><label>Sizes Available</label><input id="psz" placeholder="Free size / S, M, L"></div>
-        <div><label>Primary Theme Color</label><input id="ph" type="color" value="#8e1647"></div>
-      </div>
+function onEditProductCategoryChange(cat) {
+  const subSel = $("ep_subcat");
+  if (!subSel) return;
+  const list = cat === "Material" 
+    ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS)
+    : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS);
+  subSel.innerHTML = list.map(s => `<option value="${Security.escapeHTML(s)}">${Security.escapeHTML(s)}</option>`).join("");
+}
 
-      <!-- Image Upload, Live Camera & AI Visualizer Options -->
-      <div style="margin:10px 0;background:var(--sf2);padding:14px;border-radius:14px">
-        <b>🖼️ Product Image: Device Upload, Live Camera Viewfinder or AI</b>
-        <div class="g2" style="margin-top:6px">
-          <div>
-            <label>Upload Photo from Device</label>
-            <input type="file" id="p_file" accept="image/*" onchange="handleProductImageUpload(this)">
-          </div>
-          <div>
-            <label>Live Camera Capture</label>
-            <button type="button" class="btn s p" style="width:100%;margin-top:2px" onclick="captureProductPhotoLive()">
-              📸 Open Live Camera Viewfinder
-            </button>
-          </div>
-        </div>
-        <div class="g2" style="margin-top:8px">
-          <div>
-            <label>Or Paste Image URL</label>
-            <input id="p_img_url" placeholder="https://..." oninput="updateProductImgPreview(this.value)">
-          </div>
-          <div>
-            <label>AI Fabric Pattern</label>
-            <button class="btn s" type="button" style="width:100%;margin-top:2px" onclick="generateAIProductPattern()">
-              ✨ Generate AI Cloth Pattern
-            </button>
-          </div>
-        </div>
-        <div id="p_img_preview_box" style="margin-top:10px;text-align:center;display:${newProductImgData ? 'block' : 'none'}">
-          <img id="p_img_preview" class="img-preview-thumb" src="${newProductImgData || ''}" alt="Preview">
-          <button type="button" class="btn s d" style="margin-top:4px" onclick="clearProductImgPreview()">Clear Photo</button>
-        </div>
-      </div>
+function quickAdjustStock(id, delta) {
+  const p = products().find(x => x.id == id);
+  if (!p) return;
+  const newStock = Math.max(0, (Number(p.stock) || 0) + delta);
+  upd("products", id, { stock: newStock }).then(() => {
+    toast(`Stock updated: "${p.name}" now has ${newStock} unit(s) 📦`);
+    if (typeof panel === "function") panel();
+    if (typeof renderFront === "function") renderFront();
+  });
+}
 
-      <label>Product Description</label>
-      <textarea id="pd" rows="2" placeholder="Rich zari embroidery, matching dupatta..."></textarea>
-      
-      <button class="btn p" onclick="addProd()">Save Product to Catalogue</button>
-      ${products() === SEED_PROD ? ' <button class="btn" onclick="seedDb()">Load Sample Catalogue into Database</button>' : ""}
+function openEditProductModal(id) {
+  const p = products().find(x => x.id == id);
+  if (!p) return toast("Product not found");
+
+  const matSubcats = typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS;
+  const readySubcats = typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS;
+  const activeSubcats = p.cat === "Material" ? matSubcats : readySubcats;
+
+  modal(`
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ln);padding-bottom:10px;margin-bottom:14px">
+      <h2 style="color:var(--br);margin:0;font-size:1.25rem">✏️ Edit Product: ${Security.escapeHTML(p.name)}</h2>
+      <button class="btn s" onclick="closeM()">✕</button>
     </div>
 
+    <div class="g2">
+      <div>
+        <label>Product Name *</label>
+        <input id="ep_name" value="${Security.escapeHTML(p.name || '')}" required>
+      </div>
+      <div>
+        <label>Category *</label>
+        <select id="ep_cat" onchange="onEditProductCategoryChange(this.value)">
+          <option value="Material" ${p.cat === "Material" ? "selected" : ""}>Material (Dress Fabrics &amp; Unstitched)</option>
+          <option value="Readymade" ${p.cat === "Readymade" ? "selected" : ""}>Readymade (Pre-Stitched &amp; Occasion Wear)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="g2" style="margin-top:8px">
+      <div>
+        <label>Subcategory *</label>
+        <select id="ep_subcat">
+          ${activeSubcats.map(s => `<option value="${Security.escapeHTML(s)}" ${p.subcat === s ? "selected" : ""}>${Security.escapeHTML(s)}</option>`).join("")}
+          ${!activeSubcats.includes(p.subcat) && p.subcat ? `<option value="${Security.escapeHTML(p.subcat)}" selected>${Security.escapeHTML(p.subcat)}</option>` : ""}
+        </select>
+      </div>
+      <div>
+        <label>Selling Price ₹ *</label>
+        <input id="ep_price" type="number" value="${p.price || 0}" required>
+      </div>
+    </div>
+
+    <div class="g2" style="margin-top:8px">
+      <div>
+        <label>Current Stock Units *</label>
+        <input id="ep_stock" type="number" value="${p.stock || 0}" required>
+      </div>
+      <div>
+        <label>Fabric Specification</label>
+        <input id="ep_fabric" value="${Security.escapeHTML(p.fabric || '')}">
+      </div>
+    </div>
+
+    <div class="g2" style="margin-top:8px">
+      <div>
+        <label>Available Colors (comma separated)</label>
+        <input id="ep_colors" value="${Security.escapeHTML(p.colors || '')}" placeholder="Red, Gold, Emerald">
+      </div>
+      <div>
+        <label>Sizes Available (comma separated)</label>
+        <input id="ep_sizes" value="${Security.escapeHTML(p.sizes || '')}" placeholder="S, M, L, XL, Free size">
+      </div>
+    </div>
+
+    <div class="g2" style="margin-top:8px">
+      <div>
+        <label>Primary Theme Color</label>
+        <input id="ep_hx" type="color" value="${p.hx || '#8e1647'}">
+      </div>
+      <div>
+        <label>Photo URL</label>
+        <input id="ep_img" value="${Security.escapeHTML(p.img || '')}" placeholder="https://..." oninput="const prv = $('ep_img_prev'); if (prv) prv.src = this.value;">
+      </div>
+    </div>
+
+    <div style="margin-top:10px;text-align:center">
+      <img id="ep_img_prev" src="${p.img || ''}" class="img-preview-thumb" style="display:${p.img ? 'inline-block' : 'none'};max-height:100px;border-radius:10px;border:1px solid var(--ln)" alt="Preview">
+    </div>
+
+    <div style="margin-top:8px">
+      <label>Product Description</label>
+      <textarea id="ep_desc" rows="2">${Security.escapeHTML(p.desc || '')}</textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:space-between;margin-top:16px;padding-top:12px;border-top:1px solid var(--ln)">
+      <button class="btn d" type="button" style="background:var(--bad);color:#fff" onclick="closeM();requestDelete('products','${p.id}')">
+        🗑️ Delete Product
+      </button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" type="button" onclick="closeM()">Cancel</button>
+        <button class="btn p" type="button" onclick="saveEditedProduct('${p.id}')">Save Changes ✅</button>
+      </div>
+    </div>
+  `);
+}
+
+function saveEditedProduct(id) {
+  const p = products().find(x => x.id == id);
+  if (!p) return;
+
+  const n = $("ep_name") ? $("ep_name").value.trim() : "";
+  if (!n) return toast("Product name cannot be empty");
+
+  const cat = $("ep_cat") ? $("ep_cat").value : p.cat;
+  const subcat = $("ep_subcat") ? $("ep_subcat").value : p.subcat;
+  const price = $("ep_price") ? Math.max(0, Number($("ep_price").value) || 0) : p.price;
+  const stock = $("ep_stock") ? Math.max(0, Number($("ep_stock").value) || 0) : p.stock;
+  const fabric = $("ep_fabric") ? $("ep_fabric").value.trim() : (p.fabric || "");
+  const colors = $("ep_colors") ? $("ep_colors").value.trim() : (p.colors || "");
+  const sizes = $("ep_sizes") ? $("ep_sizes").value.trim() : (p.sizes || "");
+  const hx = $("ep_hx") ? $("ep_hx").value : (p.hx || "#8e1647");
+  const img = $("ep_img") ? $("ep_img").value.trim() : (p.img || "");
+  const desc = $("ep_desc") ? $("ep_desc").value.trim() : (p.desc || "");
+
+  upd("products", id, {
+    name: n,
+    cat,
+    subcat,
+    price,
+    stock,
+    fabric,
+    colors,
+    sizes,
+    hx,
+    img,
+    desc
+  }).then(() => {
+    closeM();
+    toast(`Product "${n}" updated successfully! ✅`);
+    if (typeof panel === "function") panel();
+    if (typeof renderFront === "function") renderFront();
+  });
+}
+
+function renderProductsTab() {
+  const allProds = products();
+  const matCount = allProds.filter(p => p.cat === "Material").length;
+  const readyCount = allProds.filter(p => p.cat === "Readymade").length;
+  const lowStockCount = allProds.filter(p => (Number(p.stock) || 0) < 5).length;
+  const outOfStockCount = allProds.filter(p => (Number(p.stock) || 0) <= 0).length;
+
+  const search = (S.prodSearch || "").trim().toLowerCase();
+  const catFilter = S.prodCat || "All";
+  const subcatFilter = S.prodSubcat || "All";
+  const stockFilter = S.prodStock || "All";
+  const sortBy = S.prodSort || "recent";
+  const pageSize = Number(S.prodPageSize) || 12;
+  const currentPage = Math.max(1, Number(S.prodPage) || 1);
+
+  // Available Subcategories based on selected Category filter
+  const matSubcats = typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS;
+  const readySubcats = typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS;
+  const availableSubcats = catFilter === "Material" ? matSubcats : catFilter === "Readymade" ? readySubcats : Array.from(new Set([...matSubcats, ...readySubcats]));
+
+  // 1. Filtering
+  let filtered = allProds.filter(p => {
+    if (catFilter !== "All" && p.cat !== catFilter) return false;
+    if (subcatFilter !== "All" && p.subcat !== subcatFilter) return false;
+    if (stockFilter === "In Stock" && (Number(p.stock) || 0) < 5) return false;
+    if (stockFilter === "Low Stock" && ((Number(p.stock) || 0) >= 5 || (Number(p.stock) || 0) <= 0)) return false;
+    if (stockFilter === "Out of Stock" && (Number(p.stock) || 0) > 0) return false;
+    if (search) {
+      const matchText = `${p.name || ''} ${p.fabric || ''} ${p.subcat || ''} ${p.colors || ''} ${p.sizes || ''} ${p.desc || ''}`.toLowerCase();
+      if (!matchText.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // 2. Sorting
+  filtered.sort((a, b) => {
+    if (sortBy === "price_asc") return (a.price || 0) - (b.price || 0);
+    if (sortBy === "price_desc") return (b.price || 0) - (a.price || 0);
+    if (sortBy === "stock_asc") return (a.stock || 0) - (b.stock || 0);
+    if (sortBy === "stock_desc") return (b.stock || 0) - (a.stock || 0);
+    if (sortBy === "name_asc") return String(a.name || "").localeCompare(String(b.name || ""));
+    if (sortBy === "name_desc") return String(b.name || "").localeCompare(String(a.name || ""));
+    return (b.id || "").localeCompare(a.id || ""); // Newest / Default
+  });
+
+  // 3. Pagination calculation
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const validPage = Math.min(currentPage, totalPages);
+  const startIndex = (validPage - 1) * pageSize;
+  const pageItems = filtered.slice(startIndex, startIndex + pageSize);
+
+  return `
+    <!-- Top Action Deck: Add Product Accordion/Toggle -->
+    <div class="box" style="margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div>
+          <b style="font-size:1.1rem;color:var(--br)">👗 Add New Boutique Garment / Fabric Collection</b>
+          <p style="font-size:0.8rem;color:var(--mu);margin:3px 0 0">
+            Publish brand new luxury materials or readymade collections to your live catalogue and storefront.
+          </p>
+        </div>
+        <button class="btn s" onclick="const f=$('newProdForm'); if(f) f.style.display = f.style.display==='none'?'block':'none'">
+          ✨ Toggle Add Product Form
+        </button>
+      </div>
+
+      <div id="newProdForm" style="display:block;margin-top:12px;padding-top:12px;border-top:1px solid var(--ln)">
+        <div class="g2">
+          <div><label>Product Name *</label><input id="pn1" placeholder="e.g. Zari Silk Lehenga"></div>
+          <div>
+            <label>Category *</label>
+            <select id="pc" onchange="onProductCategoryChange(this.value)">
+              <option value="Material">Material (Dress Fabrics &amp; Unstitched)</option>
+              <option value="Readymade">Readymade (Pre-Stitched &amp; Occasion Wear)</option>
+            </select>
+          </div>
+          <div>
+            <label>Subcategory *</label>
+            <select id="psubcat">
+              ${matSubcats.map(s => `<option value="${Security.escapeHTML(s)}">${Security.escapeHTML(s)}</option>`).join("")}
+            </select>
+          </div>
+          <div><label>Selling Price ₹ *</label><input id="pp" type="number" placeholder="e.g. 2500"></div>
+          <div><label>Initial Stock Units *</label><input id="ps" type="number" value="10"></div>
+          <div><label>Fabric Specification</label><input id="pf" placeholder="Pure Chanderi Silk"></div>
+          <div><label>Available Colors</label><input id="pcl" placeholder="Red, Gold, Emerald"></div>
+          <div><label>Sizes Available</label><input id="psz" placeholder="Free size / S, M, L"></div>
+          <div><label>Primary Theme Color</label><input id="ph" type="color" value="#8e1647"></div>
+        </div>
+
+        <!-- Image Upload, Live Camera & AI Visualizer Options -->
+        <div style="margin:12px 0;background:var(--sf2);padding:14px;border-radius:14px">
+          <b>🖼️ Product Image: Device Upload, Live Camera Viewfinder or AI</b>
+          <div class="g2" style="margin-top:6px">
+            <div>
+              <label>Upload Photo from Device</label>
+              <input type="file" id="p_file" accept="image/*" onchange="handleProductImageUpload(this)">
+            </div>
+            <div>
+              <label>Live Camera Capture</label>
+              <button type="button" class="btn s p" style="width:100%;margin-top:2px" onclick="captureProductPhotoLive()">
+                📸 Open Live Camera Viewfinder
+              </button>
+            </div>
+          </div>
+          <div class="g2" style="margin-top:8px">
+            <div>
+              <label>Or Paste Image URL</label>
+              <input id="p_img_url" placeholder="https://..." oninput="updateProductImgPreview(this.value)">
+            </div>
+            <div>
+              <label>AI Fabric Pattern</label>
+              <button class="btn s" type="button" style="width:100%;margin-top:2px" onclick="generateAIProductPattern()">
+                ✨ Generate AI Cloth Pattern
+              </button>
+            </div>
+          </div>
+          <div id="p_img_preview_box" style="margin-top:10px;text-align:center;display:${newProductImgData ? 'block' : 'none'}">
+            <img id="p_img_preview" class="img-preview-thumb" src="${newProductImgData || ''}" alt="Preview">
+            <button type="button" class="btn s d" style="margin-top:4px" onclick="clearProductImgPreview()">Clear Photo</button>
+          </div>
+        </div>
+
+        <label>Product Description</label>
+        <textarea id="pd" rows="2" placeholder="Rich zari embroidery, matching dupatta..."></textarea>
+        
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <button class="btn p" onclick="addProd()">Save Product to Catalogue</button>
+          ${products() === SEED_PROD ? ' <button class="btn" onclick="seedDb()">Load Sample Catalogue into Database</button>' : ""}
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory Filter Deck, Search & Sorting Controls -->
+    <div class="box" style="padding:16px 20px;margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <!-- Category Filter Tabs -->
+        <div class="tabs" style="margin:0;justify-content:flex-start">
+          <span class="chip ${catFilter === 'All' ? 'on' : ''}" onclick="S.prodCat='All';S.prodSubcat='All';S.prodPage=1;panel()">
+            All (${allProds.length})
+          </span>
+          <span class="chip ${catFilter === 'Material' ? 'on' : ''}" onclick="S.prodCat='Material';S.prodSubcat='All';S.prodPage=1;panel()">
+            Materials (${matCount})
+          </span>
+          <span class="chip ${catFilter === 'Readymade' ? 'on' : ''}" onclick="S.prodCat='Readymade';S.prodSubcat='All';S.prodPage=1;panel()">
+            Readymade (${readyCount})
+          </span>
+        </div>
+
+        <!-- Stock Status Filters -->
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-size:0.8rem;color:var(--mu);font-weight:600">Stock:</span>
+          <select style="margin:0;padding:5px 10px;font-size:0.84rem;width:auto" onchange="S.prodStock=this.value;S.prodPage=1;panel()">
+            <option value="All" ${stockFilter === 'All' ? 'selected' : ''}>All Levels (${allProds.length})</option>
+            <option value="In Stock" ${stockFilter === 'In Stock' ? 'selected' : ''}>🟢 In Stock (≥5 units)</option>
+            <option value="Low Stock" ${stockFilter === 'Low Stock' ? 'selected' : ''}>🟠 Low Stock (${lowStockCount})</option>
+            <option value="Out of Stock" ${stockFilter === 'Out of Stock' ? 'selected' : ''}>🔴 Out of Stock (${outOfStockCount})</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Secondary Controls: Search, Dynamic Subcategories & Sorting Dropdown -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--ln)">
+        <!-- Real-time Search Input -->
+        <div style="position:relative">
+          <input placeholder="🔍 Search name, fabric, colors, sizes..." value="${Security.escapeHTML(S.prodSearch || '')}" oninput="S.prodSearch=this.value.trim().toLowerCase();S.prodPage=1;panel()" style="margin:0;padding:7px 12px;font-size:0.84rem;width:100%">
+          ${S.prodSearch ? `<button class="btn s" onclick="S.prodSearch='';S.prodPage=1;panel()" style="position:absolute;right:4px;top:4px;padding:3px 8px;font-size:0.75rem">✕</button>` : ''}
+        </div>
+
+        <!-- Dynamic Subcategory Dropdown Filter -->
+        <div>
+          <select style="margin:0;padding:7px 10px;font-size:0.84rem;width:100%" onchange="S.prodSubcat=this.value;S.prodPage=1;panel()">
+            <option value="All" ${subcatFilter === 'All' ? 'selected' : ''}>All Subcategories (${availableSubcats.length})</option>
+            ${availableSubcats.map(sub => {
+              const count = allProds.filter(p => (catFilter === 'All' || p.cat === catFilter) && p.subcat === sub).length;
+              return `<option value="${Security.escapeHTML(sub)}" ${subcatFilter === sub ? 'selected' : ''}>${Security.escapeHTML(sub)} (${count})</option>`;
+            }).join("")}
+          </select>
+        </div>
+
+        <!-- Sorting Options -->
+        <div>
+          <select style="margin:0;padding:7px 10px;font-size:0.84rem;width:100%" onchange="S.prodSort=this.value;panel()">
+            <option value="recent" ${sortBy === 'recent' ? 'selected' : ''}>Recently Added (Newest)</option>
+            <option value="price_asc" ${sortBy === 'price_asc' ? 'selected' : ''}>Price: Low to High</option>
+            <option value="price_desc" ${sortBy === 'price_desc' ? 'selected' : ''}>Price: High to Low</option>
+            <option value="stock_asc" ${sortBy === 'stock_asc' ? 'selected' : ''}>Stock: Lowest First (Urgent)</option>
+            <option value="stock_desc" ${sortBy === 'stock_desc' ? 'selected' : ''}>Stock: Highest First</option>
+            <option value="name_asc" ${sortBy === 'name_asc' ? 'selected' : ''}>Name: A to Z</option>
+            <option value="name_desc" ${sortBy === 'name_desc' ? 'selected' : ''}>Name: Z to A</option>
+          </select>
+        </div>
+
+        <!-- Page Size Selector -->
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.78rem;color:var(--mu);white-space:nowrap">Per Page:</span>
+          <select style="margin:0;padding:7px 10px;font-size:0.84rem;width:100%" onchange="S.prodPageSize=Number(this.value);S.prodPage=1;panel()">
+            <option value="12" ${pageSize === 12 ? 'selected' : ''}>12 items</option>
+            <option value="24" ${pageSize === 24 ? 'selected' : ''}>24 items</option>
+            <option value="48" ${pageSize === 48 ? 'selected' : ''}>48 items</option>
+            <option value="1000" ${pageSize === 1000 ? 'selected' : ''}>All items</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory Data Table -->
     <div class="box">
-      <b>Existing Inventory (${(S.prod || []).length} items)</b>
-      <table style="margin-top:10px">
-        <thead>
-          <tr>
-            <th>Photo</th>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Price ₹</th>
-            <th>Stock</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${(S.prod || []).map(p => `
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+        <div>
+          <b>Existing Inventory Collection</b>
+          <span style="color:var(--mu);font-size:0.85rem;margin-left:6px">
+            Showing <b>${totalItems ? startIndex + 1 : 0}–${Math.min(startIndex + pageSize, totalItems)}</b> of <b>${totalItems}</b> matching collection items
+          </span>
+        </div>
+        ${(search || catFilter !== 'All' || subcatFilter !== 'All' || stockFilter !== 'All') ? `
+          <button class="btn s" onclick="S.prodSearch='';S.prodCat='All';S.prodSubcat='All';S.prodStock='All';S.prodPage=1;panel()">
+            🔄 Reset Filters
+          </button>
+        ` : ''}
+      </div>
+
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
             <tr>
-              <td style="width:50px">
-                <div style="width:40px;height:40px;border-radius:8px;overflow:hidden;background:#eee;display:grid;place-items:center">
-                  ${p.img ? `<img src="${p.img}" style="width:100%;height:100%;object-fit:cover">` : p.em || "👗"}
-                </div>
-              </td>
-              <td><b>${E(p.name)}</b><br><small style="color:var(--mu)">${E(p.fabric)}</small></td>
-              <td><span class="tag">${E(p.cat)}</span></td>
-              <td>
-                <input style="width:90px;margin:0;padding:4px 8px" type="number" value="${p.price}" onchange="upd('products','${p.id}',{price:+this.value})">
-              </td>
-              <td>
-                <input style="width:75px;margin:0;padding:4px 8px" type="number" value="${p.stock}" onchange="upd('products','${p.id}',{stock:+this.value})">
-                ${p.stock < 5 ? `<br><small style="color:var(--bad);font-weight:600">Low Stock!</small>` : ""}
-              </td>
-              <td>
-                <button class="btn s d" onclick="requestDelete('products','${p.id}')">✕ Delete</button>
-              </td>
+              <th style="width:60px">Photo</th>
+              <th>Collection Name &amp; Fabric</th>
+              <th>Classification</th>
+              <th style="width:130px">Selling Price</th>
+              <th style="width:180px">Stock Management</th>
+              <th style="text-align:right;width:140px">Actions</th>
             </tr>
-          `).join("") || "<tr><td colspan='6'>No custom products saved. Sample catalogue currently active.</td></tr>"}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${pageItems.map(p => {
+              const currentStock = Number(p.stock) || 0;
+              const isOutOfStock = currentStock <= 0;
+              const isLowStock = currentStock > 0 && currentStock < 5;
+              const stockStatusPill = isOutOfStock 
+                ? `<span class="pill bad" style="font-size:0.72rem;font-weight:700">🔴 Out of Stock</span>`
+                : isLowStock
+                ? `<span class="pill w" style="font-size:0.72rem;font-weight:700">🟠 Low (${currentStock})</span>`
+                : `<span class="pill ok" style="font-size:0.72rem;font-weight:700">🟢 In Stock (${currentStock})</span>`;
+
+              return `
+                <tr>
+                  <td>
+                    <div style="width:48px;height:48px;border-radius:10px;overflow:hidden;background:var(--sf2);display:grid;place-items:center;border:1px solid var(--ln);box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+                      ${p.img ? `<img src="${Security.escapeHTML(p.img)}" style="width:100%;height:100%;object-fit:cover" alt="${Security.escapeHTML(p.name)}" onclick="modal('<div style=\\'text-align:center\\'><img src=\\'${Security.escapeHTML(p.img)}\\' style=\\'max-width:100%;border-radius:14px\\'></div>')" title="Click to enlarge">` : `<span style="font-size:1.6rem">${p.em || "👗"}</span>`}
+                    </div>
+                  </td>
+                  <td>
+                    <b style="font-size:0.95rem;color:var(--tx)">${Security.escapeHTML(p.name)}</b><br>
+                    <small style="color:var(--mu);font-weight:600">${Security.escapeHTML(p.fabric || 'Luxury Fabric')}</small>
+                    ${(p.colors || p.sizes) ? `
+                      <div style="margin-top:3px;font-size:0.75rem;color:var(--mu)">
+                        ${p.colors ? `Colors: <i>${Security.escapeHTML(p.colors)}</i>` : ''}
+                        ${p.colors && p.sizes ? ' · ' : ''}
+                        ${p.sizes ? `Sizes: <b>${Security.escapeHTML(p.sizes)}</b>` : ''}
+                      </div>
+                    ` : ''}
+                  </td>
+                  <td>
+                    <span class="tag" style="margin-bottom:2px">${Security.escapeHTML(p.cat || 'Collection')}</span><br>
+                    <small style="color:var(--mu);font-weight:600">${Security.escapeHTML(p.subcat || 'General')}</small>
+                  </td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:3px">
+                      <b>₹</b>
+                      <input style="width:90px;margin:0;padding:5px 8px;font-weight:700;font-size:0.86rem" type="number" value="${p.price}" onchange="upd('products','${p.id}',{price:+this.value}).then(()=>{toast('Price updated to ₹'+this.value);if(typeof renderFront==='function')renderFront();})">
+                    </div>
+                  </td>
+                  <td>
+                    <div style="margin-bottom:4px">${stockStatusPill}</div>
+                    <div style="display:flex;align-items:center;gap:4px">
+                      <button class="btn s" style="padding:4px 8px;font-weight:800;font-size:0.85rem" onclick="quickAdjustStock('${p.id}', -1)" title="Decrease stock by 1">−</button>
+                      <input style="width:65px;margin:0;padding:4px 6px;text-align:center;font-weight:700;font-size:0.86rem" type="number" value="${currentStock}" onchange="upd('products','${p.id}',{stock:+this.value}).then(()=>{toast('Stock updated to '+this.value);if(typeof renderFront==='function')renderFront();})">
+                      <button class="btn s" style="padding:4px 8px;font-weight:800;font-size:0.85rem" onclick="quickAdjustStock('${p.id}', 1)" title="Increase stock by 1">+</button>
+                      <button class="btn s ok" style="padding:4px 8px;font-size:0.75rem" onclick="quickAdjustStock('${p.id}', 10)" title="Quick restock +10 units">+10</button>
+                    </div>
+                  </td>
+                  <td style="text-align:right">
+                    <div style="display:inline-flex;gap:6px">
+                      <button class="btn s" onclick="openEditProductModal('${p.id}')" title="Edit full product details">
+                        ✏️ Edit
+                      </button>
+                      <button class="btn s d" onclick="requestDelete('products','${p.id}')" title="Delete product permanently">
+                        ✕
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join("") || `
+              <tr>
+                <td colspan="6" style="text-align:center;padding:36px;color:var(--mu)">
+                  <div style="font-size:2.2rem;margin-bottom:8px">🔍</div>
+                  <b>No products found matching your search and filter criteria.</b><br>
+                  <button class="btn s" style="margin-top:10px" onclick="S.prodSearch='';S.prodCat='All';S.prodSubcat='All';S.prodStock='All';S.prodPage=1;panel()">
+                    Reset All Filters
+                  </button>
+                </td>
+              </tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Footer Controls for Large Datasets -->
+      ${totalPages > 1 ? `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--ln);flex-wrap:wrap;gap:10px">
+          <div style="font-size:0.84rem;color:var(--mu)">
+            Page <b>${validPage}</b> of <b>${totalPages}</b> (${totalItems} total items)
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn s" ${validPage <= 1 ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''} onclick="S.prodPage=${validPage - 1};panel()">
+              ◀ Previous
+            </button>
+            <div style="display:flex;gap:4px">
+              ${(() => {
+                const maxButtons = 5;
+                const startBtn = Math.max(1, validPage - 2);
+                const endBtn = Math.min(totalPages, startBtn + maxButtons - 1);
+                const btns = [];
+                for (let pg = startBtn; pg <= endBtn; pg++) {
+                  btns.push(`
+                    <button class="btn s ${pg === validPage ? 'p' : ''}" style="min-width:32px;padding:4px 8px;font-weight:700" onclick="S.prodPage=${pg};panel()">
+                      ${pg}
+                    </button>
+                  `);
+                }
+                return btns.join("");
+              })()}
+            </div>
+            <button class="btn s" ${validPage >= totalPages ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''} onclick="S.prodPage=${validPage + 1};panel()">
+              Next ▶
+            </button>
+          </div>
+        </div>
+      ` : ''}
     </div>
   `;
 }
@@ -2172,7 +3152,7 @@ function addProd() {
   const n = $("pn1").value.trim();
   if (!n) return toast("Enter product name");
   const cat = $("pc") ? $("pc").value : "Material";
-  const subcat = $("psubcat") ? $("psubcat").value : (cat === "Material" ? MATERIAL_SUBCATS[0] : READYMADE_SUBCATS[0]);
+  const subcat = $("psubcat") ? $("psubcat").value : (cat === "Material" ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats()[0] : MATERIAL_SUBCATS[0]) : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats()[0] : READYMADE_SUBCATS[0]));
 
   put("products", {
     name: n,
@@ -3198,7 +4178,10 @@ function openCust(id) {
       <div class="box" style="margin:6px 0;background:var(--sf2)">
         <small>${new Date(ms.date).toLocaleDateString("en-IN")} · <b>${E(ms.garment)}</b></small>
         <div class="meas" style="margin-top:6px">
-          ${MEAS.map(m => `<div><small style="color:var(--mu)">${m}</small><br><b>${E(ms.m[m] || "-")}</b></div>`).join("")}
+          ${(() => {
+            const keys = Array.from(new Set([...(typeof getMeasurements === "function" ? getMeasurements() : MEAS), ...Object.keys(ms.m || {})]));
+            return keys.map(m => `<div><small style="color:var(--mu)">${m}</small><br><b>${E(ms.m[m] || "-")}</b></div>`).join("");
+          })()}
         </div>
       </div>
     `).join("") || "<p style='color:var(--mu)'>No measurements recorded yet.</p>"}
@@ -3372,6 +4355,11 @@ function saveTeam() {
 function renderSettingsTab() {
   const c = S.cfg;
   const liveStatus = typeof getShopLiveStatus === "function" ? getShopLiveStatus() : { isOpen: true, label: "Open Now", badgeClass: "open" };
+  const allProds = typeof products === "function" ? products() : [];
+  const matSubcats = typeof getMaterialSubcats === "function" ? getMaterialSubcats() : (c.materialSubcats || MATERIAL_SUBCATS);
+  const readySubcats = typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : (c.readymadeSubcats || READYMADE_SUBCATS);
+  const garmentTypes = typeof getGarmentTypes === "function" ? getGarmentTypes() : Object.keys(c.prices || {});
+  const measList = typeof getMeasurements === "function" ? getMeasurements() : (c.measurements || MEASUREMENTS);
 
   return `
     <!-- Admin-Controlled Shop Status & Operating Hours Engine -->
@@ -3395,7 +4383,7 @@ function renderSettingsTab() {
           <label>Shop Status Mode *</label>
           <select id="s_status">
             <option value="Auto" ${c.shopStatus === "Auto" ? "selected" : ""}>🔄 Auto Schedule (10:30 AM–9:00 PM, Monday Closed)</option>
-            <option value="Online" ${c.shopStatus === "Online" ? "selected" : ""}>🟢 Online (Force Open for visits & orders)</option>
+            <option value="Online" ${c.shopStatus === "Online" ? "selected" : ""}>🟢 Online (Force Open for visits &amp; orders)</option>
             <option value="Offline" ${c.shopStatus === "Offline" ? "selected" : ""}>🔴 Offline (Boutique Closed for visits / Private fitting)</option>
           </select>
         </div>
@@ -3424,6 +4412,7 @@ function renderSettingsTab() {
       </div>
     </div>
 
+    <!-- 💳 UPI Payments & Standee QR -->
     <div class="box">
       <b>💳 Payments &amp; Custom UPI QR Code</b>
       <p style="font-size:0.8rem;color:var(--mu);margin:4px 0 10px">
@@ -3454,8 +4443,9 @@ function renderSettingsTab() {
       </div>
     </div>
 
+    <!-- 🏬 Boutique Details -->
     <div class="box">
-      <b>🏬 Boutique Details (Shown on website)</b>
+      <b>🏬 Boutique Details (Shown on website &amp; invoices)</b>
       <div class="g2" style="margin-top:8px">
         <div><label>Phone / WhatsApp</label><input id="s_ph" value="${E(c.shopPhone)}"></div>
         <div><label>Store Hours Display Text</label><input id="s_h" value="${E(c.hours || 'Tue–Sun 10:30 AM – 9:00 PM (Monday Atelier Rest Day)')}"></div>
@@ -3465,29 +4455,209 @@ function renderSettingsTab() {
       <label>Top Announcement Banner Offer</label><input id="s_o" value="${E(c.offer)}">
     </div>
 
-    <div class="box">
-      <b>✂️ Stitching Pricing &amp; Artisan Pay Matrix</b>
-      <table style="margin-top:8px">
-        <thead><tr><th>Garment</th><th>Customer Price ₹</th><th>Artisan Pay per Piece ₹</th><th></th></tr></thead>
-        <tbody>
-          ${Object.keys(c.prices).map(k => `
-            <tr>
-              <td><b>${E(k)}</b></td>
-              <td><input style="width:100px;margin:0;padding:4px" type="number" value="${c.prices[k]}" onchange="S.cfg.prices['${k}']=+this.value"></td>
-              <td><input style="width:100px;margin:0;padding:4px" type="number" value="${c.pay[k] || 0}" onchange="S.cfg.pay['${k}']=+this.value"></td>
-              <td><button class="btn s d" onclick="delete S.cfg.prices['${k}'];delete S.cfg.pay['${k}'];saveCfg()">✕</button></td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-      <div class="g2" style="margin-top:10px">
-        <div><label>New Garment Name</label><input id="ng" placeholder="Sharara Set"></div>
-        <div><label>Customer Price</label><input id="np2" type="number" placeholder="1200"></div>
-        <div><label>Artisan Rate</label><input id="nw" type="number" placeholder="400"></div>
+    <!-- 🏷️ Dynamic Category & Subcategory Management Center -->
+    <div class="box" style="border:1px solid var(--br);background:linear-gradient(135deg,color-mix(in srgb,var(--br) 6%,var(--sf)),var(--sf))">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+        <div>
+          <b style="font-size:1.15rem;color:var(--br)">🏷️ Dynamic Categories &amp; Subcategories Management</b>
+          <p style="font-size:0.83rem;color:var(--mu);margin:3px 0 0">
+            Dynamically add, edit, rename, and delete subcategories for Materials and Readymade collections. Changes sync immediately to storefront filters, inventory forms, and customer navigation.
+          </p>
+        </div>
       </div>
-      <button class="btn s" onclick="addFare()">+ Add Garment to Fare List</button>
+
+      <div class="g2" style="gap:16px">
+        <!-- Materials Subcategories Column -->
+        <div style="background:var(--sf2);padding:14px;border-radius:14px;border:1px solid var(--ln)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div>
+              <b style="font-size:0.95rem;color:var(--tx)">🧵 Material Subcategories</b>
+              <div style="font-size:0.75rem;color:var(--mu)">Fabrics by meter, dress materials &amp; unstitched</div>
+            </div>
+            <span class="badge" style="background:color-mix(in srgb,var(--br) 15%,transparent);color:var(--br)">
+              ${matSubcats.length} Categories
+            </span>
+          </div>
+
+          <!-- Existing Material Subcategories List -->
+          <div style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;padding-right:4px;margin-bottom:12px">
+            ${matSubcats.map(sub => {
+              const count = allProds.filter(p => p.cat === "Material" && p.subcat === sub).length;
+              return `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--sf);border-radius:8px;border:1px solid var(--ln);font-size:0.85rem">
+                  <div style="display:flex;align-items:center;gap:6px;overflow:hidden">
+                    <span style="font-weight:600;color:var(--tx);text-overflow:ellipsis;white-space:nowrap;overflow:hidden">${Security.escapeHTML(sub)}</span>
+                    <span style="font-size:0.72rem;color:var(--mu);background:var(--sf2);padding:2px 6px;border-radius:6px;white-space:nowrap">${count} items</span>
+                  </div>
+                  <div style="display:flex;gap:4px">
+                    <button class="btn s" title="Rename Subcategory" style="padding:3px 8px;font-size:0.74rem" onclick="openRenameSubcatModal('Material', '${Security.escapeHTML(sub)}')">✏️ Rename</button>
+                    <button class="btn s d" title="Delete Subcategory" style="padding:3px 8px;font-size:0.74rem" onclick="deleteSubcat('Material', '${Security.escapeHTML(sub)}')">✕</button>
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+
+          <!-- Add Material Subcategory Input -->
+          <div style="display:flex;gap:6px">
+            <input id="new_mat_subcat" placeholder="e.g. Pure Velvet, Organza" style="margin:0;padding:6px 10px;font-size:0.82rem;flex:1">
+            <button class="btn s p" onclick="addMaterialSubcat()" style="white-space:nowrap">+ Add</button>
+          </div>
+        </div>
+
+        <!-- Readymade Subcategories Column -->
+        <div style="background:var(--sf2);padding:14px;border-radius:14px;border:1px solid var(--ln)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div>
+              <b style="font-size:0.95rem;color:var(--tx)">👗 Readymade Subcategories</b>
+              <div style="font-size:0.75rem;color:var(--mu)">Pre-stitched boutique dresses, suits &amp; gowns</div>
+            </div>
+            <span class="badge" style="background:color-mix(in srgb,var(--br) 15%,transparent);color:var(--br)">
+              ${readySubcats.length} Categories
+            </span>
+          </div>
+
+          <!-- Existing Readymade Subcategories List -->
+          <div style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;padding-right:4px;margin-bottom:12px">
+            ${readySubcats.map(sub => {
+              const count = allProds.filter(p => p.cat === "Readymade" && p.subcat === sub).length;
+              return `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--sf);border-radius:8px;border:1px solid var(--ln);font-size:0.85rem">
+                  <div style="display:flex;align-items:center;gap:6px;overflow:hidden">
+                    <span style="font-weight:600;color:var(--tx);text-overflow:ellipsis;white-space:nowrap;overflow:hidden">${Security.escapeHTML(sub)}</span>
+                    <span style="font-size:0.72rem;color:var(--mu);background:var(--sf2);padding:2px 6px;border-radius:6px;white-space:nowrap">${count} items</span>
+                  </div>
+                  <div style="display:flex;gap:4px">
+                    <button class="btn s" title="Rename Subcategory" style="padding:3px 8px;font-size:0.74rem" onclick="openRenameSubcatModal('Readymade', '${Security.escapeHTML(sub)}')">✏️ Rename</button>
+                    <button class="btn s d" title="Delete Subcategory" style="padding:3px 8px;font-size:0.74rem" onclick="deleteSubcat('Readymade', '${Security.escapeHTML(sub)}')">✕</button>
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+
+          <!-- Add Readymade Subcategory Input -->
+          <div style="display:flex;gap:6px">
+            <input id="new_ready_subcat" placeholder="e.g. Sharara Sets, Anarkalis" style="margin:0;padding:6px 10px;font-size:0.82rem;flex:1">
+            <button class="btn s p" onclick="addReadymadeSubcat()" style="white-space:nowrap">+ Add</button>
+          </div>
+        </div>
+      </div>
     </div>
 
+    <!-- ✂️ Stitching Garment Types & Pricing Matrix -->
+    <div class="box">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:10px">
+        <div>
+          <b style="font-size:1.1rem;color:var(--br)">✂️ Stitching Garment Types, Pricing &amp; Artisan Pay Matrix</b>
+          <p style="font-size:0.82rem;color:var(--mu);margin:3px 0 0">
+            Manage bespoke stitching garment categories, client prices, and tailor piece-rate remuneration. You can rename garments or adjust fares dynamically.
+          </p>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table style="margin-top:6px;width:100%">
+          <thead>
+            <tr>
+              <th>Garment Type</th>
+              <th>Customer Price ₹</th>
+              <th>Artisan Pay per Piece ₹</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${garmentTypes.map(k => `
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <b style="color:var(--tx)">${Security.escapeHTML(k)}</b>
+                    <button class="btn s" style="padding:2px 6px;font-size:0.72rem" onclick="openRenameGarmentModal('${Security.escapeHTML(k)}')">✏️ Rename</button>
+                  </div>
+                </td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:4px">
+                    <span style="font-size:0.85rem;color:var(--mu)">₹</span>
+                    <input style="width:90px;margin:0;padding:4px 6px" type="number" value="${c.prices[k] || 0}" onchange="S.cfg.prices['${k}']=+this.value;saveCfg()">
+                  </div>
+                </td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:4px">
+                    <span style="font-size:0.85rem;color:var(--mu)">₹</span>
+                    <input style="width:90px;margin:0;padding:4px 6px" type="number" value="${c.pay[k] || 0}" onchange="S.cfg.pay['${k}']=+this.value;saveCfg()">
+                  </div>
+                </td>
+                <td style="text-align:right">
+                  <button class="btn s d" style="padding:4px 8px" onclick="deleteGarment('${Security.escapeHTML(k)}')">✕ Remove</button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="g3" style="margin-top:14px;background:var(--sf2);padding:14px;border-radius:12px;align-items:flex-end">
+        <div>
+          <label style="margin-bottom:4px;font-size:0.82rem">New Garment Name</label>
+          <input id="ng" placeholder="e.g. Designer Sharara Set" style="margin:0">
+        </div>
+        <div>
+          <label style="margin-bottom:4px;font-size:0.82rem">Customer Stitching Price (₹)</label>
+          <input id="np2" type="number" placeholder="1200" style="margin:0">
+        </div>
+        <div>
+          <label style="margin-bottom:4px;font-size:0.82rem">Artisan Pay Rate (₹)</label>
+          <input id="nw" type="number" placeholder="400" style="margin:0">
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <button class="btn s p" onclick="addFare()">+ Add Garment to Fare &amp; Pay Matrix</button>
+      </div>
+    </div>
+
+    <!-- 📐 Dynamic Bespoke Stitch Measurements (Inches) Manager -->
+    <div class="box" style="border:1px solid var(--br);background:linear-gradient(135deg,color-mix(in srgb,var(--br) 6%,var(--sf)),var(--sf))">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px">
+        <div>
+          <b style="font-size:1.15rem;color:var(--br)">📐 Bespoke Stitch Measurements (Inches ") Manager</b>
+          <p style="font-size:0.82rem;color:var(--mu);margin:3px 0 0">
+            Dynamically add, rename, or delete bespoke measurement types. These fields appear across customer stitching booking forms, admin intake cards, worker workstations, customer profiles, and printed invoices.
+          </p>
+        </div>
+        <span class="badge" style="background:color-mix(in srgb,var(--br) 15%,transparent);color:var(--br)">
+          ${measList.length} Active Measurements
+        </span>
+      </div>
+
+      <!-- Measurement Points Grid -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:14px">
+        ${measList.map(m => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--sf2);border-radius:10px;border:1px solid var(--ln)">
+            <div style="overflow:hidden">
+              <span style="font-weight:600;color:var(--tx);font-size:0.88rem;display:block;text-overflow:ellipsis;white-space:nowrap;overflow:hidden">${Security.escapeHTML(m)}</span>
+              <span style="font-size:0.75rem;color:var(--br);font-weight:600">Unit: Inches (")</span>
+            </div>
+            <div style="display:flex;gap:4px;margin-left:6px">
+              <button class="btn s" title="Rename Measurement" style="padding:4px 8px;font-size:0.75rem" onclick="openRenameMeasurementModal('${Security.escapeHTML(m)}')">✏️</button>
+              <button class="btn s d" title="Delete Measurement" style="padding:4px 8px;font-size:0.75rem" onclick="deleteMeasurement('${Security.escapeHTML(m)}')">✕</button>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+
+      <!-- Add New Measurement Point Form -->
+      <div style="background:var(--sf2);padding:14px;border-radius:12px;border:1px solid var(--ln);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <label style="margin-bottom:4px;font-size:0.82rem">Add New Measurement Point (Inches)</label>
+          <input id="new_meas_name" placeholder="e.g. Flare Width, Armhole, Cuff, Yoke Depth" style="margin:0;padding:8px 12px;font-size:0.85rem">
+        </div>
+        <div style="margin-top:auto">
+          <button class="btn s p" onclick="addMeasurement()" style="padding:8px 14px">+ Add Measurement Point</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🔐 Admin Credentials -->
     <div class="box">
       <b>🔐 Admin Credentials</b>
       <div class="g2" style="margin-top:8px">
@@ -3547,11 +4717,267 @@ function saveAllSettings() {
 function addFare() {
   const g = $("ng").value.trim();
   if (!g) return toast("Enter garment name");
+  if (!S.cfg.prices) S.cfg.prices = {};
+  if (!S.cfg.pay) S.cfg.pay = {};
   S.cfg.prices[g] = +$("np2").value || 0;
   S.cfg.pay[g] = +$("nw").value || 0;
   saveCfg();
-  toast("Garment added to pricing matrix");
-  panel();
+  toast(`Garment "${g}" added to pricing matrix ✅`);
+  if (typeof panel === "function") panel();
+}
+
+// ------------------------------------------
+// Dynamic Category & Subcategory Operations
+// ------------------------------------------
+function addMaterialSubcat() {
+  const inp = $("new_mat_subcat");
+  const name = inp ? inp.value.trim() : "";
+  if (!name) return toast("Please enter a material subcategory name");
+  if (!Array.isArray(S.cfg.materialSubcats)) {
+    S.cfg.materialSubcats = typeof getMaterialSubcats === "function" ? [...getMaterialSubcats()] : [...MATERIAL_SUBCATS];
+  }
+  if (S.cfg.materialSubcats.some(s => s.toLowerCase() === name.toLowerCase())) {
+    return toast(`Subcategory "${name}" already exists`);
+  }
+  S.cfg.materialSubcats.push(name);
+  saveCfg();
+  toast(`Material subcategory "${name}" added! ✅`);
+  if (typeof panel === "function") panel();
+  if (typeof renderFront === "function") renderFront();
+}
+
+function addReadymadeSubcat() {
+  const inp = $("new_ready_subcat");
+  const name = inp ? inp.value.trim() : "";
+  if (!name) return toast("Please enter a readymade subcategory name");
+  if (!Array.isArray(S.cfg.readymadeSubcats)) {
+    S.cfg.readymadeSubcats = typeof getReadymadeSubcats === "function" ? [...getReadymadeSubcats()] : [...READYMADE_SUBCATS];
+  }
+  if (S.cfg.readymadeSubcats.some(s => s.toLowerCase() === name.toLowerCase())) {
+    return toast(`Subcategory "${name}" already exists`);
+  }
+  S.cfg.readymadeSubcats.push(name);
+  saveCfg();
+  toast(`Readymade subcategory "${name}" added! ✅`);
+  if (typeof panel === "function") panel();
+  if (typeof renderFront === "function") renderFront();
+}
+
+function openRenameSubcatModal(catType, oldName) {
+  modal(`
+    <h3 style="color:var(--br);margin:0 0 10px">✏️ Rename ${Security.escapeHTML(catType)} Subcategory</h3>
+    <p style="font-size:0.85rem;color:var(--mu);margin-bottom:12px">
+      Renaming <b>"${Security.escapeHTML(oldName)}"</b> will also automatically update all existing products in this category to preserve inventory consistency.
+    </p>
+    <label>New Subcategory Name *</label>
+    <input id="rename_subcat_input" value="${Security.escapeHTML(oldName)}" style="margin-bottom:14px">
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn" type="button" onclick="closeM()">Cancel</button>
+      <button class="btn p" type="button" onclick="saveRenameSubcat('${catType}', '${Security.escapeHTML(oldName)}')">Save New Name ✅</button>
+    </div>
+  `);
+}
+
+function saveRenameSubcat(catType, oldName) {
+  const inp = $("rename_subcat_input");
+  const newName = inp ? inp.value.trim() : "";
+  if (!newName) return toast("Subcategory name cannot be empty");
+  if (newName === oldName) return closeM();
+
+  const cfgKey = catType === "Material" ? "materialSubcats" : "readymadeSubcats";
+  if (!Array.isArray(S.cfg[cfgKey])) {
+    S.cfg[cfgKey] = catType === "Material" 
+      ? (typeof getMaterialSubcats === "function" ? [...getMaterialSubcats()] : [...MATERIAL_SUBCATS])
+      : (typeof getReadymadeSubcats === "function" ? [...getReadymadeSubcats()] : [...READYMADE_SUBCATS]);
+  }
+
+  const idx = S.cfg[cfgKey].findIndex(s => s === oldName);
+  if (idx !== -1) {
+    S.cfg[cfgKey][idx] = newName;
+  } else {
+    S.cfg[cfgKey].push(newName);
+  }
+
+  // Update existing products in database that have this subcategory
+  const prodsToUpdate = products().filter(p => p.cat === catType && p.subcat === oldName);
+  prodsToUpdate.forEach(p => {
+    p.subcat = newName;
+    put("products", p, p.id);
+  });
+
+  saveCfg();
+  closeM();
+  toast(`Subcategory renamed to "${newName}" (${prodsToUpdate.length} products updated) ✅`);
+  if (typeof panel === "function") panel();
+  if (typeof renderFront === "function") renderFront();
+}
+
+function deleteSubcat(catType, name) {
+  const cfgKey = catType === "Material" ? "materialSubcats" : "readymadeSubcats";
+  const list = S.cfg[cfgKey] || (catType === "Material" 
+    ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS)
+    : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS));
+
+  if (list.length <= 1) {
+    return toast(`Cannot delete: at least one ${catType.toLowerCase()} subcategory must remain`);
+  }
+
+  const prodCount = products().filter(p => p.cat === catType && p.subcat === name).length;
+  const warnMsg = prodCount > 0 
+    ? `Warning: ${prodCount} products currently use this subcategory.`
+    : `No products are currently in this subcategory.`;
+
+  if (!confirm(`Are you sure you want to delete the ${catType} subcategory "${name}"?\n\n${warnMsg}`)) {
+    return;
+  }
+
+  S.cfg[cfgKey] = list.filter(s => s !== name);
+  saveCfg();
+  toast(`Subcategory "${name}" deleted 🗑️`);
+  if (typeof panel === "function") panel();
+  if (typeof renderFront === "function") renderFront();
+}
+
+// ------------------------------------------
+// Dynamic Garment Operations
+// ------------------------------------------
+function openRenameGarmentModal(oldName) {
+  modal(`
+    <h3 style="color:var(--br);margin:0 0 10px">✏️ Rename Garment Type</h3>
+    <p style="font-size:0.85rem;color:var(--mu);margin-bottom:12px">
+      Renaming <b>"${Security.escapeHTML(oldName)}"</b> will transfer customer stitching prices and artisan pay rates to the new garment type.
+    </p>
+    <label>New Garment Name *</label>
+    <input id="rename_garment_input" value="${Security.escapeHTML(oldName)}" style="margin-bottom:14px">
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn" type="button" onclick="closeM()">Cancel</button>
+      <button class="btn p" type="button" onclick="saveRenameGarment('${Security.escapeHTML(oldName)}')">Save Garment Name ✅</button>
+    </div>
+  `);
+}
+
+function saveRenameGarment(oldName) {
+  const inp = $("rename_garment_input");
+  const newName = inp ? inp.value.trim() : "";
+  if (!newName) return toast("Garment name cannot be empty");
+  if (newName === oldName) return closeM();
+
+  if (!S.cfg.prices) S.cfg.prices = {};
+  if (!S.cfg.pay) S.cfg.pay = {};
+
+  const oldPrice = S.cfg.prices[oldName] || 0;
+  const oldPay = S.cfg.pay[oldName] || 0;
+
+  delete S.cfg.prices[oldName];
+  delete S.cfg.pay[oldName];
+
+  S.cfg.prices[newName] = oldPrice;
+  S.cfg.pay[newName] = oldPay;
+
+  saveCfg();
+  closeM();
+  toast(`Garment renamed to "${newName}" ✅`);
+  if (typeof panel === "function") panel();
+}
+
+function deleteGarment(name) {
+  if (!confirm(`Are you sure you want to delete the garment type "${name}" from your pricing and artisan pay matrix?`)) return;
+  if (S.cfg.prices) delete S.cfg.prices[name];
+  if (S.cfg.pay) delete S.cfg.pay[name];
+  saveCfg();
+  toast(`Garment "${name}" removed 🗑️`);
+  if (typeof panel === "function") panel();
+}
+
+// ------------------------------------------
+// Dynamic Stitch Measurements (Inches) Operations
+// ------------------------------------------
+function addMeasurement() {
+  const inp = $("new_meas_name");
+  const name = inp ? inp.value.trim() : "";
+  if (!name) return toast("Please enter a measurement name (e.g. Flare Width, Armhole)");
+  if (!Array.isArray(S.cfg.measurements)) {
+    S.cfg.measurements = typeof getMeasurements === "function" ? [...getMeasurements()] : [...MEASUREMENTS];
+  }
+  if (S.cfg.measurements.some(m => m.toLowerCase() === name.toLowerCase())) {
+    return toast(`Measurement "${name}" already exists`);
+  }
+  S.cfg.measurements.push(name);
+  saveCfg();
+  toast(`Measurement "${name}" (inches) added to bespoke profiles! ✅`);
+  if (typeof panel === "function") panel();
+}
+
+function openRenameMeasurementModal(oldName) {
+  modal(`
+    <h3 style="color:var(--br);margin:0 0 10px">✏️ Rename Stitch Measurement</h3>
+    <p style="font-size:0.85rem;color:var(--mu);margin-bottom:12px">
+      Renaming measurement <b>"${Security.escapeHTML(oldName)}" (inches)</b> will update customer intake forms, order records, and tailor workstations.
+    </p>
+    <label>New Measurement Name (Inches) *</label>
+    <input id="rename_meas_input" value="${Security.escapeHTML(oldName)}" style="margin-bottom:14px">
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn" type="button" onclick="closeM()">Cancel</button>
+      <button class="btn p" type="button" onclick="saveRenameMeasurement('${Security.escapeHTML(oldName)}')">Save Measurement Name ✅</button>
+    </div>
+  `);
+}
+
+function saveRenameMeasurement(oldName) {
+  const inp = $("rename_meas_input");
+  const newName = inp ? inp.value.trim() : "";
+  if (!newName) return toast("Measurement name cannot be empty");
+  if (newName === oldName) return closeM();
+
+  if (!Array.isArray(S.cfg.measurements)) {
+    S.cfg.measurements = typeof getMeasurements === "function" ? [...getMeasurements()] : [...MEASUREMENTS];
+  }
+
+  const idx = S.cfg.measurements.findIndex(m => m === oldName);
+  if (idx !== -1) {
+    S.cfg.measurements[idx] = newName;
+  } else {
+    S.cfg.measurements.push(newName);
+  }
+
+  saveCfg();
+  closeM();
+  toast(`Measurement renamed to "${newName}" (inches) ✅`);
+  if (typeof panel === "function") panel();
+}
+
+function deleteMeasurement(name) {
+  const list = S.cfg.measurements || (typeof getMeasurements === "function" ? getMeasurements() : MEASUREMENTS);
+  if (list.length <= 3) {
+    return toast("Boutique requires at least 3 core measurements for tailoring");
+  }
+  if (!confirm(`Are you sure you want to delete the measurement point "${name}"?\nExisting order historical values will remain safe.`)) return;
+
+  S.cfg.measurements = list.filter(m => m !== name);
+  saveCfg();
+  toast(`Measurement "${name}" removed 🗑️`);
+  if (typeof panel === "function") panel();
+}
+
+// ------------------------------------------
+// Cascading Category Handlers for Product Forms
+// ------------------------------------------
+function onProductCategoryChange(cat) {
+  const sel = $("psubcat");
+  if (!sel) return;
+  const subcats = cat === "Material" 
+    ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS)
+    : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS);
+  sel.innerHTML = subcats.map(s => `<option value="${Security.escapeHTML(s)}">${Security.escapeHTML(s)}</option>`).join("");
+}
+
+function onEditProductCategoryChange(cat) {
+  const sel = $("ep_subcat");
+  if (!sel) return;
+  const subcats = cat === "Material" 
+    ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS)
+    : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS);
+  sel.innerHTML = subcats.map(s => `<option value="${Security.escapeHTML(s)}">${Security.escapeHTML(s)}</option>`).join("");
 }
 
 // ------------------------------------------

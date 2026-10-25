@@ -83,7 +83,21 @@ const DEF = {
   offlineNotice: "Our boutique atelier is currently closed. We reopen at 10:30 AM. You can still explore fabrics, customize measurements, and save your fitting profile!",
   map: "https://maps.google.com/?q=Saifa+Designs",
   offer: "✨ Bespoke Ladies Tailoring, Designer Suits & Luxury Fabrics · Welcome to Saifa Designs!",
-  qrImage: "" // Custom uploaded UPI QR code
+  qrImage: "", // Custom uploaded UPI QR code
+  materialSubcats: [
+    "Pure Silk & Banarasi",
+    "Flowy Georgette & Chiffon",
+    "Breathable Cotton & Linen",
+    "Embroidered Organza & Net"
+  ],
+  readymadeSubcats: [
+    "Bridal & Party Lehengas",
+    "Designer Salwar Suits",
+    "Anarkalis & Kurtis",
+    "Pre-pleated Ready Sarees",
+    "Readymade Padded Blouses"
+  ],
+  measurements: ["Bust", "Waist", "Hip", "Length", "Shoulder", "Sleeve"]
 };
 
 const SEED_PROD = [

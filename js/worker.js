@@ -131,12 +131,15 @@ const WorkerPortal = {
                     <small style="color:${o.due ? 'var(--br)' : 'var(--mu)'}">Due Date: <b>${Security.escapeHTML(o.due || "Immediate priority")}</b> · Fabric: ${Security.escapeHTML(o.fabric || "Client's Own")}</small>
                   </div>
                   <div class="meas" style="font-size:0.8rem;background:var(--sf);padding:8px;border-radius:10px;margin:8px 0">
-                    ${MEAS.map(m => `
-                      <div>
-                        <small style="color:var(--mu)">${m}</small><br>
-                        <b>${Security.escapeHTML((o.measure && o.measure[m]) || "-")}</b>
-                      </div>
-                    `).join("")}
+                    ${(() => {
+                      const allKeys = Array.from(new Set([...(typeof getMeasurements === "function" ? getMeasurements() : MEAS), ...Object.keys(o.measure || {})]));
+                      return allKeys.map(m => `
+                        <div>
+                          <small style="color:var(--mu)">${m}</small><br>
+                          <b>${Security.escapeHTML((o.measure && o.measure[m] && o.measure[m] !== '-') ? o.measure[m] + '"' : "-")}</b>
+                        </div>
+                      `).join("");
+                    })()}
                   </div>
                   ${o.note ? `<p style="font-size:0.82rem;color:var(--mu);margin:4px 0">📝 <i>${Security.escapeHTML(o.note)}</i></p>` : ""}
 

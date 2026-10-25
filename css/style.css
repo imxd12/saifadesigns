@@ -1659,6 +1659,35 @@ details p {
   transform: translateY(-1px);
 }
 
+/* Interactive Color & Size Selector Chips */
+.variant-chip {
+  background: var(--sf);
+  border: 1.5px solid var(--ln);
+  color: var(--tx);
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.variant-chip:hover {
+  border-color: var(--br);
+  color: var(--br);
+  background: color-mix(in srgb, var(--br) 6%, var(--sf));
+}
+
+.variant-chip.active {
+  border-color: var(--br);
+  background: color-mix(in srgb, var(--br) 12%, var(--sf));
+  color: var(--br);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--br) 20%, transparent);
+  font-weight: 700;
+}
+
+
 /* ------------------------------------------
    Interactive Tailor Cloth & Sewing Needle Animation
    ------------------------------------------ */

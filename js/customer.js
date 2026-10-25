@@ -297,7 +297,7 @@ const Customer = {
             ${p.stock < 1 ? ` <span style="color:var(--bad);font-size:0.85rem">· Sold out</span>` : ""}
           </div>
           <div class="row2">
-            <button class="btn s p" ${p.stock < 1 ? "disabled" : ""} onclick="Customer.addToCart('${p.id}')">Add to Cart</button>
+            <button class="btn s p" ${p.stock < 1 ? "disabled" : ""} onclick="Customer.handleQuickAddToCart('${p.id}')">Add to Cart</button>
             <button class="btn s" onclick="Customer.openDetail('${p.id}')">Details</button>
           </div>
         </div>
@@ -514,6 +514,13 @@ const Customer = {
   openDetail(id) {
     const p = products().find(x => x.id == id);
     if (!p) return;
+
+    const colorList = (p.colors || "").split(",").map(c => c.trim()).filter(Boolean);
+    const sizeList = (p.sizes || "").split(",").map(s => s.trim()).filter(Boolean);
+
+    this._selectedColor = colorList[0] || "Standard";
+    this._selectedSize = sizeList[0] || "Standard";
+
     modal(`
       <div class="detail-pic-container" style="position:relative;border-radius:20px;overflow:hidden;background:linear-gradient(135deg,${E(p.hx)}22,${E(p.hx)}77);margin-bottom:16px;box-shadow:0 8px 24px rgba(0,0,0,0.08)">
         <div class="pic detail-pic" style="border-radius:20px;height:clamp(280px, 46vh, 420px);width:100%">
@@ -532,22 +539,88 @@ const Customer = {
       <h2 style="margin:8px 0 4px;font-family:'Playfair Display',serif">${E(p.name)}</h2>
       <div class="pr" style="font-size:1.45rem;font-family:'Playfair Display',serif">${R(p.price)}</div>
       <p style="color:var(--mu);margin:10px 0;line-height:1.5">${E(p.desc)}</p>
+
+      <!-- Color Variant Selection -->
+      ${colorList.length ? `
+        <div style="margin:14px 0 8px">
+          <label style="display:block;font-size:0.82rem;font-weight:700;color:var(--br);margin-bottom:6px">
+            🎨 Select Color / Shade: <span id="selectedColorLabel" style="color:var(--tx);font-weight:600">${Security.escapeHTML(this._selectedColor)}</span>
+          </label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="colorChipsWrap">
+            ${colorList.map((col, idx) => `
+              <button type="button" class="variant-chip ${idx === 0 ? 'active' : ''}" onclick="Customer.selectDetailVariant('color', '${Security.escapeHTML(col)}', this)">
+                ${Security.escapeHTML(col)}
+              </button>
+            `).join("")}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Size Variant Selection -->
+      ${sizeList.length ? `
+        <div style="margin:8px 0 14px">
+          <label style="display:block;font-size:0.82rem;font-weight:700;color:var(--br);margin-bottom:6px">
+            📏 Select Size / Cut: <span id="selectedSizeLabel" style="color:var(--tx);font-weight:600">${Security.escapeHTML(this._selectedSize)}</span>
+          </label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="sizeChipsWrap">
+            ${sizeList.map((sz, idx) => `
+              <button type="button" class="variant-chip ${idx === 0 ? 'active' : ''}" onclick="Customer.selectDetailVariant('size', '${Security.escapeHTML(sz)}', this)">
+                ${Security.escapeHTML(sz)}
+              </button>
+            `).join("")}
+          </div>
+        </div>
+      ` : ''}
+
       <table style="margin:12px 0">
         <tr><th>Fabric Spec</th><td><b>${E(p.fabric)}</b></td></tr>
-        <tr><th>Available Colors</th><td>${E(p.colors)}</td></tr>
-        <tr><th>Sizes</th><td>${E(p.sizes)}</td></tr>
         <tr><th>Stock Status</th><td>${p.stock > 0 ? `<span class="pill ok">${p.stock} units available</span>` : "<span class='pill bad'>Sold Out</span>"}</td></tr>
       </table>
       <p style="font-size:0.8rem;color:var(--mu);margin:10px 0">
         🧵 Complimentary minor alterations · Handcrafted finishing · UPI, Cash on Delivery, or Pay at boutique
       </p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
-        <button class="btn p" ${p.stock < 1 ? "disabled" : ""} onclick="Customer.addToCart('${p.id}');closeM()">🛒 Add to Cart</button>
+        <button class="btn p" ${p.stock < 1 ? "disabled" : ""} onclick="Customer.addCurrentDetailToCart('${p.id}');closeM()">🛒 Add to Cart</button>
         ${p.img ? `<button class="btn" onclick="Customer.openFullImage('${p.img}', '${E(p.name)}')">🔍 View Full Photo</button>` : ''}
         <button class="btn" onclick="Customer.askStylistForProduct('${p.id}')">✨ How to Style</button>
       </div>
       <div id="pai" class="ai" style="display:none;margin-top:12px"></div>
     `);
+  },
+
+  selectDetailVariant(type, value, btnEl) {
+    if (type === "color") {
+      this._selectedColor = value;
+      const lbl = $("selectedColorLabel");
+      if (lbl) lbl.textContent = value;
+      const wrap = $("colorChipsWrap");
+      if (wrap) wrap.querySelectorAll(".variant-chip").forEach(el => el.classList.remove("active"));
+      if (btnEl) btnEl.classList.add("active");
+    } else if (type === "size") {
+      this._selectedSize = value;
+      const lbl = $("selectedSizeLabel");
+      if (lbl) lbl.textContent = value;
+      const wrap = $("sizeChipsWrap");
+      if (wrap) wrap.querySelectorAll(".variant-chip").forEach(el => el.classList.remove("active"));
+      if (btnEl) btnEl.classList.add("active");
+    }
+  },
+
+  addCurrentDetailToCart(id) {
+    this.addToCart(id, this._selectedSize, this._selectedColor);
+  },
+
+  handleQuickAddToCart(id) {
+    const p = products().find(x => x.id == id);
+    if (!p) return;
+    const colorList = (p.colors || "").split(",").map(c => c.trim()).filter(Boolean);
+    const sizeList = (p.sizes || "").split(",").map(s => s.trim()).filter(Boolean);
+    if (colorList.length > 1 || sizeList.length > 1) {
+      toast("Please pick your preferred Size & Color ✨");
+      this.openDetail(id);
+    } else {
+      this.addToCart(id, sizeList[0] || "Standard", colorList[0] || "Standard");
+    }
   },
 
   openFullImage(imgUrl, title = "Couture Design") {
@@ -573,18 +646,36 @@ const Customer = {
   // ------------------------------------------
   // Cart & Coupon Application
   // ------------------------------------------
-  addToCart(id) {
+  addToCart(id, size = "", color = "") {
     const p = products().find(x => x.id == id);
     if (!p) return;
-    const item = S.cart.find(c => c.id == id);
+
+    const chosenSize = size || (p.sizes ? p.sizes.split(",")[0].trim() : "Standard");
+    const chosenColor = color || (p.colors ? p.colors.split(",")[0].trim() : "Standard");
+    const itemKey = `${id}_${chosenSize}_${chosenColor}`;
+
+    const existingTotal = S.cart.filter(c => c.id == id).reduce((a, c) => a + c.q, 0);
+    if (existingTotal >= p.stock && p.stock > 0) {
+      return toast("Maximum available stock reached for this item");
+    }
+
+    const item = S.cart.find(c => (c.itemKey && c.itemKey === itemKey) || (c.id == id && c.size === chosenSize && c.color === chosenColor));
     if (item) {
-      if (item.q >= p.stock && p.stock > 0) return toast("Maximum available stock reached");
       item.q++;
     } else {
-      S.cart.push({ id, n: p.name, p: p.price, q: 1 });
+      S.cart.push({
+        id,
+        itemKey,
+        n: p.name,
+        p: p.price,
+        q: 1,
+        size: chosenSize,
+        color: chosenColor,
+        img: p.img || ""
+      });
     }
     this.saveCart();
-    toast("Added to cart 🛒");
+    toast(`Added "${p.name}" (${chosenSize} · ${chosenColor}) to cart 🛒`);
   },
 
   saveCart() {
@@ -619,9 +710,17 @@ const Customer = {
       <button class="x" onclick="Customer.openCart(false)">×</button>
       <h2 style="color:var(--br)">Your Cart</h2>
       ${S.cart.map((c, i) => `
-        <div class="line">
-          <span><b>${E(c.n)}</b><br><small style="color:var(--mu)">${R(c.p)} each</small></span>
-          <span>
+        <div class="line" style="align-items:flex-start">
+          <div style="flex:1">
+            <b>${E(c.n)}</b>
+            <div style="font-size:0.75rem;color:var(--mu);margin:2px 0 4px">
+              ${c.size ? `<span>📏 Size: <b style="color:var(--tx)">${E(c.size)}</b></span>` : ''}
+              ${c.size && c.color ? ` &nbsp;|&nbsp; ` : ''}
+              ${c.color ? `<span>🎨 Color: <b style="color:var(--tx)">${E(c.color)}</b></span>` : ''}
+            </div>
+            <small style="color:var(--mu)">${R(c.p)} each</small>
+          </div>
+          <span style="display:flex;align-items:center;gap:6px">
             <button class="btn s" onclick="Customer.updateCartQty(${i},-1)">−</button>
             <b>${c.q}</b>
             <button class="btn s" onclick="Customer.updateCartQty(${i},1)">+</button>
@@ -634,7 +733,7 @@ const Customer = {
         <div class="cart-coupon-box">
           <label style="color:var(--br);font-weight:700">🎟️ Have a Promo / Coupon Code?</label>
           <div style="display:flex;gap:6px;margin-top:4px">
-            <input id="cartCouponInput" placeholder="e.g. FESTIVE10" value="${S.appliedCoupon ? E(S.appliedCoupon.code) : ''}" style="margin:0;text-transform:uppercase">
+            <input id="cartCouponInput" placeholder="Enter promo coupon code" value="${S.appliedCoupon ? E(S.appliedCoupon.code) : ''}" style="margin:0;text-transform:uppercase">
             <button class="btn s p" onclick="Customer.applyCoupon()">Apply</button>
           </div>
           ${S.appliedCoupon ? `
@@ -744,7 +843,14 @@ const Customer = {
       phone: p,
       address: a,
       mapsUrl: mapsUrl,
-      items: S.cart.map(c => ({ id: c.id, n: c.n, q: c.q, p: c.p })),
+      items: S.cart.map(c => ({
+        id: c.id,
+        n: c.n,
+        q: c.q,
+        p: c.p,
+        size: c.size || "",
+        color: c.color || ""
+      })),
       total,
       pay
     }).then(o => {
@@ -865,6 +971,8 @@ const Customer = {
     const resBox = $("tres");
     if (!resBox) return;
 
+    this._lastTrackedOrderNo = o.no;
+
     const assignedWorker = workers().find(w => w.id == o.worker);
     const isStitch = o.type === "Stitch";
     const curStageIdx = WORK_PROGRESS_STAGES.indexOf(o.stage || "Cutting & Pattern Drafting");
@@ -964,23 +1072,49 @@ const Customer = {
         <!-- Assigned Artisan Attribution & Quality Badge -->
         <div class="artisan-attribution-card">
           <div class="artisan-profile-group">
-            <div class="artisan-avatar-sm">
-              ${assignedWorker && assignedWorker.img ? `<img src="${Security.escapeHTML(assignedWorker.img)}" style="width:100%;height:100%;object-fit:cover">` : '🧵'}
+            <div class="artisan-avatar-sm" style="background:var(--sf2);display:flex;align-items:center;justify-content:center;font-size:1.1rem">
+              ${assignedWorker && assignedWorker.img ? `<img src="${Security.escapeHTML(assignedWorker.img)}" style="width:100%;height:100%;object-fit:cover">` : (assignedWorker ? '🧵' : '⏳')}
             </div>
             <div>
               <span style="font-size:0.74rem;color:var(--mu);text-transform:uppercase;letter-spacing:0.04em;display:block">Assigned Artisan</span>
-              <b style="font-size:0.92rem;color:var(--tx)">${assignedWorker ? Security.escapeHTML(assignedWorker.name) : "Master Artisan Team"}</b>
-              <small style="color:var(--gd);font-weight:600;display:block">${assignedWorker ? Security.escapeHTML(assignedWorker.role) : "Haute Couture Atelier"}</small>
+              <b style="font-size:0.92rem;color:var(--tx)">${assignedWorker ? Security.escapeHTML(assignedWorker.name) : "Awaiting Artisan Allocation"}</b>
+              <small style="color:${assignedWorker ? 'var(--gd)' : 'var(--mu)'};font-weight:600;display:block">${assignedWorker ? Security.escapeHTML(assignedWorker.role) : "Atelier Master Queue"}</small>
             </div>
           </div>
           <div>
-            ${o.workerVerified === true ? `
+            ${assignedWorker ? (o.workerVerified === true ? `
               <span class="pill ok" style="font-size:0.75rem;padding:4px 10px">✓ Master Quality Verified</span>
             ` : `
               <span class="pill w" style="font-size:0.75rem;padding:4px 10px">🔍 In Active Tailoring</span>
+            `) : `
+              <span class="pill" style="font-size:0.75rem;padding:4px 10px;background:var(--sf2);color:var(--mu)">⏳ In Allocation Queue</span>
             `}
           </div>
         </div>
+
+        <!-- Ordered Items Summary with Size & Color -->
+        ${Array.isArray(o.items) && o.items.length > 0 ? `
+          <div style="background:var(--sf2);border:1px solid var(--ln);border-radius:14px;padding:12px 14px;margin:14px 0">
+            <div style="font-size:0.82rem;font-weight:700;color:var(--br);margin-bottom:8px">🛍️ Selected Items &amp; Specifications:</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${o.items.map(it => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dashed var(--ln);font-size:0.84rem">
+                  <div>
+                    <b>${Security.escapeHTML(it.n)}</b>
+                    <div style="font-size:0.74rem;color:var(--mu);margin-top:2px">
+                      ${it.size ? `<span>📏 Size: <b style="color:var(--tx)">${Security.escapeHTML(it.size)}</b></span>` : ''}
+                      ${it.size && it.color ? ` &nbsp;|&nbsp; ` : ''}
+                      ${it.color ? `<span>🎨 Color: <b style="color:var(--tx)">${Security.escapeHTML(it.color)}</b></span>` : ''}
+                    </div>
+                  </div>
+                  <div style="text-align:right">
+                    <b>${it.q} × ${R(it.p)}</b>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        ` : ''}
 
         <!-- Specs Snapshot: Fabric, Pricing, Measurements & Delivery -->
         <div class="order-specs-box">
@@ -1228,6 +1362,15 @@ const Customer = {
       fsbox.dataset.ok = 1;
     }
     this.saveCart();
+
+    // Auto-sync active tracking card in real time if user is viewing their order status
+    if (this._lastTrackedOrderNo) {
+      const activeOrder = orders().find(x => x.no && x.no.toUpperCase() === this._lastTrackedOrderNo.toUpperCase());
+      const resBox = $("tres");
+      if (activeOrder && resBox && resBox.innerHTML.trim() !== "") {
+        this.renderTrackingResult(activeOrder);
+      }
+    }
   },
 
   // ------------------------------------------

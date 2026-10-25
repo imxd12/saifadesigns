@@ -221,10 +221,10 @@ const App = {
       return `
         <form onsubmit="App.handleWorkerSubmit(event)">
           <div class="login-form-group">
-            <label for="l_wid">Artisan ID / Registered Mobile</label>
+            <label for="l_wid">Artisan Mobile Number or ID</label>
             <div class="login-input-wrap">
               <i>🧵</i>
-              <input id="l_wid" autocomplete="username" placeholder="e.g. w101@saifadesigns or 10-digit mobile" required>
+              <input id="l_wid" autocomplete="username" placeholder="Enter 10-digit mobile or Artisan ID" required>
             </div>
           </div>
 

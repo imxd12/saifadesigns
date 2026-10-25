@@ -438,6 +438,23 @@ function del(col, id) {
     saveLS("cfg", S.cfg);
   }
 
+  // Restore inventory stock when an order is deleted
+  if (col === "orders" && deletedItem && !deletedItem.stockRestored && Array.isArray(deletedItem.items)) {
+    let restoredCount = 0;
+    deletedItem.items.forEach(it => {
+      const pr = products().find(p => p.id == it.id);
+      if (pr) {
+        const addedQty = Number(it.q) || 1;
+        const newStock = (Number(pr.stock) || 0) + addedQty;
+        upd("products", pr.id, { stock: newStock });
+        restoredCount += addedQty;
+      }
+    });
+    if (typeof toast === "function" && restoredCount > 0) {
+      toast(`Order deleted & ${restoredCount} item(s) restored to inventory stock 📦`);
+    }
+  }
+
   if (typeof Realtime !== "undefined") {
     Realtime.broadcast("RECORD_DELETED", { col, id });
     if (col === "coupons") {
@@ -522,18 +539,19 @@ function placeOrder(o) {
     if (!cid) return null;
     const full = {
       ...o,
+      worker: o.worker || null,
       customer: Security.sanitize(o.customer),
       address: Security.sanitize(o.address),
       cid,
       no,
       ts: Date.now(),
-      status: "New",
+      status: o.status || "New",
       paid: o.paid || "Unpaid",
       phone: np(o.phone),
       coupon: S.appliedCoupon ? S.appliedCoupon.code : null,
       discount: S.appliedCoupon ? S.appliedCoupon.discount : 0,
       history: [
-        { status: "New", at: Date.now(), note: "Order placed online" }
+        { status: o.status || "New", at: Date.now(), note: "Order placed" }
       ]
     };
 
@@ -567,6 +585,33 @@ function updateOrderStatus(orderId, newStatus, customerNote = "") {
   if (newStatus === "Ready") patch.readyAt = Date.now();
   if (newStatus === "Delivered") patch.deliveredAt = Date.now();
 
+  // Stock restoration on order cancellation
+  if (newStatus === "Cancelled" && !o.stockRestored && Array.isArray(o.items) && o.items.length > 0) {
+    let restoredCount = 0;
+    o.items.forEach(it => {
+      const pr = products().find(p => p.id == it.id);
+      if (pr) {
+        const addedQty = Number(it.q) || 1;
+        const newStock = (Number(pr.stock) || 0) + addedQty;
+        upd("products", pr.id, { stock: newStock });
+        restoredCount += addedQty;
+      }
+    });
+    patch.stockRestored = true;
+    if (typeof toast === "function") toast(`Order marked Cancelled & ${restoredCount} item(s) restored to stock 📦`);
+  } else if (newStatus !== "Cancelled" && o.stockRestored && Array.isArray(o.items) && o.items.length > 0) {
+    // If status reverted from Cancelled back to an active status, deduct stock again
+    o.items.forEach(it => {
+      const pr = products().find(p => p.id == it.id);
+      if (pr) {
+        const deductedQty = Number(it.q) || 1;
+        const newStock = Math.max(0, (Number(pr.stock) || 0) - deductedQty);
+        upd("products", pr.id, { stock: newStock });
+      }
+    });
+    patch.stockRestored = false;
+  }
+
   upd("orders", orderId, patch);
   if (typeof Realtime !== "undefined") {
     Realtime.broadcast("ORDER_UPDATED", { orderId, patch });
@@ -580,11 +625,17 @@ function updateOrderProgressStage(orderId, stageName, note = "") {
   stageLog.push({
     stage: stageName,
     at: Date.now(),
-    by: S.me?.name || "Artisan Workstation",
+    by: S.me?.name || "Admin Atelier",
     note: note || `Advanced to ${stageName}`
   });
 
-  const patch = { currentStage: stageName, progressStages: stageLog };
+  const patch = { 
+    stage: stageName,
+    currentStage: stageName, 
+    progressStages: stageLog,
+    stageNote: note || o.stageNote || ""
+  };
+
   if (stageName === "Ready for Trial & Delivery") {
     patch.status = "Ready";
     patch.readyAt = Date.now();

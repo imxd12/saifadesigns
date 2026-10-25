@@ -854,7 +854,7 @@ function renderOrdersTab() {
                 <small>${E(o.phone)} · <b>${E(o.cid)}</b></small>
               </td>
               <td>
-                <b>${E(o.type === "Stitch" ? o.garment : (o.items || []).map(i => i.n + "×" + i.q).join(", "))}</b>
+                <b>${E(o.type === "Stitch" ? o.garment : (o.items || []).map(i => i.n + (i.size || i.color ? ` [${[i.size, i.color].filter(Boolean).join(" · ")}]` : "") + " × " + i.q).join(", "))}</b>
                 ${o.note ? `<br><small style="color:var(--mu)">📝 ${E(o.note)}</small>` : ""}
               </td>
               <td>
@@ -995,7 +995,10 @@ function printInvoice(orderId) {
             </tr>
           ` : (o.items || []).map(it => `
             <tr>
-              <td>${E(it.n)}</td>
+              <td>
+                <b>${E(it.n)}</b>
+                ${(it.size || it.color) ? `<br><small style="color:var(--mu)">${it.size ? 'Size: ' + E(it.size) : ''}${it.size && it.color ? ' · ' : ''}${it.color ? 'Color: ' + E(it.color) : ''}</small>` : ''}
+              </td>
               <td style="text-align:center">${it.q}</td>
               <td style="text-align:right">${R(it.p)}</td>
               <td style="text-align:right">${R(it.p * it.q)}</td>
@@ -1039,6 +1042,20 @@ function openOrderEdit(orderId) {
     </div>
     <label>Admin / Design Notes</label><textarea id="eo_note" rows="2">${E(o.note || "")}</textarea>
     <div class="g2">
+      <div>
+        <label>Order Status</label>
+        <select id="eo_st">
+          ${ST.map(s => `<option ${o.status == s ? "selected" : ""}>${s}</option>`).join("")}
+        </select>
+      </div>
+      <div>
+        <label>Payment Status</label>
+        <select id="eo_paid">
+          ${PAY.map(p => `<option ${o.paid == p ? "selected" : ""}>${p}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+    <div class="g2">
       <div><label>Total Price ₹</label><input id="eo_tot" type="number" value="${o.total}"></div>
       <div>
         <label>Payment Method</label>
@@ -1055,6 +1072,12 @@ function openOrderEdit(orderId) {
 }
 
 function saveOrderEdit(orderId) {
+  const o = orders().find(x => x.id == orderId);
+  if (!o) return closeM();
+
+  const newStatus = $("eo_st") ? $("eo_st").value : o.status;
+  const newPaid = $("eo_paid") ? $("eo_paid").value : o.paid;
+
   const patch = {
     customer: $("eo_n").value.trim(),
     phone: np($("eo_p").value),
@@ -1063,11 +1086,22 @@ function saveOrderEdit(orderId) {
     worker: $("eo_w").value,
     note: $("eo_note").value.trim(),
     total: Number($("eo_tot").value) || 0,
-    pay: $("eo_pay").value
+    pay: $("eo_pay").value,
+    status: newStatus,
+    paid: newPaid
   };
-  upd("orders", orderId, patch);
-  closeM();
-  toast("Order updated successfully ✅");
+
+  upd("orders", orderId, patch).then(() => {
+    if (newStatus !== o.status) {
+      updateOrderStatus(orderId, newStatus);
+    }
+    if (newPaid !== o.paid) {
+      updateOrderPayment(orderId, newPaid);
+    }
+    closeM();
+    toast("Order updated successfully ✅");
+    if (typeof panel === "function") panel();
+  });
 }
 
 // ------------------------------------------
@@ -2218,7 +2252,7 @@ function renderWorkersTab() {
         <p style="margin:0 0 6px">
           💡 <b>How Artisans Log In:</b><br>
           1. Artisans click <b>"Staff Login"</b> on the storefront header.<br>
-          2. They can enter either their full Worker ID (e.g. <code>w101@saifadesigns</code>), short ID (<code>w101</code>), OR their <b>10-digit registered mobile number</b>.<br>
+          2. They can enter their <b>10-digit registered mobile number</b> or assigned <b>Artisan ID</b>.<br>
           3. Security PIN is set to their Date of Birth (<b>DDMMYYYY</b>).
         </p>
       </div>

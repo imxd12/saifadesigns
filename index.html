@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#8e1647">
+  <title>SAIFA DESIGNS – Ladies Tailor, Boutique &amp; Fabric Studio</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/login.css">
+  <script>(function () { try { var t = localStorage.getItem("saifa_theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); document.documentElement.setAttribute("data-theme", t); } catch (e) { } })();</script>
+</head>
+
+<body>
+
+  <!-- ==========================================
+       ELEVATED BOUTIQUE HEADER & SMART TIMINGS BAR
+       ========================================== -->
+  <header class="site-header" id="siteHeader">
+    <!-- Top Announcement & Offer Bar -->
+    <div class="offer" id="offer">🎉 Festive Offer: Use code FESTIVE10 for 10% off on all readymade collections!</div>
+
+    <!-- Main Navigation Bar -->
+    <nav class="main-nav">
+      <!-- Luxury Brand Logo -->
+      <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="cursor:pointer"
+        title="SAIFA DESIGNS – Return to Top">
+        <i>S</i>
+        <div class="logo-text">
+          <span>SAIFA DESIGNS</span>
+          <small>Haute Couture &amp; Atelier</small>
+        </div>
+      </div>
+
+      <!-- Desktop Navigation Links -->
+      <div class="nav-links" id="navLinks">
+        <a class="lk" href="#shop">Shop</a>
+        <a class="lk" href="#stitch" onclick="Customer.openStitchingForm()">Stitching</a>
+        <a class="lk" href="#team">Our Team</a>
+        <a class="lk" href="#about">About</a>
+        <a class="lk" href="#faq">FAQ</a>
+        <a class="lk" href="#track">Track Order</a>
+      </div>
+
+      <!-- Right Header Actions Cluster -->
+      <div class="header-actions">
+        <!-- Modern Theme Toggle Icon Button -->
+        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Dark/Light Mode"
+          aria-label="Toggle Theme">
+          <span class="theme-icon">🌙</span> <span class="theme-label">Theme</span>
+        </button>
+
+        <a class="btn s" id="inst" style="display:none;cursor:pointer">⬇ Install App</a>
+
+        <!-- Modern Staff & Artisan Login Icon Button -->
+        <a class="btn s login-icon-btn" id="lg" style="cursor:pointer" onclick="openLogin()"
+          title="Staff &amp; Artisan Portal Login">
+          <span class="login-icon">🔑</span> <span class="login-label">Staff Login</span>
+        </a>
+
+        <!-- Modern Cart Icon Button -->
+        <a class="btn s p cartbtn" style="cursor:pointer" onclick="cart(1)" title="View Cart">
+          <span class="cart-icon">🛒</span> <span class="cart-label">Cart</span> <span class="cnt" id="cc">0</span>
+        </a>
+
+        <!-- Mobile Navigation Menu Toggle Button -->
+        <button class="mobile-nav-toggle" id="mobileNavToggle" onclick="Customer.toggleMobileNav()"
+          aria-label="Toggle Navigation Menu" title="Menu">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Smart Boutique Operating Hours & Shop Status Sub-Bar (Organized Smartly Under Nav & Controls) -->
+    <div class="header-timings-bar" id="headerTimingsBar">
+      <div class="timings-bar-inner">
+        <!-- Live Shop Status Interactive Pill -->
+        <div class="shop-live-status-pill open" id="shopStatusPill" onclick="Customer.showShopScheduleModal()"
+          title="Click to view full weekly hours & boutique schedule">
+          <span class="status-dot"></span>
+          <span class="status-pill-badge" id="shopStatusBadge">Atelier Open</span>
+          <span class="status-text" id="shopStatusText">Open · 10:30 AM–9:00 PM</span>
+          <span class="status-chevron">▾</span>
+        </div>
+
+        <!-- Operating Hours & Schedule Summary Info -->
+        <div class="timings-schedule-info" onclick="Customer.showShopScheduleModal()" style="cursor:pointer"
+          title="Click to view detailed boutique schedule">
+          <span class="timings-hours-chip">
+            <span class="timings-icon">🕒</span> <span>Hours: <b>10:30 AM – 9:00 PM</b></span>
+          </span>
+          <span class="timings-divider">·</span>
+          <span class="timings-closed-chip">
+            <span class="timings-icon">📅</span> <span><b>Mon Closed</b> (Atelier Rest Day)</span>
+          </span>
+          <span class="timings-divider">·</span>
+          <span class="timings-service-chip">
+            <span class="timings-icon">✂️</span> <span>Walk-ins &amp; Bespoke Fitting Welcome</span>
+          </span>
+        </div>
+
+        <!-- Weekly Schedule Trigger Button -->
+        <button class="timings-modal-btn" onclick="Customer.showShopScheduleModal()" title="View Boutique Schedule">
+          <span>Weekly Schedule</span> <b style="font-size:0.85rem">📅</b>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Slide-Down Navigation Menu -->
+    <div class="mobile-nav-drawer" id="mobileNavDrawer">
+      <div class="mobile-nav-links">
+        <a class="mob-lk" href="#shop" onclick="Customer.closeMobileNav()">👗 Shop Catalogue</a>
+        <a class="mob-lk" href="#stitch" onclick="Customer.closeMobileNav(); Customer.openStitchingForm()">✂️ Bespoke
+          Stitching &amp; Fit</a>
+        <a class="mob-lk" href="#team" onclick="Customer.closeMobileNav()">🧑‍💼 Our Master Team</a>
+        <a class="mob-lk" href="#about" onclick="Customer.closeMobileNav()">🏛️ About Our Boutique</a>
+        <a class="mob-lk" href="#faq" onclick="Customer.closeMobileNav()">❓ FAQ &amp; Guides</a>
+        <a class="mob-lk" href="#track" onclick="Customer.closeMobileNav()">📦 Track My Order</a>
+      </div>
+    </div>
+  </header>
+
+  <header class="hero">
+    <div>
+      <span class="eyebrow">Ladies Tailor · Boutique · Fabrics</span>
+      <h1>Fit that feels <span>made for you.</span></h1>
+      <p class="lead">Dress materials, readymade suits &amp; sarees, and personalised bespoke stitching — every
+        measurement saved to your profile so your next order fits perfectly.</p>
+      <div class="acts">
+        <a class="btn p" href="#shop"><span class="btn-icon">👗</span> <span>Shop Catalogue</span></a>
+        <a class="btn" href="#stitch" onclick="Customer.openStitchingForm()"><span class="btn-icon">✂️</span> <span>Book
+            Stitching</span></a>
+        <a class="btn" href="#track"><span class="btn-icon">📦</span> <span>Track My Order</span></a>
+      </div>
+    </div>
+    <div id="stage"></div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><span class="stat-emoji">✂️</span><b>Custom</b><span>Made-to-measure fits</span></div>
+    <div class="stat"><span class="stat-emoji">👗</span><b>Ready</b><span>Readymade in all sizes</span></div>
+    <div class="stat"><span class="stat-emoji">🧵</span><b>Fabrics</b><span>Silk, georgette &amp; linen</span></div>
+    <div class="stat"><span class="stat-emoji">⚡</span><b>Express</b><span>48h trial &amp; delivery</span></div>
+  </div>
+
+  <section id="shop">
+    <div class="sh">
+      <span class="eyebrow">Boutique Catalogue</span>
+      <h2>Materials &amp; Readymade Wear</h2>
+      <p>Browse curated fabrics and ready-to-wear ensembles. <span class="live" id="lv">live</span></p>
+    </div>
+    <div class="tabs" id="chips"></div>
+    <div class="subcat-tabs" id="subcatChips"></div>
+    <div class="search"><input id="q" placeholder="Search kurti, silk, lehenga, saree…" oninput="shop()"></div>
+    <div class="grid" id="pg"></div>
+  </section>
+
+  <section id="stitch">
+    <div class="sh">
+      <span class="eyebrow">Personalised Stitching</span>
+      <h2>Tell us your fit, we'll stitch it</h2>
+      <p>Your measurements are saved to your profile with a Client ID for instant re-orders.</p>
+    </div>
+
+    <!-- Collapsible Dropdown Card: user clicks to open and add custom stitching -->
+    <div class="stitch-dropdown-trigger" id="stitchDropdownTrigger" onclick="Customer.toggleStitchingDropdown()"
+      role="button" tabindex="0" aria-expanded="false" aria-controls="fsboxWrap">
+      <div class="stitch-trigger-info">
+        <div class="stitch-trigger-icon">✂️</div>
+        <div>
+          <div class="stitch-trigger-title">Book Custom Fit &amp; Stitching Intake</div>
+          <div class="stitch-trigger-desc">Blouses, Salwar Suits, Lehengas &amp; Kurtis · Tap to open measurement form
+          </div>
+        </div>
+      </div>
+      <button class="btn p s stitch-toggle-btn" id="toggleStitchBtn" type="button"
+        onclick="event.stopPropagation(); Customer.toggleStitchingDropdown()">
+        <span id="stitchBtnText">Open Stitching Form</span> <b id="stitchChevron"
+          style="margin-left:4px;font-size:0.9rem">▾</b>
+      </button>
+    </div>
+
+    <!-- Dropdown Content: expands smoothly when opened -->
+    <div class="stitch-dropdown-content" id="fsboxWrap" style="display:none">
+      <div class="panel-box" id="fsbox" style="margin-top:16px"></div>
+    </div>
+  </section>
+
+  <section id="team">
+    <div class="sh">
+      <span class="eyebrow">Our Team</span>
+      <h2>The Masterminds Behind Your Fit</h2>
+      <p>From our creative founder to our master cutting and pattern masters.</p>
+    </div>
+    <div class="team" id="tmg"></div>
+  </section>
+
+  <section id="about">
+    <div class="sh">
+      <span class="eyebrow">Why SAIFA DESIGN'S</span>
+      <h2>Crafted with care, delivered with trust</h2>
+    </div>
+    <div class="feat">
+      <div class="fi">
+        <div class="ic">📏</div>
+        <h3>Measurements on file</h3>
+        <p>Save your fit once and reorder any time by Client ID or mobile number.</p>
+      </div>
+      <div class="fi">
+        <div class="ic">🧵</div>
+        <h3>Neat finishing</h3>
+        <p>Lining, hemming, potli latkans, and embroidery checked before delivery.</p>
+      </div>
+      <div class="fi">
+        <div class="ic">💳</div>
+        <h3>Pay your way</h3>
+        <p>Download boutique UPI QR, pay via any UPI app, COD, or at the counter.</p>
+      </div>
+      <div class="fi">
+        <div class="ic">🚚</div>
+        <h3>Track every order</h3>
+        <p>Follow your garment from Confirmed to Cutting, Stitching, Ready and Delivered.</p>
+      </div>
+      <div class="fi">
+        <div class="ic">🎀</div>
+        <h3>Bridal &amp; festive</h3>
+        <p>Complete custom bridal lehengas for weddings, Eid, Diwali and family receptions.</p>
+      </div>
+      <div class="fi">
+        <div class="ic">♻️</div>
+        <h3>Alterations</h3>
+        <p>Free minor adjustments on readymade and stitched outfits.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sh"><span class="eyebrow">How It Works</span>
+      <h2>Five simple steps to the perfect fit</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <h3>Choose</h3>
+        <p>Pick a readymade piece or bring your fabric.</p>
+      </div>
+      <div class="step">
+        <h3>Measure</h3>
+        <p>Enter measurements online or visit our boutique.</p>
+      </div>
+      <div class="step">
+        <h3>Stitch</h3>
+        <p>Our master tailors draft, cut, stitch &amp; finish.</p>
+      </div>
+      <div class="step">
+        <h3>Trial</h3>
+        <p>Trial fitting and free minor adjustments.</p>
+      </div>
+      <div class="step">
+        <h3>Deliver</h3>
+        <p>Collect at the boutique.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="sh"><span class="eyebrow">FAQ</span>
+      <h2>Questions? We have answers</h2>
+    </div>
+    <div style="max-width:800px;margin:auto">
+      <details open>
+        <summary>How do I pay with UPI?</summary>
+        <p>Choose UPI at checkout to view our boutique QR code. You can scan it directly, tap the one-click payment
+          button to open GPay/PhonePe/Paytm on your phone, or download the QR code image to your gallery.</p>
+      </details>
+      <details>
+        <summary>How long does custom stitching take?</summary>
+        <p>Blouses and kurtis usually take 4–6 days; salwar suits take 5–8 days; bridal lehengas and festive gowns
+          require 12–20 days. You will receive live WhatsApp updates as soon as your garment is ready for trial.</p>
+      </details>
+      <details>
+        <summary>How do I track my order status?</summary>
+        <p>Use the Track Order section below with your Order ID (starts with SD) and 10-digit phone number to see exact
+          milestone stages and view your official receipt.</p>
+      </details>
+      <details>
+        <summary>Can I apply discount coupons?</summary>
+        <p>Yes! During checkout in your cart, enter any active coupon code (such as FESTIVE10 or BRIDAL500) and click
+          Apply to instantly receive your discount.</p>
+      </details>
+      <details>
+        <summary>Do you offer alterations?</summary>
+        <p>Yes, all custom stitched outfits come with internal margin cloth, and minor fitting adjustments are
+          completely complimentary.</p>
+      </details>
+    </div>
+  </section>
+
+  <section id="track">
+    <div class="sh">
+      <span class="eyebrow">⚜️ Atelier Live Journey</span>
+      <h2>Where is my outfit?</h2>
+      <p style="color:var(--mu);max-width:540px;margin:auto">Real-time atelier progress: follow pattern drafting, cutting, artisan hand stitching, and master quality inspection.</p>
+    </div>
+    <div class="panel-box track-wrapper-box">
+      <div class="track track-input-deck">
+        <div class="track-input-group">
+          <label for="tk"><span>📋</span> Order Tracking ID</label>
+          <input id="tk" placeholder="e.g. SD4K9XQ" autocomplete="off" onkeydown="if(event.key==='Enter')track()">
+        </div>
+        <div class="track-input-group">
+          <label for="tp"><span>📱</span> Registered Mobile Number</label>
+          <input id="tp" type="tel" placeholder="10-digit mobile" maxlength="14" autocomplete="tel" onkeydown="if(event.key==='Enter')track()">
+        </div>
+        <div class="track-btn-group">
+          <button class="btn p track-submit-btn" style="width:100%" onclick="track()">
+            <span>🪡 Check Live Status</span>
+          </button>
+        </div>
+      </div>
+      <div class="track-demo-pills">
+        <span class="track-demo-label">✨ Quick Demo Previews:</span>
+        <button type="button" class="track-demo-chip" onclick="$('tk').value='SD4K9XQ';$('tp').value='9811223344';track()">
+          🪡 In-Progress: <b>#SD4K9XQ</b>
+        </button>
+        <button type="button" class="track-demo-chip" onclick="$('tk').value='SD7M2B9';$('tp').value='9822334455';track()">
+          🎉 Ready: <b>#SD7M2B9</b>
+        </button>
+      </div>
+      <div id="tres"></div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="sh">
+      <span class="eyebrow">Visit Our Boutique</span>
+      <h2>Find us &amp; Consult Our Stylist</h2>
+      <p style="color:var(--mu);max-width:540px;margin:auto">Walk in for bespoke fitting &amp; luxury fabrics, or consult directly with our atelier team.</p>
+    </div>
+    <div class="contact-grid">
+      <!-- Boutique Studio Location & Schedule Card -->
+      <div class="contact-card">
+        <div>
+          <div class="contact-card-header">
+            <div class="contact-card-icon">🏛️</div>
+            <div>
+              <h3>Boutique Studio &amp; Atelier</h3>
+              <small>Walk-ins, fitting trials &amp; fabric curation</small>
+            </div>
+          </div>
+          <ul class="info" id="info"></ul>
+        </div>
+        <div class="contact-card-footer">
+          <a class="btn p map-btn" id="mapl" target="_blank" rel="noopener">
+            <span>📍 Open in Google Maps</span> <b style="font-size:0.85rem">➔</b>
+          </a>
+        </div>
+      </div>
+
+      <!-- Direct WhatsApp & AI Consultant Lounge Card -->
+      <div class="contact-card">
+        <div>
+          <div class="contact-card-header">
+            <div class="contact-card-icon" style="background:color-mix(in srgb, #25d366 15%, transparent);color:#25d366">💬</div>
+            <div>
+              <h3>Direct Boutique WhatsApp</h3>
+              <small>Instant design consultation &amp; order inquiries</small>
+            </div>
+          </div>
+
+          <div class="whatsapp-cardlet">
+            <div class="whatsapp-status-row">
+              <span class="status-dot-pulse"></span>
+              <span>Master Stylist Online · Fast Reply</span>
+            </div>
+            <p class="whatsapp-cardlet-desc">
+              Have questions about customized designs, bridal fabrics, or trial fittings? Connect directly with our atelier team.
+            </p>
+            <a class="btn g whatsapp-action-btn" id="wal" target="_blank" rel="noopener">
+              <span>💬 Chat on Official WhatsApp</span>
+            </a>
+          </div>
+
+          <!-- AI Haute-Couture Style Consultant -->
+          <div class="ai-stylist-box">
+            <div class="ai-stylist-header">
+              <span class="ai-sparkle">✨</span>
+              <div>
+                <b>AI Personal Style Consultant</b>
+                <small>Get curated outfit recommendations in seconds</small>
+              </div>
+            </div>
+            <div class="ai-input-wrap">
+              <textarea id="aq" rows="2" placeholder="e.g. Wedding reception outfit under ₹4000 in wine velvet..."></textarea>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px">
+              <button class="btn s p cute-stylist-btn" onclick="stylist()">
+                <span>Ask Stylist</span> <i>✦</i>
+              </button>
+            </div>
+            <div id="ao" class="ai" style="display:none;margin-top:10px;text-align:left"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="foot">© 2026 SAIFA DESIGNS · Ladies Tailor &amp; Boutique</footer>
+
+  <div class="fab">
+    <a class="btn" id="fmap" target="_blank" rel="noopener">📍</a>
+    <a class="btn wa" id="fwa" target="_blank" rel="noopener">💬</a>
+  </div>
+  <div class="drawer" id="dr"></div>
+  <div class="ov" id="ov">
+    <div class="md" id="md"></div>
+  </div>
+  <div id="pn"></div>
+  <div class="toast" id="tt"></div>
+
+  <!-- Libraries with Local Fallbacks -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>window.THREE || document.write('<script src="js/three.min.js"><\/script>')</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <!-- Firebase Realtime Cloud Sync (Cross-Device 10km+ Sync) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+
+  <!-- Modular Application Architecture -->
+  <script src="js/data.js"></script>
+  <script src="js/security.js"></script>
+  <script src="js/realtime.js"></script>
+  <script src="js/backend.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/customer.js"></script>
+  <script src="js/worker.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>

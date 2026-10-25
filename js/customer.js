@@ -772,19 +772,10 @@ const Customer = {
   trackOrder(skipAnimation = false) {
     const tkInput = $("tk");
     const tpInput = $("tp");
-    let no = tkInput ? tkInput.value.trim().toUpperCase() : "";
-    let p = tpInput ? np(tpInput.value) : "";
+    const no = tkInput ? tkInput.value.trim().toUpperCase() : "";
+    const p = tpInput ? np(tpInput.value) : "";
     const resBox = $("tres");
     if (!resBox) return;
-
-    // Friendly auto-fallback to demo sample if both empty on click
-    if (!no && !p) {
-      if (tkInput) tkInput.value = "SD4K9XQ";
-      if (tpInput) tpInput.value = "9811223344";
-      no = "SD4K9XQ";
-      p = "9811223344";
-      toast("Loaded sample bespoke order for live tracking demo 🪡");
-    }
 
     if (!no) {
       toast("Please enter your Order ID (e.g. SD4K9XQ) 📋");
@@ -1119,8 +1110,16 @@ const Customer = {
   // ------------------------------------------
   renderTeam() {
     const tmg = $("tmg");
+    const teamSec = $("team");
     if (!tmg) return;
-    tmg.innerHTML = team().map(t => `
+    const members = team();
+    if (!members || members.length === 0) {
+      if (teamSec) teamSec.style.display = "none";
+      tmg.innerHTML = "";
+      return;
+    }
+    if (teamSec) teamSec.style.display = "";
+    tmg.innerHTML = members.map(t => `
       <div class="tm">
         <div class="av">
           ${t.img ? `<img src="${t.img}" alt="${E(t.name)}">` : (t.em ? E(t.em) : E((t.name || "?")[0]))}

@@ -50,16 +50,34 @@ let S = {
   navCollapsed: false
 };
 
+// Clean out any legacy seed data from previous sessions if present
+if (Array.isArray(S.workers) && S.workers.some(w => w.id === "w1" || w.id === "w2")) {
+  S.workers = [];
+  saveLS("workers", []);
+}
+if (Array.isArray(S.team) && S.team.some(t => t.id === "t1" || t.id === "t2")) {
+  S.team = [];
+  saveLS("team", []);
+}
+if (Array.isArray(S.coupons) && S.coupons.some(c => c.id === "cp1" || c.id === "cp2")) {
+  S.coupons = [];
+  saveLS("coupons", []);
+}
+if (Array.isArray(S.orders) && S.orders.some(o => o.id === "ord_demo_1" || o.id === "ord_sample_1")) {
+  S.orders = [];
+  saveLS("orders", []);
+}
+
 let db = null;
 let sample = null;
 
 // Selectors
 const products = () => (Array.isArray(S.prod) ? S.prod : SEED_PROD);
-const team = () => (Array.isArray(S.team) ? S.team.slice().sort((a, b) => (a.ord || 0) - (b.ord || 0)) : SEED_TEAM);
-const orders = () => (Array.isArray(S.orders) && S.orders.length > 0 ? S.orders : (typeof SEED_ORDERS !== "undefined" ? SEED_ORDERS : []));
+const team = () => (Array.isArray(S.team) ? S.team.slice().sort((a, b) => (a.ord || 0) - (b.ord || 0)) : []);
+const orders = () => (Array.isArray(S.orders) ? S.orders : []);
 const custs = () => S.customers || [];
-const workers = () => (Array.isArray(S.workers) ? S.workers : SEED_WORKERS);
-const coupons = () => (Array.isArray(S.coupons) ? S.coupons : SEED_COUPONS);
+const workers = () => (Array.isArray(S.workers) ? S.workers : []);
+const coupons = () => (Array.isArray(S.coupons) ? S.coupons : []);
 
 // Worker & Salary calculations
 const monKey = ts => {

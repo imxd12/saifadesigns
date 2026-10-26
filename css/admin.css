@@ -1,77 +1,148 @@
-/* ==========================================
-   SAIFA DESIGNS – ADMIN & WORKER PORTAL STYLES
-   ========================================== */
+/* ==========================================================================
+   SAIFA DESIGNS – HAUTE COUTURE ATELIER ADMIN PORTAL STYLES
+   Master Responsive Design System & AI-Inspired Boutique Management Suite
+   ========================================================================== */
 
-/* Admin Shell Layout with Animated Toggle Sidebar */
+/* --------------------------------------------------------------------------
+   1. Design Tokens & Boutique Luxury CSS Variables
+   -------------------------------------------------------------------------- */
+:root {
+  /* Admin Scoped Architecture Tokens */
+  --adm-font-display: 'Playfair Display', Georgia, serif;
+  --adm-font-body: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  --adm-radius-xs: 6px;
+  --adm-radius-sm: 10px;
+  --adm-radius-md: 16px;
+  --adm-radius-lg: 22px;
+  --adm-radius-xl: 28px;
+  --adm-radius-pill: 9999px;
+
+  --adm-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --adm-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.04);
+  --adm-shadow-md: 0 10px 28px -6px rgba(0, 0, 0, 0.07);
+  --adm-shadow-lg: 0 20px 40px -12px rgba(0, 0, 0, 0.12);
+  --adm-shadow-glow: 0 0 24px color-mix(in srgb, var(--br) 22%, transparent);
+  --adm-shadow-gold: 0 0 24px color-mix(in srgb, var(--gd) 24%, transparent);
+
+  --adm-transition-fast: 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  --adm-transition-normal: 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  --adm-transition-slow: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  --adm-sidebar-w: 268px;
+  --adm-sidebar-collapsed-w: 78px;
+  --adm-header-h: 70px;
+}
+
+/* --------------------------------------------------------------------------
+   2. Base Reset & Admin Shell Layout
+   -------------------------------------------------------------------------- */
+#pn {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--tx);
+  font-family: var(--adm-font-body);
+  display: none;
+}
+
+#pn.on {
+  display: block;
+}
+
 .admin-shell {
   display: flex;
   min-height: 100vh;
   background: var(--bg);
   position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--adm-transition-normal);
+  color: var(--tx);
 }
 
-/* Animated Toggle Navbar / Sidebar */
+/* --------------------------------------------------------------------------
+   3. Collapsible Animated Boutique Sidebar
+   -------------------------------------------------------------------------- */
 .admin-sidebar {
-  width: 260px;
-  background: var(--sf);
+  width: var(--adm-sidebar-w);
+  background: color-mix(in srgb, var(--sf) 95%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid var(--ln);
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 0;
   height: 100vh;
-  z-index: 45;
-  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 55;
+  transition: width var(--adm-transition-normal), transform var(--adm-transition-normal);
   overflow: hidden;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.04);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.03);
+  user-select: none;
 }
 
 .admin-sidebar.collapsed {
-  width: 76px;
+  width: var(--adm-sidebar-collapsed-w);
 }
 
 .sidebar-header {
-  padding: 20px 16px;
+  padding: 18px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--ln);
   min-height: 72px;
+  gap: 8px;
 }
 
 .sidebar-logo {
-  font: 800 1.2rem 'Playfair Display', serif;
+  font: 800 1.25rem var(--adm-font-display);
   color: var(--br);
   display: flex;
   align-items: center;
   gap: 10px;
   white-space: nowrap;
-  transition: opacity 0.2s;
+  letter-spacing: -0.01em;
+}
+
+.sidebar-logo i {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--adm-radius-sm);
+  background: linear-gradient(135deg, var(--br), var(--gd));
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 1.15rem;
+  font-weight: 800;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--br) 35%, transparent);
+  flex-shrink: 0;
 }
 
 .admin-sidebar.collapsed .sidebar-logo span {
   display: none;
 }
 
-/* Animated Toggle Button */
 .toggle-btn {
   background: var(--sf2);
   border: 1px solid var(--ln);
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--adm-radius-sm);
   display: grid;
   place-items: center;
   cursor: pointer;
   color: var(--tx);
-  transition: transform 0.3s ease, background 0.2s;
+  transition: all var(--adm-transition-fast);
+  flex-shrink: 0;
 }
 
 .toggle-btn:hover {
   background: var(--br);
   color: #fff;
   border-color: var(--br);
+  transform: scale(1.05);
 }
 
 .admin-sidebar.collapsed .toggle-btn i {
@@ -80,21 +151,32 @@
 
 /* Sidebar Navigation Items */
 .sidebar-nav {
-  padding: 14px 10px;
+  padding: 14px 10px 30px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ln) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: var(--ln);
+  border-radius: var(--adm-radius-pill);
 }
 
 .nav-group-title {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   color: var(--mu);
   font-weight: 700;
-  padding: 10px 12px 4px;
+  padding: 14px 14px 4px;
   white-space: nowrap;
 }
 
@@ -106,22 +188,24 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 11px 14px;
-  border-radius: 14px;
+  padding: 10px 14px;
+  border-radius: var(--adm-radius-md);
   color: var(--tx);
   text-decoration: none;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--adm-transition-fast);
   position: relative;
   white-space: nowrap;
 }
 
 .admin-nav-item i {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   min-width: 24px;
   text-align: center;
+  display: grid;
+  place-items: center;
 }
 
 .admin-nav-item:hover {
@@ -133,7 +217,12 @@
 .admin-nav-item.active {
   background: linear-gradient(135deg, var(--br), var(--br2));
   color: #fff;
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--br) 30%, transparent);
+  font-weight: 600;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--br) 35%, transparent);
+}
+
+.admin-nav-item.active i {
+  transform: scale(1.1);
 }
 
 .admin-sidebar.collapsed .admin-nav-item span {
@@ -146,51 +235,51 @@
   color: #fff;
   font-size: 0.68rem;
   font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 99px;
+  padding: 2px 8px;
+  border-radius: var(--adm-radius-pill);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
 }
 
 .admin-sidebar.collapsed .nav-badge {
   display: none;
 }
 
-/* Main Content Area */
+/* --------------------------------------------------------------------------
+   4. Admin Main Container
+   -------------------------------------------------------------------------- */
 .admin-main {
   flex: 1;
-  padding: 24px 3% 80px;
+  padding: 20px clamp(14px, 2.8vw, 36px) 90px;
   overflow-x: hidden;
+  min-width: 0;
+  animation: pageEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ==========================================
-   Base Admin Top Bar & Luxury Header Bar
-   ========================================== */
-.admin-top-bar {
-  background: color-mix(in srgb, var(--sf) 88%, transparent);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid var(--ln);
-  border-radius: 20px;
-  padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06);
-  position: relative;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Elevated Haute-Couture Sticky Admin Header Bar */
+/* --------------------------------------------------------------------------
+   5. Luxury Sticky Admin Header Bar
+   -------------------------------------------------------------------------- */
 .admin-top-bar.luxury-header {
   position: sticky;
-  top: 12px;
+  top: 10px;
   z-index: 50;
   background: color-mix(in srgb, var(--sf) 86%, transparent);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid color-mix(in srgb, var(--gd) 32%, var(--ln));
-  border-radius: 22px;
-  padding: 12px 22px;
+  border-radius: var(--adm-radius-lg);
+  padding: 12px 20px;
   margin-bottom: 22px;
   display: flex;
   align-items: center;
@@ -199,45 +288,44 @@
   box-shadow: 
     0 16px 36px -12px rgba(0, 0, 0, 0.08), 
     0 0 1px 1px color-mix(in srgb, var(--gd) 16%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all var(--adm-transition-fast);
 }
 
-/* Golden Running Stitch Accent Border at Bottom */
 .admin-top-bar.luxury-header::after {
   content: '';
   position: absolute;
-  left: 22px;
-  right: 22px;
+  left: 20px;
+  right: 20px;
   bottom: -1px;
   height: 2px;
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gd) 65%, transparent) 25%, color-mix(in srgb, var(--br) 65%, transparent) 75%, transparent);
-  border-radius: 99px;
+  border-radius: var(--adm-radius-pill);
   pointer-events: none;
 }
 
-/* Header Left: Branding, Page Title & Navigation Toggle */
 .header-left {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+  min-width: 0;
 }
 
-/* Mobile Sidebar Toggle Hamburger (Hidden on Desktop >= 993px) */
 .menu-toggle-btn {
   display: none;
   width: 38px;
   height: 38px;
   padding: 0;
-  border-radius: 11px;
+  border-radius: var(--adm-radius-sm);
   place-items: center;
   font-size: 1.15rem;
   background: var(--sf2);
   border: 1.5px solid color-mix(in srgb, var(--gd) 35%, var(--ln));
   color: var(--tx);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--adm-shadow-xs);
+  transition: all var(--adm-transition-fast);
   flex-shrink: 0;
 }
 
@@ -246,17 +334,12 @@
   color: #fff;
   border-color: var(--br);
   transform: scale(1.05);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--br) 30%, transparent);
-}
-
-.menu-toggle-btn:active {
-  transform: scale(0.95);
 }
 
 .header-titles {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -273,7 +356,7 @@
   gap: 5px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--br) 12%, var(--sf)), color-mix(in srgb, var(--gd) 16%, var(--sf)));
   border: 1px solid color-mix(in srgb, var(--gd) 45%, transparent);
-  border-radius: 99px;
+  border-radius: var(--adm-radius-pill);
   padding: 2px 9px;
   box-shadow: 0 2px 8px color-mix(in srgb, var(--gd) 18%, transparent);
   user-select: none;
@@ -285,12 +368,12 @@
 }
 
 .header-brand-tag {
-  font-size: 0.65rem;
+  font-size: 0.64rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--gd);
-  font-family: 'Playfair Display', serif;
+  font-family: var(--adm-font-display);
 }
 
 .header-sync-pill {
@@ -299,7 +382,7 @@
   gap: 6px;
   background: color-mix(in srgb, var(--ok) 12%, var(--sf2));
   border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent);
-  border-radius: 99px;
+  border-radius: var(--adm-radius-pill);
   padding: 2px 8px;
   font-size: 0.64rem;
   font-weight: 700;
@@ -337,11 +420,10 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 9px;
+  border-radius: var(--adm-radius-sm);
   background: color-mix(in srgb, var(--sf2) 85%, transparent);
   border: 1px solid var(--ln);
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
 }
 
 .header-page-title {
@@ -351,10 +433,10 @@
   color: var(--tx);
   letter-spacing: -0.02em;
   line-height: 1.15;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--adm-font-display);
 }
 
-/* Header Center: Real-time Status Badges & Quick Filters */
+/* Header Center: Real-time Status Badges */
 .header-center {
   display: flex;
   align-items: center;
@@ -367,7 +449,7 @@
   font-size: 0.76rem;
   height: 34px;
   padding: 0 13px;
-  border-radius: 99px;
+  border-radius: var(--adm-radius-pill);
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
@@ -378,21 +460,13 @@
   background: var(--sf);
   border: 1px solid var(--ln);
   color: var(--tx);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
-}
-
-.header-badge b {
-  font-weight: 700;
+  transition: all var(--adm-transition-fast);
+  box-shadow: var(--adm-shadow-xs);
 }
 
 .header-badge:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-}
-
-.header-badge:active {
-  transform: translateY(0);
+  box-shadow: var(--adm-shadow-md);
 }
 
 .header-badge.warn {
@@ -407,7 +481,7 @@
 
 @keyframes badgeAlertPulse {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--warn) 45%, transparent); }
-  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--warn) 0%, transparent); }
+  50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--warn) 0%, transparent); }
 }
 
 .header-badge.info {
@@ -422,7 +496,7 @@
   border-color: color-mix(in srgb, var(--gd) 45%, transparent);
 }
 
-/* Header Right: Controls, Theme Switcher & Admin Profile */
+/* Header Right: Controls & Profile */
 .header-right {
   display: flex;
   align-items: center;
@@ -430,22 +504,21 @@
   flex-shrink: 0;
 }
 
-/* Haute Couture Theme Toggle Switch Button */
 .theme-toggle-btn {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   height: 36px;
   padding: 0 14px;
-  border-radius: 99px;
+  border-radius: var(--adm-radius-pill);
   background: linear-gradient(135deg, var(--sf2), color-mix(in srgb, var(--sf) 75%, transparent));
   border: 1px solid color-mix(in srgb, var(--gd) 35%, var(--ln));
   color: var(--tx);
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 600;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all var(--adm-transition-fast);
+  box-shadow: var(--adm-shadow-xs);
   white-space: nowrap;
 }
 
@@ -453,11 +526,7 @@
   border-color: var(--br);
   color: var(--br);
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--br) 22%, transparent);
-}
-
-.theme-toggle-btn:active {
-  transform: translateY(0);
+  box-shadow: var(--adm-shadow-glow);
 }
 
 .theme-icon {
@@ -478,24 +547,20 @@
   padding: 0 13px;
   font-size: 0.8rem;
   font-weight: 600;
-  border-radius: 99px;
+  border-radius: var(--adm-radius-pill);
   background: var(--sf2);
   border: 1px solid var(--ln);
   color: var(--tx);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  transition: all var(--adm-transition-fast);
+  box-shadow: var(--adm-shadow-xs);
   white-space: nowrap;
 }
 
 .header-btn:hover {
   transform: translateY(-2px);
   border-color: var(--br);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-}
-
-.header-btn:active {
-  transform: translateY(0);
+  box-shadow: var(--adm-shadow-md);
 }
 
 .header-btn.storefront-btn:hover {
@@ -518,8 +583,8 @@
   background: linear-gradient(135deg, var(--sf2), color-mix(in srgb, var(--sf) 85%, transparent));
   border: 1px solid color-mix(in srgb, var(--gd) 35%, var(--ln));
   padding: 0 6px 0 6px;
-  border-radius: 99px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  border-radius: var(--adm-radius-pill);
+  box-shadow: var(--adm-shadow-xs);
 }
 
 .admin-avatar {
@@ -531,7 +596,7 @@
   place-items: center;
   font-size: 0.82rem;
   color: #fff;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--gd) 40%, transparent);
+  box-shadow: var(--adm-shadow-gold);
   flex-shrink: 0;
 }
 
@@ -588,34 +653,252 @@
   transform: scale(1.1);
 }
 
-/* Dynamic Responsive Adaptive Rules for Laptops (993px - 1320px) */
-@media (max-width: 1320px) and (min-width: 993px) {
-  .theme-toggle-btn .theme-label {
-    display: none;
-  }
-  .theme-toggle-btn {
-    padding: 0;
-    width: 36px;
-    justify-content: center;
-  }
-  .header-btn span {
-    display: none;
-  }
-  .header-btn {
-    padding: 0;
-    width: 36px;
-    justify-content: center;
-  }
-  .header-badge {
-    padding: 0 10px;
-    font-size: 0.72rem;
-  }
+/* --------------------------------------------------------------------------
+   6. Smart Boutique AI & Contextual Intelligence Deck
+   -------------------------------------------------------------------------- */
+.admin-ai-deck {
+  margin-bottom: 22px;
 }
 
-/* Rich KPI Dashboard Cards */
+.ai-deck-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ai-deck-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--tx);
+}
+
+.ai-deck-sparkle {
+  background: linear-gradient(135deg, var(--br), var(--gd));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 1.25rem;
+}
+
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.insight-card {
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: var(--adm-radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--adm-shadow-xs);
+  transition: all var(--adm-transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.insight-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--br);
+  box-shadow: var(--adm-shadow-md);
+}
+
+.insight-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--ln);
+  transition: background 0.2s;
+}
+
+.insight-card.velocity::before { background: var(--ok); }
+.insight-card.tailoring::before { background: var(--br); }
+.insight-card.inventory::before { background: var(--gd); }
+.insight-card.actions::before { background: var(--warn); }
+
+.insight-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.insight-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mu);
+}
+
+.insight-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--adm-radius-sm);
+  background: var(--sf2);
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+}
+
+.insight-metric {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-family: var(--adm-font-display);
+  color: var(--tx);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.insight-metric.ok { color: var(--ok); }
+.insight-metric.warn { color: var(--warn); }
+.insight-metric.bad { color: var(--bad); }
+
+.insight-desc {
+  font-size: 0.78rem;
+  color: var(--mu);
+  line-height: 1.45;
+}
+
+.action-pill-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.action-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--adm-radius-sm);
+  background: var(--sf2);
+  border: 1px solid var(--ln);
+  font-size: 0.78rem;
+  transition: all var(--adm-transition-fast);
+}
+
+.action-pill:hover {
+  background: color-mix(in srgb, var(--br) 8%, var(--sf2));
+  border-color: var(--br);
+}
+
+.action-pill-btn {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--adm-radius-pill);
+  cursor: pointer;
+  background: var(--br);
+  color: #fff;
+  border: none;
+  transition: all var(--adm-transition-fast);
+  white-space: nowrap;
+}
+
+.action-pill-btn:hover {
+  transform: scale(1.04);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--br) 40%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   7. Financial Integrity & Segregation Deck
+   -------------------------------------------------------------------------- */
+.financial-deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.fin-card {
+  background: var(--sf);
+  border-radius: var(--adm-radius-lg);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--adm-shadow-xs);
+  transition: all var(--adm-transition-fast);
+}
+
+.fin-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--adm-shadow-md);
+}
+
+.fin-card.paid {
+  border: 1.5px solid var(--ok);
+  background: color-mix(in srgb, var(--ok) 5%, var(--sf));
+}
+
+.fin-card.claimed {
+  border: 1.5px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 6%, var(--sf));
+}
+
+.fin-card.unpaid {
+  border: 1.5px solid var(--bad);
+  background: color-mix(in srgb, var(--bad) 5%, var(--sf));
+}
+
+.fin-tag {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fin-card.paid .fin-tag { color: var(--ok); }
+.fin-card.claimed .fin-tag { color: var(--warn); }
+.fin-card.unpaid .fin-tag { color: var(--bad); }
+
+.fin-amt {
+  font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+  font-weight: 800;
+  font-family: var(--adm-font-display);
+  margin: 6px 0 3px;
+  line-height: 1.1;
+}
+
+.fin-card.paid .fin-amt { color: var(--ok); }
+.fin-card.claimed .fin-amt { color: var(--warn); }
+.fin-card.unpaid .fin-amt { color: var(--bad); }
+
+.fin-footer {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--ln);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+}
+
+/* --------------------------------------------------------------------------
+   8. KPI Cards Grid
+   -------------------------------------------------------------------------- */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -623,47 +906,49 @@
 .kpi-card {
   background: var(--sf);
   border: 1px solid var(--ln);
-  border-radius: 20px;
-  padding: 20px;
+  border-radius: var(--adm-radius-lg);
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--adm-shadow-xs);
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all var(--adm-transition-fast);
 }
 
 .kpi-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 14px 30px color-mix(in srgb, var(--br) 12%, transparent);
+  box-shadow: var(--adm-shadow-md);
+  border-color: color-mix(in srgb, var(--br) 40%, var(--ln));
 }
 
 .kpi-card .kpi-icon {
   position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  top: 16px;
+  right: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--adm-radius-sm);
   background: var(--sf2);
   display: grid;
   place-items: center;
-  font-size: 1.4rem;
+  font-size: 1.35rem;
 }
 
 .kpi-card small {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--mu);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   font-weight: 600;
 }
 
 .kpi-card b {
-  font-size: 1.8rem;
-  font-family: 'Playfair Display', serif;
+  font-size: 1.75rem;
+  font-family: var(--adm-font-display);
   color: var(--br);
+  line-height: 1.15;
 }
 
 .kpi-card .trend {
@@ -672,41 +957,326 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  color: var(--mu);
 }
 
 .trend.up { color: var(--ok); }
 .trend.alert { color: var(--warn); }
 .trend.bad { color: var(--bad); }
 
-/* Double Verification Warning Modal */
-.danger-modal {
-  border: 2px solid var(--bad) !important;
-  box-shadow: 0 20px 50px rgba(220, 50, 50, 0.25) !important;
+/* --------------------------------------------------------------------------
+   9. Standard Box Container & Responsive Layout Grids
+   -------------------------------------------------------------------------- */
+.box {
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: var(--adm-radius-lg);
+  padding: 22px;
+  margin-bottom: 20px;
+  box-shadow: var(--adm-shadow-xs);
+  transition: border-color var(--adm-transition-fast);
 }
 
-.danger-header {
-  color: var(--bad);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1.4rem;
-  margin-bottom: 12px;
+.box:hover {
+  border-color: color-mix(in srgb, var(--gd) 25%, var(--ln));
 }
 
-.danger-box {
-  background: color-mix(in srgb, var(--bad) 8%, transparent);
-  border: 1px dashed var(--bad);
-  border-radius: 14px;
+.g2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 16px;
+}
+
+.g3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
+}
+
+.g4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 14px;
+}
+
+/* --------------------------------------------------------------------------
+   10. Interactive SVG Charts
+   -------------------------------------------------------------------------- */
+.chart-bar-group {
+  cursor: pointer;
+}
+
+.chart-bar-group rect {
+  transition: all var(--adm-transition-fast);
+}
+
+.chart-bar-group:hover rect {
+  filter: brightness(1.18);
+  transform: scaleY(1.03);
+  transform-origin: bottom;
+}
+
+/* --------------------------------------------------------------------------
+   11. Tables & Forms Architecture
+   -------------------------------------------------------------------------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+th {
+  text-align: left;
+  padding: 12px 14px;
+  background: var(--sf2);
+  color: var(--mu);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 2px solid var(--ln);
+  white-space: nowrap;
+}
+
+td {
   padding: 14px;
-  margin: 12px 0 16px;
-  font-size: 0.9rem;
-  color: var(--tx);
+  border-bottom: 1px solid var(--ln);
+  vertical-align: middle;
 }
 
-/* Coupon Cards */
+tr:hover td {
+  background: color-mix(in srgb, var(--sf2) 65%, transparent);
+}
+
+/* Form Inputs */
+input, select, textarea {
+  width: 100%;
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: var(--adm-radius-sm);
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  color: var(--tx);
+  font-family: inherit;
+  transition: all var(--adm-transition-fast);
+  box-sizing: border-box;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--br);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--br) 20%, transparent);
+}
+
+label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--mu);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Chips & Tabs */
+.tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.chip {
+  padding: 6px 14px;
+  border-radius: var(--adm-radius-pill);
+  background: var(--sf2);
+  border: 1px solid var(--ln);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--mu);
+  cursor: pointer;
+  transition: all var(--adm-transition-fast);
+  user-select: none;
+}
+
+.chip:hover {
+  border-color: var(--br);
+  color: var(--br);
+}
+
+.chip.on {
+  background: linear-gradient(135deg, var(--br), var(--br2));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--br) 35%, transparent);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: var(--adm-radius-pill);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--ln);
+  background: var(--sf);
+  color: var(--tx);
+  transition: all var(--adm-transition-fast);
+  text-decoration: none;
+  user-select: none;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--br);
+  box-shadow: var(--adm-shadow-sm);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn.p {
+  background: linear-gradient(135deg, var(--br), var(--br2));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--br) 35%, transparent);
+}
+
+.btn.p:hover {
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--br) 50%, transparent);
+}
+
+.btn.ok {
+  background: var(--ok);
+  color: #fff;
+  border-color: transparent;
+}
+
+.btn.d {
+  background: var(--bad);
+  color: #fff;
+  border-color: transparent;
+}
+
+.btn.s {
+  padding: 5px 12px;
+  font-size: 0.78rem;
+}
+
+/* Pills & Badges */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--adm-radius-pill);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pill.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.pill.w { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.pill.bad { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+
+/* --------------------------------------------------------------------------
+   12. Live Shop Activity Feed & Audit
+   -------------------------------------------------------------------------- */
+.activity-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 290px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--sf2);
+  border: 1px solid var(--ln);
+  padding: 10px 14px;
+  border-radius: var(--adm-radius-md);
+  font-size: 0.82rem;
+  transition: all var(--adm-transition-fast);
+}
+
+.activity-item:hover {
+  border-color: var(--br);
+  transform: translateX(2px);
+}
+
+.activity-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  background: var(--sf);
+  box-shadow: var(--adm-shadow-xs);
+}
+
+.activity-time {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--mu);
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   13. Shop Status Control Banner
+   -------------------------------------------------------------------------- */
+.shop-status-control-banner {
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: var(--adm-radius-lg);
+  padding: 14px 20px;
+  margin-bottom: 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  box-shadow: var(--adm-shadow-xs);
+}
+
+.shop-status-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: var(--adm-radius-pill);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.shop-status-pill-badge.open {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  color: var(--ok);
+  border: 1px solid var(--ok);
+}
+
+.shop-status-pill-badge.closed {
+  background: color-mix(in srgb, var(--bad) 16%, transparent);
+  color: var(--bad);
+  border: 1px solid var(--bad);
+}
+
+/* --------------------------------------------------------------------------
+   14. Coupons & Discounts Tab Styles
+   -------------------------------------------------------------------------- */
 .coupon-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: 18px;
   margin-top: 14px;
 }
@@ -714,23 +1284,17 @@
 .coupon-card {
   background: var(--sf);
   border: 1.5px dashed var(--br);
-  border-radius: 18px;
+  border-radius: var(--adm-radius-lg);
   padding: 18px;
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: transform 0.2s;
+  transition: transform var(--adm-transition-fast);
 }
 
 .coupon-card:hover {
   transform: translateY(-2px);
-}
-
-.coupon-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .coupon-code-badge {
@@ -740,29 +1304,18 @@
   color: var(--br);
   background: var(--sf2);
   padding: 4px 12px;
-  border-radius: 8px;
+  border-radius: var(--adm-radius-sm);
   letter-spacing: 0.08em;
   cursor: pointer;
-  transition: all 0.2s ease;
   user-select: all;
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
-.coupon-code-badge:hover {
-  background: color-mix(in srgb, var(--br) 15%, var(--sf2));
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-}
-
-.coupon-code-badge:active {
-  transform: scale(0.97);
-}
-
 .coupon-usage-bar {
   height: 6px;
-  border-radius: 99px;
+  border-radius: var(--adm-radius-pill);
   background: var(--ln);
   overflow: hidden;
   margin-top: 4px;
@@ -771,14 +1324,16 @@
 .coupon-usage-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--br), var(--gd));
-  border-radius: 99px;
+  border-radius: var(--adm-radius-pill);
   transition: width 0.3s;
 }
 
-/* Attendance Register Styles */
+/* --------------------------------------------------------------------------
+   15. Attendance & Salary Styles
+   -------------------------------------------------------------------------- */
 .attendance-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
   gap: 14px;
   margin-top: 12px;
 }
@@ -786,7 +1341,7 @@
 .att-worker-card {
   background: var(--sf);
   border: 1px solid var(--ln);
-  border-radius: 16px;
+  border-radius: var(--adm-radius-md);
   padding: 16px;
 }
 
@@ -801,7 +1356,7 @@
   padding: 6px 4px;
   font-size: 0.74rem;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: var(--adm-radius-sm);
   border: 1px solid var(--ln);
   background: var(--sf);
   cursor: pointer;
@@ -817,36 +1372,82 @@
 .att-btn.a-btn { border-color: var(--bad); color: var(--bad); }
 .att-btn.a-btn.active, .att-btn.a-btn:hover { background: var(--bad); color: #fff; }
 
-/* Image Upload Preview Box */
-.img-upload-box {
-  border: 2px dashed var(--ln);
-  border-radius: 16px;
-  padding: 16px;
+.att-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.att-cal-header {
   text-align: center;
-  background: var(--sf2);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--mu);
+  padding: 6px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.att-cal-day {
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: var(--adm-radius-md);
+  min-height: 84px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   cursor: pointer;
-  transition: border-color 0.2s;
-  margin: 6px 0 12px;
-  position: relative;
+  transition: all var(--adm-transition-fast);
 }
 
-.img-upload-box:hover {
+.att-cal-day:hover {
+  transform: translateY(-2px);
   border-color: var(--br);
+  box-shadow: var(--adm-shadow-glow);
 }
 
-.img-preview-thumb {
-  max-width: 140px;
-  max-height: 140px;
-  border-radius: 12px;
-  margin: 8px auto;
-  display: block;
-  object-fit: cover;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+.att-cal-day.today {
+  border: 2px solid var(--gd);
+  background: color-mix(in srgb, var(--gd) 6%, var(--sf));
 }
 
-/* ==========================================
-   Printable Boutique Invoice & Receipt Engine
-   ========================================== */
+.att-cal-day.empty {
+  opacity: 0.25;
+  pointer-events: none;
+  border-style: dashed;
+}
+
+.att-day-num {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--tx);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.att-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: var(--adm-radius-pill);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.att-pill.p { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); border: 1px solid var(--ok); }
+.att-pill.h { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); border: 1px solid var(--warn); }
+.att-pill.l { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); border: 1px solid var(--bad); }
+.att-pill.ot { background: color-mix(in srgb, #8b5cf6 20%, transparent); color: #8b5cf6; border: 1px solid #8b5cf6; }
+.att-pill.off { background: var(--sf2); color: var(--mu); border: 1px solid var(--ln); }
+
+/* --------------------------------------------------------------------------
+   16. Printable Boutique Invoice Styles
+   -------------------------------------------------------------------------- */
 @media print {
   @page {
     size: auto;
@@ -879,15 +1480,9 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .no-print, .no-print *, .modal-close, button, .invoice-actions-deck, .tabs {
+  .no-print, .no-print *, .modal-close, button, .invoice-actions-deck, .tabs, .admin-mobile-dock {
     display: none !important;
     visibility: hidden !important;
-  }
-  #invoice-print-area.thermal-mode {
-    width: 80mm !important;
-    max-width: 80mm !important;
-    margin: 0 auto !important;
-    font-size: 11px !important;
   }
 }
 
@@ -895,13 +1490,12 @@
   background: #ffffff;
   color: #18181b;
   padding: 28px;
-  border-radius: 18px;
+  border-radius: var(--adm-radius-lg);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
   max-width: 760px;
   margin: 0 auto;
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--adm-font-body);
   line-height: 1.45;
-  transition: max-width 0.25s ease, padding 0.25s ease;
 }
 
 .invoice-sheet.thermal-mode {
@@ -922,107 +1516,6 @@
   gap: 12px;
 }
 
-.thermal-mode .invoice-header-luxury {
-  flex-direction: column;
-  text-align: center;
-  align-items: center;
-  border-bottom: 1px dashed #8e1647;
-}
-
-.invoice-atelier-crest {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.invoice-crest-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #8e1647, #5c0d2e);
-  color: #f59e0b;
-  display: grid;
-  place-items: center;
-  font-size: 1.6rem;
-  box-shadow: 0 4px 12px rgba(142, 22, 71, 0.25);
-}
-
-.invoice-brand-h1 {
-  font-family: 'Cinzel Decorative', 'Cinzel', serif;
-  font-size: 1.45rem;
-  font-weight: 800;
-  color: #8e1647;
-  letter-spacing: 0.04em;
-  margin: 0;
-  line-height: 1.1;
-}
-
-.invoice-brand-sub {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #92400e;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.invoice-meta-box {
-  text-align: right;
-  font-size: 0.85rem;
-}
-
-.thermal-mode .invoice-meta-box {
-  text-align: center;
-  margin-top: 6px;
-  width: 100%;
-}
-
-.invoice-pill-stamp {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 8px;
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 4px;
-}
-
-.invoice-pill-stamp.paid {
-  background: #ecfdf5;
-  color: #065f46;
-  border: 1.5px solid #10b981;
-}
-
-.invoice-pill-stamp.claimed {
-  background: #fffbeb;
-  color: #92400e;
-  border: 1.5px solid #f59e0b;
-}
-
-.invoice-pill-stamp.unpaid {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1.5px solid #ef4444;
-}
-
-.invoice-info-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 16px;
-  background: #fcfcfd;
-  border: 1px solid #f3f4f6;
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  font-size: 0.85rem;
-}
-
-.thermal-mode .invoice-info-grid {
-  grid-template-columns: 1fr;
-  gap: 10px;
-  padding: 10px;
-}
-
 .invoice-table {
   width: 100%;
   border-collapse: collapse;
@@ -1034,458 +1527,97 @@
   background: #f9fafb;
   color: #374151;
   font-weight: 700;
-  text-transform: uppercase;
-  font-size: 0.72rem;
-  letter-spacing: 0.05em;
   padding: 8px 10px;
   border-bottom: 2px solid #e5e7eb;
 }
 
 .invoice-table td {
-  padding: 10px 10px;
+  padding: 10px;
   border-bottom: 1px solid #f3f4f6;
-  vertical-align: top;
   color: #1f2937;
 }
 
-.invoice-meas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 6px;
-  background: #fdfafb;
-  border: 1px solid #f9e8ef;
-  border-radius: 10px;
-  padding: 10px;
-  margin: 12px 0 16px;
+/* --------------------------------------------------------------------------
+   17. Mobile Quick Dock (Bottom Navbar on Mobile screens <= 768px)
+   -------------------------------------------------------------------------- */
+.admin-mobile-dock {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: color-mix(in srgb, var(--sf) 92%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid var(--ln);
+  z-index: 90;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 8px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
 }
 
-.invoice-meas-cell {
-  background: #fff;
-  border: 1px solid #f3d4e0;
-  border-radius: 8px;
-  padding: 5px 8px;
-  text-align: center;
-}
-
-.invoice-totals-box {
+.dock-item {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  margin-top: 10px;
-  font-size: 0.9rem;
-}
-
-.invoice-grand-total {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #8e1647;
-  display: flex;
-  gap: 8px;
   align-items: center;
-}
-
-.invoice-footer-terms {
-  border-top: 1px dashed #d1d5db;
-  padding-top: 14px;
-  margin-top: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  font-size: 0.78rem;
-  color: #6b7280;
-  gap: 12px;
-}
-
-.thermal-mode .invoice-footer-terms {
-  flex-direction: column;
-  text-align: center;
-  align-items: center;
-}
-
-/* Mobile Responsiveness for Admin */
-@media (max-width: 900px) {
-  .admin-sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    transform: translateX(-100%);
-    width: 260px !important;
-  }
-  .admin-sidebar.mobile-open {
-    transform: translateX(0);
-  }
-  .admin-sidebar .sidebar-logo span {
-    display: inline !important;
-  }
-  .admin-sidebar .admin-nav-item span {
-    display: inline !important;
-  }
-  .admin-main {
-    padding: 16px 4% 80px;
-  }
-}
-
-/* Interactive Attendance Calendar & Matrix Styles */
-.att-cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.att-cal-header {
-  text-align: center;
-  font-weight: 700;
-  font-size: 0.78rem;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+  gap: 2px;
   color: var(--mu);
-  padding: 6px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.att-cal-day {
-  background: var(--sf);
-  border: 1px solid var(--ln);
-  border-radius: 14px;
-  min-height: 84px;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
-}
-
-.att-cal-day:hover {
-  transform: translateY(-2px);
-  border-color: var(--br);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--br) 15%, transparent);
-}
-
-.att-cal-day.today {
-  border: 2px solid var(--gd);
-  background: color-mix(in srgb, var(--gd) 6%, var(--sf));
-}
-
-.att-cal-day.empty {
-  opacity: 0.25;
-  pointer-events: none;
-  border-style: dashed;
-}
-
-.att-day-num {
-  font-weight: 700;
-  font-size: 0.88rem;
-  color: var(--tx);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.att-pill {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 99px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-align: center;
-  width: 100%;
-  margin-top: 4px;
-}
-
-.att-pill.p {
-  background: color-mix(in srgb, var(--ok) 18%, transparent);
-  color: var(--ok);
-  border: 1px solid var(--ok);
-}
-
-.att-pill.h {
-  background: color-mix(in srgb, var(--warn) 18%, transparent);
-  color: var(--warn);
-  border: 1px solid var(--warn);
-}
-
-.att-pill.l {
-  background: color-mix(in srgb, var(--bad) 18%, transparent);
-  color: var(--bad);
-  border: 1px solid var(--bad);
-}
-
-.att-pill.ot {
-  background: color-mix(in srgb, #8b5cf6 20%, transparent);
-  color: #8b5cf6;
-  border: 1px solid #8b5cf6;
-}
-
-.att-pill.off {
-  background: var(--sf2);
-  color: var(--mu);
-  border: 1px solid var(--ln);
-}
-
-.att-day-note {
+  text-decoration: none;
   font-size: 0.68rem;
-  color: var(--mu);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: 2px;
-}
-
-/* AI Leaderboard Grid */
-.leaderboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
-  margin: 16px 0;
-}
-
-.leaderboard-card {
-  background: var(--sf);
-  border: 1px solid var(--ln);
-  border-radius: 18px;
-  padding: 18px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.leaderboard-badge {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  font-size: 1.6rem;
-  flex-shrink: 0;
-  background: var(--sf2);
-}
-
-.chart-bar-group:hover rect {
-  filter: brightness(1.15);
-}
-
-/* ==========================================
-   ARTISAN CREDENTIALS & ACCESS GUIDE (ADMIN ONLY)
-   ========================================== */
-.artisan-credentials-box {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--gd) 14%, var(--sf)), var(--sf));
-  border: 1px solid color-mix(in srgb, var(--gd) 45%, var(--ln));
-  border-radius: 16px;
-  padding: 16px 18px;
-  margin: 16px 0;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
-}
-
-.aadhaar-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: monospace;
-  font-size: 0.8rem;
-  background: var(--sf2);
-  border: 1px solid var(--ln);
-  padding: 2px 8px;
-  border-radius: 6px;
-  color: var(--tx);
-  letter-spacing: 0.05em;
-}
-
-.aadhaar-badge.verified {
-  border-color: color-mix(in srgb, var(--ok) 50%, var(--ln));
-}
-
-.copy-cred-btn {
-  background: transparent;
-  border: 1px solid var(--ln);
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 0.72rem;
-  cursor: pointer;
-  color: var(--br);
   font-weight: 600;
-  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--adm-transition-fast);
 }
 
-.copy-cred-btn:hover {
-  background: color-mix(in srgb, var(--br) 10%, transparent);
-  border-color: var(--br);
+.dock-icon {
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
-/* ==========================================
-   WAGES & FAIR PIECE-RATE MATRIX
-   ========================================== */
-.wages-matrix-table td input {
-  padding: 5px 8px;
-  font-size: 0.84rem;
-  border-radius: 8px;
-  margin: 0;
+.dock-item:active {
+  transform: scale(0.92);
 }
 
-/* ==========================================
-   LIVE SHOP ACTIVITY FEED & AUDIT
-   ========================================== */
-.activity-stream {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-height: 290px;
-  overflow-y: auto;
-  padding-right: 4px;
+.dock-item.active {
+  color: var(--br);
 }
 
-.activity-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: var(--sf2);
-  border: 1px solid var(--ln);
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-size: 0.82rem;
-}
-
-.activity-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 0.9rem;
-  flex-shrink: 0;
-  background: var(--sf);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-}
-
-.activity-time {
-  margin-left: auto;
-  font-size: 0.7rem;
-  color: var(--mu);
-  white-space: nowrap;
-}
-
-/* ==========================================
-   QUICK SHOP STATUS CONTROL PILL & TOGGLE
-   ========================================== */
-.shop-status-control-banner {
-  background: var(--sf);
-  border: 1px solid var(--ln);
-  border-radius: 16px;
-  padding: 14px 18px;
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 14px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.02);
-}
-
-.shop-status-pill-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 99px;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.shop-status-pill-badge.open {
-  background: color-mix(in srgb, var(--ok) 16%, transparent);
-  color: var(--ok);
-  border: 1px solid var(--ok);
-}
-
-.shop-status-pill-badge.closed {
-  background: color-mix(in srgb, var(--bad) 16%, transparent);
-  color: var(--bad);
-  border: 1px solid var(--bad);
-}
-
-/* ==========================================================================
-   ADMIN & WORKER QUALITY VERIFICATION & RESPONSIVE ARCHITECTURE
-   ========================================================================== */
-
-/* Quality Verification Queue Cards & Badges */
-.verification-banner {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--gd) 14%, var(--sf)), var(--sf));
-  border: 1.5px solid color-mix(in srgb, var(--gd) 45%, var(--ln));
-  border-radius: 20px;
-  padding: 18px 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 8px 25px color-mix(in srgb, var(--gd) 14%, transparent),
-              0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.verification-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--gd) 25%, var(--ln));
-  margin-bottom: 14px;
-}
-
-.verification-card {
-  background: var(--sf);
-  border: 1.5px solid color-mix(in srgb, var(--gd) 35%, var(--ln));
-  border-radius: 18px;
-  padding: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: all 0.25s ease;
-}
-
-.verification-card:hover {
-  border-color: var(--br);
+.dock-item.active .dock-icon {
   transform: translateY(-2px);
-  box-shadow: 0 10px 26px color-mix(in srgb, var(--br) 15%, transparent);
 }
 
-.worker-verified-banner {
-  padding: 10px 14px;
-  border-radius: 12px;
-  margin-top: 10px;
-  font-size: 0.84rem;
+.dock-badge {
+  position: absolute;
+  top: 6px;
+  right: calc(50% - 16px);
+  background: var(--br);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: var(--adm-radius-pill);
 }
 
-.worker-verified-banner.pending {
-  background: color-mix(in srgb, var(--warn) 14%, var(--sf2));
-  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
-  color: var(--tx);
-}
+.dock-badge.gold { background: var(--gd); }
+.dock-badge.warn { background: var(--warn); }
 
-.worker-verified-banner.rework {
-  background: color-mix(in srgb, var(--bad) 12%, var(--sf2));
-  border: 1.5px solid var(--bad);
-  color: var(--tx);
-}
-
-.worker-verified-banner.approved {
-  background: color-mix(in srgb, var(--ok) 14%, var(--sf2));
-  border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent);
-  color: var(--tx);
-}
-
-/* Offcanvas Sidebar Backdrop */
+/* --------------------------------------------------------------------------
+   18. Offcanvas Sidebar Backdrop
+   -------------------------------------------------------------------------- */
 .admin-sidebar-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.58);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  z-index: 2490;
+  z-index: 85;
   display: none;
   animation: fadeIn 0.25s ease;
 }
@@ -1494,35 +1626,27 @@
   display: block;
 }
 
-.mobile-close-sidebar-btn {
-  display: none;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* --------------------------------------------------------------------------
-   TABLETS & MEDIUM SCREENS (max-width: 992px)
+   19. Responsive Breakpoints: Tablet, Mobile & Compact Screens
    -------------------------------------------------------------------------- */
 @media (max-width: 992px) {
-  .admin-shell {
-    display: block;
-    min-height: 100vh;
-    position: relative;
-  }
-
   .admin-sidebar {
     position: fixed !important;
     top: 0;
     left: 0;
     bottom: 0;
-    width: 290px !important;
-    max-width: 86vw;
+    width: 280px !important;
+    max-width: 85vw;
     height: 100vh;
-    z-index: 2500;
+    z-index: 100;
     transform: translateX(-105%);
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
-    background: var(--sf);
-    border-right: 1px solid var(--ln);
+    transition: transform var(--adm-transition-normal), box-shadow var(--adm-transition-normal);
     box-shadow: none;
-    overflow-y: auto;
   }
 
   .admin-sidebar.mobile-open {
@@ -1530,30 +1654,16 @@
     box-shadow: 14px 0 50px rgba(0, 0, 0, 0.35);
   }
 
-  .admin-sidebar .sidebar-logo span {
-    display: inline !important;
-  }
-
-  .admin-sidebar .admin-nav-item span {
-    display: inline !important;
-  }
-
-  .admin-sidebar .nav-group-title {
-    display: block !important;
-  }
-
+  .admin-sidebar .sidebar-logo span,
+  .admin-sidebar .admin-nav-item span,
+  .admin-sidebar .nav-group-title,
   .admin-sidebar .nav-badge {
-    display: inline-block !important;
-  }
-
-  .mobile-close-sidebar-btn {
-    display: inline-flex !important;
+    display: inline !important;
   }
 
   .admin-main {
-    padding: 16px 3.5% 60px;
+    padding: 14px 3.5% 80px;
     width: 100%;
-    box-sizing: border-box;
   }
 
   .menu-toggle-btn {
@@ -1561,27 +1671,20 @@
   }
 
   .admin-top-bar.luxury-header {
-    display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 18px;
-    border-radius: 18px;
-    gap: 12px;
-    top: 10px;
-    margin-bottom: 20px;
+    padding: 12px 16px;
+    border-radius: var(--adm-radius-md);
+    gap: 10px;
   }
 
   .header-left {
     order: 1;
     flex: 1 1 auto;
-    min-width: 0;
   }
 
   .header-right {
     order: 2;
     flex: 0 0 auto;
-    gap: 7px;
   }
 
   .header-center {
@@ -1593,7 +1696,7 @@
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     flex-wrap: nowrap;
-    padding: 3px 0 2px;
+    padding: 2px 0;
     gap: 8px;
   }
 
@@ -1601,82 +1704,37 @@
     display: none;
   }
 
-  .theme-toggle-btn .theme-label {
-    display: none;
-  }
-
-  .theme-toggle-btn {
-    padding: 0;
-    width: 36px;
-    justify-content: center;
-  }
-
+  .theme-toggle-btn .theme-label,
   .header-btn span {
     display: none;
   }
 
+  .theme-toggle-btn,
   .header-btn {
     padding: 0;
     width: 36px;
     justify-content: center;
   }
-
-  .admin-grid-cards,
-  .analytics-grid {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)) !important;
-    gap: 12px;
-  }
 }
 
-/* --------------------------------------------------------------------------
-   STANDARD SMARTPHONES & TABLETS (max-width: 768px)
-   -------------------------------------------------------------------------- */
 @media (max-width: 768px) {
   .admin-main {
-    padding: 12px 3% 70px;
-    width: 100%;
-    box-sizing: border-box;
+    padding: 10px 3% 85px;
+  }
+
+  .admin-mobile-dock {
+    display: flex;
   }
 
   .admin-top-bar.luxury-header {
-    padding: 10px 14px;
-    border-radius: 16px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    top: 8px;
-    margin-bottom: 16px;
-  }
-
-  .admin-top-bar.luxury-header::after {
-    left: 14px;
-    right: 14px;
-  }
-
-  .header-left {
-    order: 1;
-    flex: 1 1 auto;
-    min-width: 0;
-    gap: 10px;
-  }
-
-  .header-titles {
-    min-width: 0;
+    padding: 10px 12px;
+    border-radius: var(--adm-radius-md);
+    top: 6px;
+    margin-bottom: 14px;
   }
 
   .header-page-title {
-    font-size: 1.25rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .header-right {
-    order: 2;
-    flex: 0 0 auto;
-    gap: 6px;
+    font-size: 1.22rem;
   }
 
   .admin-info {
@@ -1684,72 +1742,8 @@
   }
 
   .admin-profile-pill {
-    height: 36px;
     padding: 0 4px;
-    gap: 4px;
-  }
-
-  .theme-toggle-btn,
-  .header-btn {
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    justify-content: center;
-  }
-
-  .header-center {
-    order: 3;
-    width: 100%;
-    flex: 1 1 100%;
-    justify-content: flex-start;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap;
-    padding: 2px 0 4px;
-    gap: 6px;
-  }
-
-  .header-center::-webkit-scrollbar {
-    display: none;
-  }
-
-  .header-center .header-badge {
-    flex-shrink: 0;
-    padding: 5px 12px;
-    font-size: 0.74rem;
-    min-width: auto;
-  }
-
-  .box {
-    padding: 14px 12px;
-    border-radius: 16px;
-    margin-bottom: 14px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .box > table,
-  .box table {
-    min-width: 560px;
-  }
-
-  .modal table,
-  .invoice-sheet table {
-    min-width: 100% !important;
-  }
-
-  .g2, .g3, .g4 {
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-  }
-
-  .leaderboard-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .verification-banner .grid {
-    grid-template-columns: 1fr !important;
+    height: 34px;
   }
 
   .kpi-grid {
@@ -1758,86 +1752,58 @@
   }
 
   .kpi-card {
-    padding: 14px 12px;
-    border-radius: 14px;
+    padding: 14px;
   }
 
   .kpi-card b {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
   }
 
   .kpi-card .kpi-icon {
     width: 34px;
     height: 34px;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     top: 12px;
     right: 12px;
   }
 
-  .att-cal-header {
-    padding: 4px 2px;
-    font-size: 0.7rem;
+  .box {
+    padding: 16px 14px;
+    border-radius: var(--adm-radius-md);
+    overflow-x: auto;
   }
 
-  .att-cal-day {
-    min-height: 44px;
-    padding: 3px 2px;
-  }
-
-  .att-day-num {
-    font-size: 0.7rem;
-  }
-
-  .att-pill {
-    font-size: 0.6rem;
-    padding: 1px 3px;
+  .box > table,
+  .box table {
+    min-width: 580px;
   }
 }
 
-/* --------------------------------------------------------------------------
-   STANDARD COMPACT SMARTPHONES (max-width: 480px)
-   -------------------------------------------------------------------------- */
 @media (max-width: 480px) {
   .admin-top-bar.luxury-header {
     padding: 8px 10px;
-    border-radius: 14px;
-    gap: 8px;
-    top: 4px;
-    margin-bottom: 12px;
+    border-radius: var(--adm-radius-sm);
+    gap: 6px;
   }
 
   .menu-toggle-btn {
     width: 32px;
     height: 32px;
     font-size: 1rem;
-    border-radius: 9px;
-  }
-
-  .header-left {
-    gap: 8px;
   }
 
   .header-page-icon {
     width: 28px;
     height: 28px;
     font-size: 1.1rem;
-    border-radius: 7px;
   }
 
   .header-page-title {
-    font-size: 1.12rem;
-  }
-
-  .header-brand-line {
-    gap: 5px;
-  }
-
-  .header-crest-pill {
-    padding: 1px 7px;
+    font-size: 1.1rem;
   }
 
   .header-brand-tag {
-    font-size: 0.6rem;
+    font-size: 0.58rem;
   }
 
   .header-sync-pill {
@@ -1845,155 +1811,40 @@
     padding: 1px 6px;
   }
 
-  .header-right {
-    gap: 5px;
-  }
-
   .theme-toggle-btn,
   .header-btn {
     width: 32px;
     height: 32px;
-    font-size: 0.85rem;
-  }
-
-  .admin-profile-pill {
-    height: 32px;
-    padding: 0 3px;
-    gap: 3px;
-  }
-
-  .admin-avatar {
-    width: 24px;
-    height: 24px;
-    font-size: 0.72rem;
-  }
-
-  .admin-logout-icon {
-    width: 22px;
-    height: 22px;
-    font-size: 0.7rem;
-  }
-
-  .header-center {
-    gap: 5px;
-    padding: 1px 0 3px;
-  }
-
-  .header-center .header-badge {
-    padding: 4px 10px;
-    font-size: 0.7rem;
   }
 
   .kpi-grid {
     grid-template-columns: 1fr !important;
-    gap: 8px;
   }
 
   .shop-status-control-banner {
-    padding: 10px;
+    padding: 10px 12px;
     flex-direction: column;
     align-items: stretch;
     text-align: center;
-    gap: 8px;
-  }
-
-  .shop-status-pill-badge {
-    justify-content: center;
-  }
-
-  .box {
-    padding: 12px 10px;
-  }
-
-  .modal {
-    max-width: 95vw !important;
-    padding: 16px 12px !important;
-  }
-
-  .btn {
-    padding: 8px 12px;
-    font-size: 0.82rem;
   }
 }
 
 /* --------------------------------------------------------------------------
-   ULTRA-COMPACT PHONES (max-width: 360px)
+   20. Accessibility & Motion Preferences
    -------------------------------------------------------------------------- */
-@media (max-width: 360px) {
-  .admin-top-bar.luxury-header {
-    padding: 6px 8px;
-    border-radius: 12px;
-    gap: 6px;
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-
-  .menu-toggle-btn {
-    width: 30px;
-    height: 30px;
-    font-size: 0.95rem;
-  }
-
-  .header-page-icon {
-    width: 26px;
-    height: 26px;
-    font-size: 1rem;
-  }
-
-  .header-page-title {
-    font-size: 1.02rem;
-  }
-
-  .header-brand-tag {
-    font-size: 0.55rem;
-  }
-
-  .header-sync-pill {
-    font-size: 0.55rem;
-    padding: 1px 5px;
-  }
-
-  .theme-toggle-btn,
-  .header-btn {
-    width: 30px;
-    height: 30px;
-    font-size: 0.78rem;
-  }
-
-  .admin-profile-pill {
-    height: 30px;
-  }
-
-  .admin-avatar {
-    width: 22px;
-    height: 22px;
-    font-size: 0.68rem;
-  }
-
-  .admin-logout-icon {
-    width: 20px;
-    height: 20px;
-    font-size: 0.65rem;
-  }
-
-  .header-center .header-badge {
-    padding: 3px 8px;
-    font-size: 0.66rem;
-  }
-
-  .kpi-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .box {
-    padding: 10px 8px;
-    border-radius: 12px;
-  }
-
-  table {
-    font-size: 0.75rem;
-  }
-
-  th, td {
-    padding: 6px 4px;
+  .live-dot-pulse, .header-badge.warn.pulse-alert {
+    animation: none !important;
   }
 }
 
+:focus-visible {
+  outline: 2px solid var(--br);
+  outline-offset: 2px;
+}

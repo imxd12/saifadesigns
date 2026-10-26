@@ -377,9 +377,211 @@ function panel() {
         </header>
         ${body}
       </main>
+
+      <!-- Mobile Quick Dock (Fixed at bottom on phones <= 768px) -->
+      <nav class="admin-mobile-dock" aria-label="Quick Mobile Navigation">
+        <a class="dock-item ${S.tab === 'Dashboard' ? 'active' : ''}" onclick="S.tab='Dashboard';closeMobileSidebar();panel()" title="Dashboard">
+          <span class="dock-icon">📊</span>
+          <span class="dock-label">Dashboard</span>
+        </a>
+        <a class="dock-item ${S.tab === 'Orders' ? 'active' : ''}" onclick="S.tab='Orders';closeMobileSidebar();panel()" title="Orders">
+          <span class="dock-icon">📦</span>
+          <span class="dock-label">Orders</span>
+          ${oCount ? `<span class="dock-badge">${oCount}</span>` : ''}
+        </a>
+        <a class="dock-item ${S.tab === 'Stitching' ? 'active' : ''}" onclick="S.tab='Stitching';closeMobileSidebar();panel()" title="Stitching">
+          <span class="dock-icon">✂️</span>
+          <span class="dock-label">Stitching</span>
+          ${stitchingCount ? `<span class="dock-badge gold">${stitchingCount}</span>` : ''}
+        </a>
+        <a class="dock-item ${S.tab === 'Products' ? 'active' : ''}" onclick="S.tab='Products';closeMobileSidebar();panel()" title="Products">
+          <span class="dock-icon">👗</span>
+          <span class="dock-label">Products</span>
+          ${lowCount ? `<span class="dock-badge warn">${lowCount}</span>` : ''}
+        </a>
+        <a class="dock-item" onclick="toggleMobileSidebar()" title="More Tabs">
+          <span class="dock-icon">☰</span>
+          <span class="dock-label">Menu</span>
+        </a>
+      </nav>
     </div>
   `;
   $("pn").classList.add("on");
+}
+
+// ------------------------------------------
+// Real-Time Computed Smart Boutique Insights
+// ------------------------------------------
+function getBoutiqueSmartInsights() {
+  const os = orders().filter(o => o.status !== "Cancelled");
+  const prods = products();
+  const c = S.cfg || DEF;
+  const now = new Date();
+  
+  // 1. Sales Velocity (Today vs 7-day daily average)
+  const todayPaid = os.filter(o => o.paid === "Paid" && new Date(o.ts).toDateString() === now.toDateString())
+    .reduce((a, b) => a + (Number(b.total) || 0), 0);
+  
+  const sevenDaysAgo = now.getTime() - (7 * 24 * 3600 * 1000);
+  const weekPaid = os.filter(o => o.paid === "Paid" && o.ts >= sevenDaysAgo)
+    .reduce((a, b) => a + (Number(b.total) || 0), 0);
+  const weekDailyAvg = Math.round(weekPaid / 7);
+  
+  let salesVelocityText = "";
+  if (weekDailyAvg > 0) {
+    const diffPct = Math.round(((todayPaid - weekDailyAvg) / weekDailyAvg) * 100);
+    if (diffPct > 0) {
+      salesVelocityText = `+${diffPct}% above 7-day daily average (₹${todayPaid.toLocaleString('en-IN')} vs avg ₹${weekDailyAvg.toLocaleString('en-IN')}/day)`;
+    } else if (diffPct < -15) {
+      salesVelocityText = `${diffPct}% below 7-day daily average (₹${todayPaid.toLocaleString('en-IN')} vs avg ₹${weekDailyAvg.toLocaleString('en-IN')}/day)`;
+    } else {
+      salesVelocityText = `Pacing steadily near 7-day average (~₹${weekDailyAvg.toLocaleString('en-IN')}/day)`;
+    }
+  } else {
+    salesVelocityText = `Today's sales: ₹${todayPaid.toLocaleString('en-IN')} (Fresh cycle)`;
+  }
+
+  // 2. Collection Clearance Rate
+  const totalBilled = os.reduce((a, b) => a + (Number(b.total) || 0), 0);
+  const totalPaid = os.filter(o => o.paid === "Paid").reduce((a, b) => a + (Number(b.total) || 0), 0);
+  const clearancePct = totalBilled > 0 ? Math.round((totalPaid / totalBilled) * 100) : 100;
+  
+  // 3. Average Order Value (AOV)
+  const paidOrders = os.filter(o => o.paid === "Paid");
+  const aov = paidOrders.length > 0 ? Math.round(totalPaid / paidOrders.length) : 0;
+
+  // 4. Stitching Pipeline Deadlines (within 48 hours or overdue)
+  const activeStitching = os.filter(o => o.type === "Stitch" && !["Ready", "Delivered", "Cancelled"].includes(o.status));
+  let urgentDeadlinesCount = 0;
+  let overdueCount = 0;
+  let unassignedStitchingCount = 0;
+
+  activeStitching.forEach(o => {
+    if (!o.worker) unassignedStitchingCount++;
+    if (o.due) {
+      const dueTime = new Date(o.due + "T23:59:59").getTime();
+      const diffHours = (dueTime - now.getTime()) / (3600 * 1000);
+      if (diffHours < 0) overdueCount++;
+      else if (diffHours <= 48) urgentDeadlinesCount++;
+    }
+  });
+
+  // 5. Stock Health (0 stock critical, < 5 low)
+  const zeroStock = prods.filter(p => Number(p.stock) <= 0);
+  const lowStock = prods.filter(p => Number(p.stock) > 0 && Number(p.stock) < 5);
+
+  // 6. Payment Checks Pending
+  const claimedOrders = os.filter(o => o.paid === "Claimed");
+
+  // 7. Master Quality Inspections & Piece Logs Pending
+  const pendingQualityChecks = os.filter(o => o.type === "Stitch" && (o.stage === "Master Quality Check" || o.workerVerified === false)).length;
+  const pendingPieceLogs = (S.work || []).filter(w => w.verified === false).length;
+
+  // 8. Repeat Customer Loyalty
+  const custMap = {};
+  os.forEach(o => {
+    if (o.phone) custMap[o.phone] = (custMap[o.phone] || 0) + 1;
+  });
+  const repeatCustCount = Object.values(custMap).filter(cnt => cnt > 1).length;
+  const totalCustCount = Object.keys(custMap).length;
+  const repeatPct = totalCustCount > 0 ? Math.round((repeatCustCount / totalCustCount) * 100) : 0;
+
+  // 9. Prioritized Action Suggestions
+  const suggestions = [];
+  if (claimedOrders.length > 0) {
+    suggestions.push({
+      icon: "⚠️",
+      type: "warn",
+      text: `${claimedOrders.length} customer payment claim(s) awaiting bank verification`,
+      actionText: "Verify Claims ➔",
+      action: "S.tab='Orders';S.ofilter='Pending Payment';panel()"
+    });
+  }
+  if (pendingQualityChecks > 0) {
+    suggestions.push({
+      icon: "🧵",
+      type: "warn",
+      text: `${pendingQualityChecks} finished garment(s) awaiting Master Quality check`,
+      actionText: "Inspect Garments ➔",
+      action: "S.tab='Stitching';S.sfilter='Verification';panel()"
+    });
+  }
+  if (pendingPieceLogs > 0) {
+    suggestions.push({
+      icon: "💰",
+      type: "gold",
+      text: `${pendingPieceLogs} artisan piece log(s) awaiting wage approval`,
+      actionText: "Approve Wages ➔",
+      action: "S.tab='Salary';panel()"
+    });
+  }
+  if (unassignedStitchingCount > 0) {
+    suggestions.push({
+      icon: "✂️",
+      type: "warn",
+      text: `${unassignedStitchingCount} custom stitching order(s) unassigned to any tailor`,
+      actionText: "Assign Tailors ➔",
+      action: "S.tab='Stitching';panel()"
+    });
+  }
+  if (overdueCount > 0 || urgentDeadlinesCount > 0) {
+    suggestions.push({
+      icon: "⏰",
+      type: overdueCount > 0 ? "bad" : "warn",
+      text: `${overdueCount > 0 ? overdueCount + ' overdue · ' : ''}${urgentDeadlinesCount} stitching order(s) due within 48h`,
+      actionText: "View Due Queue ➔",
+      action: "S.tab='Stitching';panel()"
+    });
+  }
+  if (zeroStock.length > 0) {
+    suggestions.push({
+      icon: "🚨",
+      type: "bad",
+      text: `${zeroStock.length} boutique product(s) completely out of stock (${zeroStock.slice(0, 2).map(p => p.name).join(', ')})`,
+      actionText: "Restock Now ➔",
+      action: "S.tab='Products';panel()"
+    });
+  } else if (lowStock.length > 0) {
+    suggestions.push({
+      icon: "👗",
+      type: "gold",
+      text: `${lowStock.length} product(s) running low on inventory (< 5 pcs left)`,
+      actionText: "Check Stock ➔",
+      action: "S.tab='Products';panel()"
+    });
+  }
+  if (suggestions.length === 0) {
+    suggestions.push({
+      icon: "✨",
+      type: "ok",
+      text: "All boutique operations running at peak efficiency · No urgent bottlenecks",
+      actionText: "View Orders ➔",
+      action: "S.tab='Orders';panel()"
+    });
+  }
+
+  return {
+    todayPaid,
+    weekPaid,
+    weekDailyAvg,
+    salesVelocityText,
+    clearancePct,
+    aov,
+    activeStitchingCount: activeStitching.length,
+    urgentDeadlinesCount,
+    overdueCount,
+    unassignedStitchingCount,
+    zeroStockCount: zeroStock.length,
+    lowStockCount: lowStock.length,
+    zeroStock,
+    lowStock,
+    claimedOrdersCount: claimedOrders.length,
+    pendingQualityChecks,
+    pendingPieceLogs,
+    repeatCustCount,
+    repeatPct,
+    suggestions
+  };
 }
 
 // ------------------------------------------
@@ -425,6 +627,7 @@ function getLiveShopActivityList() {
 function renderDash() {
   const period = S.chartPeriod || "7days";
   const analytics = getRevenueAnalytics(period);
+  const insights = getBoutiqueSmartInsights();
   const os = orders();
   const open = os.filter(x => !["Delivered", "Cancelled"].includes(x.status));
   const stitching = os.filter(x => x.type === "Stitch" && x.status !== "Delivered");
@@ -460,69 +663,149 @@ function renderDash() {
       </div>
     </div>
 
-    <!-- Dedicated Financial Integrity & Payment Segregation Deck -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:14px;margin-bottom:18px">
-      <!-- 1. Verified Paid Revenue -->
-      <div class="box" style="margin:0;border:1.5px solid var(--ok);background:color-mix(in srgb,var(--ok) 6%,var(--sf));border-radius:16px;padding:16px 18px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <!-- Smart AI-Inspired Contextual Insights & Action Engine -->
+    <div class="admin-ai-deck">
+      <div class="ai-deck-header">
+        <div class="ai-deck-title">
+          <span class="ai-deck-sparkle">✨</span>
+          <b>Atelier Smart Intelligence &amp; Contextual Insights</b>
+          <span class="pill ok" style="font-size:0.68rem">Live Database Analytics</span>
+        </div>
+        <small style="color:var(--mu)">Real-time computed business diagnostics &amp; priority reminders</small>
+      </div>
+
+      <div class="insight-grid">
+        <!-- 1. Cash Flow & Velocity -->
+        <div class="insight-card velocity">
+          <div class="insight-header">
+            <span class="insight-title">Sales Velocity &amp; Pace</span>
+            <div class="insight-icon-box">📈</div>
+          </div>
           <div>
-            <span style="font-size:0.75rem;font-weight:700;color:var(--ok);letter-spacing:0.06em;text-transform:uppercase">
-              🟢 Confirmed Paid Revenue
-            </span>
-            <div style="font-size:1.85rem;font-weight:800;color:var(--ok);margin:4px 0 2px">
-              ${R(analytics.totalPaidRev)}
-            </div>
-            <div style="font-size:0.8rem;color:var(--mu)">
-              <b>${analytics.paidCount}</b> verified bills realized in bank / UPI / shop cash.
+            <div class="insight-metric ok">${R(insights.todayPaid)}</div>
+            <div class="insight-desc">${insights.salesVelocityText}</div>
+          </div>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--ln);font-size:0.75rem;color:var(--mu);display:flex;justify-content:space-between">
+            <span>Clearance: <b>${insights.clearancePct}%</b></span>
+            <span>AOV: <b>${R(insights.aov)}</b></span>
+          </div>
+        </div>
+
+        <!-- 2. Tailoring Pipeline & Deadlines -->
+        <div class="insight-card tailoring">
+          <div class="insight-header">
+            <span class="insight-title">Tailoring Production Queue</span>
+            <div class="insight-icon-box">✂️</div>
+          </div>
+          <div>
+            <div class="insight-metric" style="color:var(--br)">${insights.activeStitchingCount} Fits</div>
+            <div class="insight-desc">
+              ${insights.overdueCount > 0 ? `<b style="color:var(--bad)">⚠️ ${insights.overdueCount} overdue</b> · ` : ''}
+              ${insights.urgentDeadlinesCount} due within 48h · ${insights.unassignedStitchingCount} unassigned
             </div>
           </div>
-          <span style="font-size:2rem">💰</span>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--ln);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:0.75rem;color:var(--mu)">Pipeline Load</span>
+            <button class="btn s" style="padding:2px 8px;font-size:0.72rem" onclick="S.tab='Stitching';panel()">Queue ➔</button>
+          </div>
         </div>
-        <div style="margin-top:10px;padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--ok) 30%,transparent);display:flex;justify-content:space-between;align-items:center;font-size:0.78rem">
+
+        <!-- 3. Stock Health & Warnings -->
+        <div class="insight-card inventory">
+          <div class="insight-header">
+            <span class="insight-title">Fabric &amp; Stock Health</span>
+            <div class="insight-icon-box">👗</div>
+          </div>
+          <div>
+            <div class="insight-metric ${insights.zeroStockCount > 0 ? 'bad' : insights.lowStockCount > 0 ? 'warn' : 'ok'}">
+              ${insights.zeroStockCount > 0 ? `${insights.zeroStockCount} Out of Stock` : insights.lowStockCount > 0 ? `${insights.lowStockCount} Low Stock` : 'Optimal'}
+            </div>
+            <div class="insight-desc">
+              ${insights.zeroStockCount > 0 
+                ? `Critical: ${insights.zeroStock.slice(0, 2).map(p => p.name).join(', ')} require immediate reorder.` 
+                : insights.lowStockCount > 0 
+                ? `${insights.lowStockCount} items have under 5 units left.` 
+                : 'All readymade dresses & fabrics maintain healthy inventory levels.'}
+            </div>
+          </div>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--ln);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:0.75rem;color:var(--mu)">Inventory Monitor</span>
+            <button class="btn s" style="padding:2px 8px;font-size:0.72rem" onclick="S.tab='Products';panel()">Restock ➔</button>
+          </div>
+        </div>
+
+        <!-- 4. Prioritized Action Suggestions -->
+        <div class="insight-card actions">
+          <div class="insight-header">
+            <span class="insight-title">Actionable Suggestions</span>
+            <div class="insight-icon-box">🎯</div>
+          </div>
+          <div class="action-pill-row">
+            ${insights.suggestions.slice(0, 2).map(s => `
+              <div class="action-pill">
+                <span style="flex:1;line-height:1.3;margin-right:6px">${s.icon} ${s.text}</span>
+                <button class="action-pill-btn" onclick="${s.action}">${s.actionText}</button>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dedicated Financial Integrity & Payment Segregation Deck -->
+    <div class="financial-deck">
+      <!-- 1. Verified Paid Revenue -->
+      <div class="fin-card paid">
+        <div>
+          <span class="fin-tag">
+            🟢 Confirmed Paid Revenue
+          </span>
+          <div class="fin-amt">
+            ${R(analytics.totalPaidRev)}
+          </div>
+          <div style="font-size:0.8rem;color:var(--mu)">
+            <b>${analytics.paidCount}</b> verified bills realized in bank / UPI / shop cash.
+          </div>
+        </div>
+        <div class="fin-footer">
           <span style="color:var(--ok);font-weight:600">✓ Official Realized Revenue</span>
           <button class="btn s ok" style="padding:3px 10px;font-size:0.74rem" onclick="S.dashBillFilter='Paid';panel()">View Paid Bills (${analytics.paidCount}) ➔</button>
         </div>
       </div>
 
       <!-- 2. Claimed Payments (Awaiting Verification) -->
-      <div class="box" style="margin:0;border:1.5px solid var(--warn);background:color-mix(in srgb,var(--warn) 7%,var(--sf));border-radius:16px;padding:16px 18px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <span style="font-size:0.75rem;font-weight:700;color:var(--warn);letter-spacing:0.06em;text-transform:uppercase">
-              🟡 Customer Claimed Payments
-            </span>
-            <div style="font-size:1.85rem;font-weight:800;color:var(--warn);margin:4px 0 2px">
-              ${R(analytics.totalClaimedRev)}
-            </div>
-            <div style="font-size:0.8rem;color:var(--mu)">
-              <b>${analytics.claimedCount}</b> payment claims pending verification.
-            </div>
+      <div class="fin-card claimed">
+        <div>
+          <span class="fin-tag">
+            🟡 Customer Claimed Payments
+          </span>
+          <div class="fin-amt">
+            ${R(analytics.totalClaimedRev)}
           </div>
-          <span style="font-size:2rem">⚠️</span>
+          <div style="font-size:0.8rem;color:var(--mu)">
+            <b>${analytics.claimedCount}</b> payment claims pending verification.
+          </div>
         </div>
-        <div style="margin-top:10px;padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--warn) 30%,transparent);display:flex;justify-content:space-between;align-items:center;font-size:0.78rem">
+        <div class="fin-footer">
           <span style="color:var(--warn);font-weight:600">Pending Bank Check · Excluded from Revenue</span>
           <button class="btn s" style="padding:3px 10px;font-size:0.74rem;border-color:var(--warn);color:var(--warn)" onclick="S.dashBillFilter='Claimed';panel()">Review Claims (${analytics.claimedCount}) ➔</button>
         </div>
       </div>
 
       <!-- 3. Unpaid & COD Balance -->
-      <div class="box" style="margin:0;border:1.5px solid var(--bad);background:color-mix(in srgb,var(--bad) 6%,var(--sf));border-radius:16px;padding:16px 18px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <span style="font-size:0.75rem;font-weight:700;color:var(--bad);letter-spacing:0.06em;text-transform:uppercase">
-              🔴 Unpaid &amp; Pending Balance Due
-            </span>
-            <div style="font-size:1.85rem;font-weight:800;color:var(--bad);margin:4px 0 2px">
-              ${R(analytics.totalUnpaidRev)}
-            </div>
-            <div style="font-size:0.8rem;color:var(--mu)">
-              <b>${analytics.unpaidCount}</b> bills pending payment upon delivery/fitting.
-            </div>
+      <div class="fin-card unpaid">
+        <div>
+          <span class="fin-tag">
+            🔴 Unpaid &amp; Pending Balance Due
+          </span>
+          <div class="fin-amt">
+            ${R(analytics.totalUnpaidRev)}
           </div>
-          <span style="font-size:2rem">⏳</span>
+          <div style="font-size:0.8rem;color:var(--mu)">
+            <b>${analytics.unpaidCount}</b> bills pending payment upon delivery/fitting.
+          </div>
         </div>
-        <div style="margin-top:10px;padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--bad) 30%,transparent);display:flex;justify-content:space-between;align-items:center;font-size:0.78rem">
+        <div class="fin-footer">
           <span style="color:var(--bad);font-weight:600">Not Paid Yet · Excluded from Revenue</span>
           <button class="btn s" style="padding:3px 10px;font-size:0.74rem;border-color:var(--bad);color:var(--bad)" onclick="S.dashBillFilter='Unpaid';panel()">View Due (${analytics.unpaidCount}) ➔</button>
         </div>
@@ -605,7 +888,7 @@ function renderDash() {
     </div>
 
     <!-- Main Chart & Action Center Layout -->
-    <div style="display:grid;grid-template-columns:1.8fr 1.2fr;gap:18px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 360px), 1fr));gap:18px;margin-bottom:20px">
       <!-- Revenue Analytics Chart Box -->
       <div class="box" style="margin:0;display:flex;flex-direction:column;justify-content:space-between">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
@@ -757,7 +1040,7 @@ function renderDash() {
     </div>
 
     <!-- Revenue Segments & Category Breakdown -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:18px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 300px), 1fr));gap:18px;margin-bottom:20px">
       <!-- Stitching vs Readymade Split -->
       <div class="box" style="margin:0">
         <b>👗 Sales Revenue by Boutique Segment</b>
@@ -805,7 +1088,7 @@ function renderDash() {
     </div>
 
     <!-- Artisan Performance Leaderboard & Live Shop Activity Stream -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:18px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 300px), 1fr));gap:18px;margin-bottom:20px">
       <!-- Artisan Leaderboard Card -->
       <div class="box" style="margin:0">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">

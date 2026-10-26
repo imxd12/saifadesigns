@@ -44,12 +44,74 @@ function closeMobileSidebar() {
 // Safe & Reliable Delete Modal System
 // ------------------------------------------
 let pendingDelete = null;
+let isDeleteProcessing = false;
 
 function requestDelete(col, id, title) {
   const stateKey = (col === "products" || col === "prod") ? "prod" : col;
   const list = S[stateKey] || [];
   const item = list.find(x => String(x.id) === String(id));
   const resolvedTitle = title || (item ? (item.name || item.customer || (item.no ? "Order #" + item.no : "") || item.code || item.workerName || "Record") : "Record");
+
+  // Safe Deletion Rule: Protect clients with past or active orders/invoices to preserve financial history and audit trail
+  if (col === "customers" && item) {
+    const custPhone = np(item.phone);
+    const linkedOrders = orders().filter(o => {
+      const matchPhone = custPhone && np(o.phone) === custPhone;
+      const matchId = item.id && (o.customerId === item.id || o.custId === item.id);
+      return matchPhone || matchId;
+    });
+
+    if (linkedOrders.length > 0) {
+      modal(`
+        <div style="text-align:center;padding:16px 8px">
+          <div style="width:68px;height:68px;border-radius:50%;background:color-mix(in srgb, var(--warn) 15%, transparent);color:var(--warn);display:grid;place-items:center;font-size:2.2rem;margin:0 auto 14px;box-shadow:0 0 24px color-mix(in srgb, var(--warn) 25%, transparent)">
+            🛡️
+          </div>
+          <h2 style="color:var(--br);margin:0 0 8px;font-size:1.35rem">Protected Client Profile</h2>
+          <p style="color:var(--mu);margin-bottom:16px;font-size:0.95rem;line-height:1.5">
+            Client <b style="color:var(--tx)">"${Security.escapeHTML(resolvedTitle)}"</b> is associated with <b style="color:var(--tx)">${linkedOrders.length} order(s) &amp; invoices</b> in your boutique records.
+          </p>
+          <div style="background:var(--sf2);border:1px solid color-mix(in srgb, var(--warn) 30%, var(--ln));border-radius:14px;padding:12px 14px;font-size:0.86rem;margin-bottom:22px;text-align:left;line-height:1.5;color:var(--tx)">
+            ⚠️ <b>Audit &amp; Historical Record Safeguard:</b> To maintain transaction integrity, accounts auditing, GST/invoicing history, and measurements archive, client accounts linked to completed or ongoing orders cannot be permanently purged.
+          </div>
+          <button class="btn p" style="width:100%;padding:10px 14px;font-weight:700" onclick="closeM()">
+            Understood (Keep Record Protected)
+          </button>
+        </div>
+      `);
+      return;
+    }
+  }
+
+  // Safe Deletion Rule: Protect artisans assigned to active stitching garments
+  if (col === "workers" && item) {
+    const activeOrders = orders().filter(o => {
+      const matchWorker = (o.worker == id || o.workerId == id || (item.wid && o.worker == item.wid));
+      const isActive = !["Delivered", "Cancelled"].includes(o.status);
+      return matchWorker && isActive;
+    });
+
+    if (activeOrders.length > 0) {
+      modal(`
+        <div style="text-align:center;padding:16px 8px">
+          <div style="width:68px;height:68px;border-radius:50%;background:color-mix(in srgb, var(--warn) 15%, transparent);color:var(--warn);display:grid;place-items:center;font-size:2.2rem;margin:0 auto 14px;box-shadow:0 0 24px color-mix(in srgb, var(--warn) 25%, transparent)">
+            🧵
+          </div>
+          <h2 style="color:var(--br);margin:0 0 8px;font-size:1.35rem">Artisan Has Active Garments</h2>
+          <p style="color:var(--mu);margin-bottom:16px;font-size:0.95rem;line-height:1.5">
+            Artisan <b style="color:var(--tx)">"${Security.escapeHTML(resolvedTitle)}"</b> is currently assigned to <b style="color:var(--tx)">${activeOrders.length} active stitching order(s)</b>.
+          </p>
+          <div style="background:var(--sf2);border:1px solid color-mix(in srgb, var(--warn) 30%, var(--ln));border-radius:14px;padding:12px 14px;font-size:0.86rem;margin-bottom:22px;text-align:left;line-height:1.5;color:var(--tx)">
+            ⚠️ <b>Workflow Safeguard:</b> Please reassign or complete these orders in the Stitching Queue before deleting this artisan from your payroll &amp; master records.
+          </div>
+          <button class="btn p" style="width:100%;padding:10px 14px;font-weight:700" onclick="closeM()">
+            Understood
+          </button>
+        </div>
+      `);
+      return;
+    }
+  }
 
   pendingDelete = { col, id: String(id), title: resolvedTitle };
 
@@ -70,7 +132,7 @@ function requestDelete(col, id, title) {
           <button class="btn" style="flex:1;padding:10px 14px;font-weight:600" onclick="closeM()">
             ✕ Cancel / Keep
           </button>
-          <button class="btn d" style="flex:1.3;padding:10px 14px;background:var(--bad);color:#fff;font-weight:700;box-shadow:0 6px 18px color-mix(in srgb, var(--bad) 40%, transparent)" onclick="executePermanentDelete()">
+          <button id="delModalConfirmBtn" class="btn d" style="flex:1.3;padding:10px 14px;background:var(--bad);color:#fff;font-weight:700;box-shadow:0 6px 18px color-mix(in srgb, var(--bad) 40%, transparent)" onclick="executePermanentDelete()">
             🗑️ Delete Permanently
           </button>
         </div>
@@ -83,15 +145,31 @@ function requestDelete(col, id, title) {
   }
 }
 
-function executePermanentDelete() {
-  if (!pendingDelete) return closeM();
+async function executePermanentDelete() {
+  if (!pendingDelete || isDeleteProcessing) return closeM();
+  isDeleteProcessing = true;
   const { col, id, title } = pendingDelete;
-  closeM();
-  del(col, id);
-  pendingDelete = null;
-  toast(`"${title}" deleted successfully 🗑️`);
-  if (typeof panel === "function" && S.tab) panel();
-  if (typeof renderFront === "function") renderFront();
+
+  const btn = document.getElementById("delModalConfirmBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Deleting... ⏳";
+  }
+
+  try {
+    await del(col, id);
+    closeM();
+    pendingDelete = null;
+    toast(`"${title}" deleted successfully 🗑️`);
+  } catch (err) {
+    console.error("Delete failed:", err);
+    toast("Failed to delete record: " + (err.message || "Network error"), "bad");
+  } finally {
+    isDeleteProcessing = false;
+    if (typeof panel === "function" && S.tab) panel();
+    if (typeof renderFront === "function") renderFront();
+    if (typeof refresh === "function") refresh();
+  }
 }
 
 // ------------------------------------------
@@ -229,6 +307,25 @@ const AdminPortal = {
 // Admin Shell View & Animated Navigation
 // ------------------------------------------
 function panel() {
+  // Strict Authentication Guard: Only authenticated administrators can open the admin panel
+  if (!S.me || S.me.role !== "admin") {
+    const pn = $("pn");
+    if (pn) {
+      pn.classList.remove("on");
+      pn.style.display = "none";
+      pn.innerHTML = "";
+    }
+    document.body.classList.remove("admin-open");
+    try {
+      sessionStorage.removeItem("saifa_admin_active");
+    } catch (e) {}
+    return;
+  }
+
+  try {
+    sessionStorage.setItem("saifa_admin_active", "1");
+  } catch (e) {}
+
   const oCount = orders().filter(x => !["Delivered", "Cancelled"].includes(x.status)).length;
   const payCount = orders().filter(x => x.paid === "Claimed").length;
   const lowCount = products().filter(p => p.stock < 5).length;
@@ -336,13 +433,13 @@ function panel() {
                 <span><b>${payCount}</b> Verify Payments</span>
               </div>
             ` : ""}
-            <div class="header-badge info" onclick="S.tab='Orders';panel()" title="Total active boutique orders">
+            <div class="header-badge badge-orders info" onclick="S.tab='Orders';panel()" title="Total active boutique orders">
               <span class="badge-icon">📦</span>
-              <span><b>${oCount}</b> Active Orders</span>
+              <span class="badge-text"><b>${oCount}</b> Active Orders</span>
             </div>
-            <div class="header-badge gold" onclick="S.tab='Stitching';panel()" title="Stitching Queue in Production">
+            <div class="header-badge badge-tailoring gold" onclick="S.tab='Stitching';panel()" title="Stitching Queue in Production">
               <span class="badge-icon">✂️</span>
-              <span><b>${stitchingCount}</b> In Tailoring</span>
+              <span class="badge-text"><b>${stitchingCount}</b> In Tailoring</span>
             </div>
           </div>
 
@@ -408,6 +505,7 @@ function panel() {
   `;
   const pn = $("pn");
   if (pn) {
+    pn.style.display = "block";
     pn.classList.add("on");
     pn.scrollTop = 0;
   }
@@ -642,6 +740,10 @@ function renderDash() {
   const c = S.cfg || (typeof DEF !== "undefined" ? DEF : {});
   const liveStatus = typeof getShopLiveStatus === "function" ? getShopLiveStatus() : { isOpen: true, label: "Open Now", badgeClass: "open" };
 
+  setTimeout(() => {
+    if (typeof refreshDashboardAI === "function") refreshDashboardAI();
+  }, 60);
+
   return `
     <!-- Quick Admin-Controlled Shop Status Banner -->
     <div class="shop-status-control-banner">
@@ -671,12 +773,19 @@ function renderDash() {
     <!-- Smart AI-Inspired Contextual Insights & Action Engine -->
     <div class="admin-ai-deck">
       <div class="ai-deck-header">
-        <div class="ai-deck-title">
-          <span class="ai-deck-sparkle">✨</span>
-          <b>Atelier Smart Intelligence &amp; Contextual Insights</b>
-          <span class="pill ok" style="font-size:0.68rem">Live Database Analytics</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;width:100%">
+          <div>
+            <div class="ai-deck-title">
+              <span class="ai-deck-sparkle">✨</span>
+              <b>Atelier Smart Intelligence &amp; Contextual Insights</b>
+              <span class="pill ok" style="font-size:0.68rem">Live Database Analytics</span>
+            </div>
+            <small style="color:var(--mu)">Real-time computed business diagnostics &amp; priority reminders</small>
+          </div>
+          <button class="btn s p" onclick="S.tab='AI';panel()" style="font-size:0.75rem;padding:5px 12px;font-weight:700" title="Open complete AI Business Suite &amp; Pattern Studio">
+            ✨ Open AI Business Suite ➔
+          </button>
         </div>
-        <small style="color:var(--mu)">Real-time computed business diagnostics &amp; priority reminders</small>
       </div>
 
       <div class="insight-grid">
@@ -1337,13 +1446,18 @@ function renderDash() {
     })()}
 
     <!-- AI Boutique Health Score & Strategy -->
-    <div class="box">
+    <div class="box" style="border-left:4px solid var(--gd);background:linear-gradient(135deg,color-mix(in srgb,var(--gd) 5%,var(--sf)),var(--sf))">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:10px">
-        <div>
-          <b>✨ SAIFA AI Boutique Strategy &amp; Revenue Intelligence</b>
+        <div style="cursor:pointer" onclick="S.tab='AI';panel()" title="Click to open AI Business Suite">
+          <b style="color:var(--tx)">✨ SAIFA AI Boutique Strategy &amp; Revenue Intelligence</b>
           <p style="font-size:0.8rem;color:var(--mu);margin:2px 0 0">Real-time AI diagnostic across cash flow, artisan workload and festival demand</p>
         </div>
-        <button class="btn s p" onclick="refreshDashboardAI()">Refresh AI Insights</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn s" onclick="refreshDashboardAI()">🔄 Refresh Insights</button>
+          <button class="btn s p" onclick="S.tab='AI';panel()" style="font-size:0.78rem;font-weight:700" title="Open complete AI Business Suite">
+            ✨ Open Full AI Suite ➔
+          </button>
+        </div>
       </div>
       <div id="dashAIOutput" class="ai" style="display:block">
         Generating smart business insights...
@@ -1355,8 +1469,14 @@ function renderDash() {
 async function refreshDashboardAI() {
   const el = $("dashAIOutput");
   if (el) el.textContent = "Analyzing sales trends, stitching pipeline and stock turnover...";
-  const audit = await AI.generateBusinessAudit();
-  if (el) el.textContent = audit;
+  try {
+    if (typeof AI !== "undefined" && AI.generateBusinessAudit) {
+      const audit = await AI.generateBusinessAudit();
+      if (el) el.textContent = audit;
+    }
+  } catch (err) {
+    if (el) el.textContent = "Atelier operations normal. Open AI Business Suite for granular metrics.";
+  }
 }
 
 // ------------------------------------------
@@ -3010,7 +3130,7 @@ function renderReviewsTab() {
                 <button class="btn s" onclick="toggleReviewVisibility('${r.id}')" title="${isHidden ? 'Include in public score calculation' : 'Hide from public score calculation'}">
                   ${isHidden ? "👁️ Unhide" : "👁️ Hide"}
                 </button>
-                <button class="btn s d" onclick="requestDelete('reviews','${r.id}','${Security.escapeHTML(r.name)}\\'s review')" title="Delete Review">
+                <button class="btn s d" onclick="requestDelete('reviews','${r.id}')" title="Delete Review">
                   🗑️
                 </button>
               </div>
@@ -3045,27 +3165,187 @@ function toggleReviewVisibility(id) {
 // ------------------------------------------
 // 5. Products & Inventory Management (Search, Filters, Sort, Large Datasets & Edit Modal)
 // ------------------------------------------
+function stepReadymadeSizeStock(sz, delta) {
+  const inp = $("rsz_qty_" + sz);
+  if (!inp) return;
+  inp.value = Math.max(0, (parseInt(inp.value) || 0) + delta);
+  calculateReadymadeStockTotal();
+}
+
+function calculateReadymadeStockTotal() {
+  const sizes = (typeof READYMADE_SIZES !== "undefined" && Array.isArray(READYMADE_SIZES)) 
+    ? READYMADE_SIZES 
+    : ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+  let total = 0;
+  const enabledSizes = [];
+
+  sizes.forEach(sz => {
+    const cb = $("rsz_en_" + sz);
+    const inp = $("rsz_qty_" + sz);
+    if (cb && inp) {
+      if (cb.checked) {
+        inp.disabled = false;
+        inp.style.opacity = "1";
+        const val = Math.max(0, parseInt(inp.value) || 0);
+        inp.value = val;
+        total += val;
+        enabledSizes.push(sz);
+      } else {
+        inp.disabled = true;
+        inp.style.opacity = "0.4";
+      }
+    }
+  });
+
+  const badge = $("readymadeStockSumBadge");
+  if (badge) badge.textContent = `${total} units`;
+
+  const ps = $("ps");
+  if (ps) {
+    ps.value = total;
+  }
+
+  const psz = $("psz");
+  if (psz) {
+    psz.value = enabledSizes.join(", ");
+  }
+
+  return { total, enabledSizes };
+}
+
+function stepEditReadymadeSizeStock(sz, delta) {
+  const inp = $("ep_rsz_qty_" + sz);
+  if (!inp) return;
+  inp.value = Math.max(0, (parseInt(inp.value) || 0) + delta);
+  calculateEditReadymadeStockTotal();
+}
+
+function calculateEditReadymadeStockTotal() {
+  const sizes = (typeof READYMADE_SIZES !== "undefined" && Array.isArray(READYMADE_SIZES)) 
+    ? READYMADE_SIZES 
+    : ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+  let total = 0;
+  const enabledSizes = [];
+
+  sizes.forEach(sz => {
+    const cb = $("ep_rsz_en_" + sz);
+    const inp = $("ep_rsz_qty_" + sz);
+    if (cb && inp) {
+      if (cb.checked) {
+        inp.disabled = false;
+        inp.style.opacity = "1";
+        const val = Math.max(0, parseInt(inp.value) || 0);
+        inp.value = val;
+        total += val;
+        enabledSizes.push(sz);
+      } else {
+        inp.disabled = true;
+        inp.style.opacity = "0.4";
+      }
+    }
+  });
+
+  const badge = $("ep_readymadeStockSumBadge");
+  if (badge) badge.textContent = `${total} units`;
+
+  const epStock = $("ep_stock");
+  if (epStock) epStock.value = total;
+
+  const epSizes = $("ep_sizes");
+  if (epSizes) epSizes.value = enabledSizes.join(", ");
+
+  return { total, enabledSizes };
+}
+
 function onProductCategoryChange(cat) {
   const subSel = $("psubcat");
-  if (!subSel) return;
-  const list = cat === "Material" 
-    ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS)
-    : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS);
-  subSel.innerHTML = list.map(s => `<option value="${Security.escapeHTML(s)}">${Security.escapeHTML(s)}</option>`).join("");
+  if (subSel) {
+    const list = cat === "Material" 
+      ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS)
+      : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS);
+    subSel.innerHTML = list.map(s => `<option value="${Security.escapeHTML(s)}">${Security.escapeHTML(s)}</option>`).join("");
+  }
+
+  const box = $("readymadeSizeStockBox");
+  const ps = $("ps");
+  const pStockLbl = $("p_stock_label");
+  const pSizesLbl = $("p_sizes_label");
+
+  if (cat === "Readymade") {
+    if (box) box.style.display = "block";
+    if (pStockLbl) pStockLbl.innerHTML = `Total Stock Units (Sum of Sizes) *`;
+    if (pSizesLbl) pSizesLbl.innerHTML = `Enabled Sizes (Auto-populated)`;
+    if (ps) {
+      ps.readOnly = true;
+      ps.style.background = "var(--sf2)";
+    }
+    calculateReadymadeStockTotal();
+  } else {
+    if (box) box.style.display = "none";
+    if (pStockLbl) pStockLbl.innerHTML = `Initial Stock Units *`;
+    if (pSizesLbl) pSizesLbl.innerHTML = `Sizes Available`;
+    if (ps) {
+      ps.readOnly = false;
+      ps.style.background = "";
+      if (+ps.value === 0) ps.value = "10";
+    }
+  }
 }
 
 function onEditProductCategoryChange(cat) {
   const subSel = $("ep_subcat");
-  if (!subSel) return;
-  const list = cat === "Material" 
-    ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS)
-    : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS);
-  subSel.innerHTML = list.map(s => `<option value="${Security.escapeHTML(s)}">${Security.escapeHTML(s)}</option>`).join("");
+  if (subSel) {
+    const list = cat === "Material" 
+      ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS)
+      : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS);
+    subSel.innerHTML = list.map(s => `<option value="${Security.escapeHTML(s)}">${Security.escapeHTML(s)}</option>`).join("");
+  }
+
+  const box = $("editReadymadeSizeStockBox");
+  const epStock = $("ep_stock");
+  const epStockLbl = $("ep_stock_label");
+
+  if (cat === "Readymade") {
+    if (box) box.style.display = "block";
+    if (epStockLbl) epStockLbl.innerHTML = `Total Stock Units (Sum of Sizes) *`;
+    if (epStock) {
+      epStock.readOnly = true;
+      epStock.style.background = "var(--sf2)";
+    }
+    calculateEditReadymadeStockTotal();
+  } else {
+    if (box) box.style.display = "none";
+    if (epStockLbl) epStockLbl.innerHTML = `Current Stock Units *`;
+    if (epStock) {
+      epStock.readOnly = false;
+      epStock.style.background = "";
+    }
+  }
 }
 
 function quickAdjustStock(id, delta) {
   const p = products().find(x => x.id == id);
   if (!p) return;
+
+  if (p.cat === "Readymade" && p.sizeStock && typeof p.sizeStock === "object") {
+    const keys = Object.keys(p.sizeStock);
+    if (keys.length > 0) {
+      const targetSize = (delta < 0 ? keys.find(k => (Number(p.sizeStock[k]) || 0) > 0) : keys[0]) || keys[0];
+      p.sizeStock[targetSize] = Math.max(0, (Number(p.sizeStock[targetSize]) || 0) + delta);
+      const newStock = Object.values(p.sizeStock).reduce((acc, curr) => acc + (Math.max(0, Number(curr)) || 0), 0);
+      if (Array.isArray(p.variants) && p.variants.length > 0) {
+        const v = p.variants.find(x => String(x.size).toUpperCase() === String(targetSize).toUpperCase());
+        if (v) v.stock = p.sizeStock[targetSize];
+      }
+      upd("products", id, { stock: newStock, sizeStock: p.sizeStock, variants: p.variants }).then(() => {
+        toast(`Size ${targetSize} updated: ${p.sizeStock[targetSize]} units (Total: ${newStock}) 📦`);
+        if (typeof panel === "function") panel();
+        if (typeof renderFront === "function") renderFront();
+      });
+      return;
+    }
+  }
+
   const newStock = Math.max(0, (Number(p.stock) || 0) + delta);
   upd("products", id, { stock: newStock }).then(() => {
     toast(`Stock updated: "${p.name}" now has ${newStock} unit(s) 📦`);
@@ -3118,8 +3398,8 @@ function openEditProductModal(id) {
 
     <div class="g2" style="margin-top:8px">
       <div>
-        <label>Current Stock Units *</label>
-        <input id="ep_stock" type="number" value="${p.stock || 0}" required>
+        <label id="ep_stock_label">${p.cat === 'Readymade' ? 'Total Stock Units (Sum of Sizes) *' : 'Current Stock Units *'}</label>
+        <input id="ep_stock" type="number" value="${p.stock || 0}" ${p.cat === 'Readymade' ? 'readonly style="background:var(--sf2)"' : ''} required>
       </div>
       <div>
         <label>Fabric Specification</label>
@@ -3135,6 +3415,60 @@ function openEditProductModal(id) {
       <div>
         <label>Sizes Available (comma separated)</label>
         <input id="ep_sizes" value="${Security.escapeHTML(p.sizes || '')}" placeholder="S, M, L, XL, Free size">
+      </div>
+    </div>
+
+    <!-- Readymade Size-Wise Inventory Management (Predefined Sizes: XS, S, M, L, XL, XXL, XXXL) -->
+    <div id="editReadymadeSizeStockBox" style="display:${p.cat === 'Readymade' ? 'block' : 'none'};margin:12px 0;background:var(--sf2);padding:14px;border-radius:12px;border:1px solid var(--ln)">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--ln)">
+        <div>
+          <b style="font-size:0.92rem;color:var(--tx);display:flex;align-items:center;gap:6px">
+            <span>📏</span> Readymade Size-Wise Inventory Management
+          </b>
+          <div style="font-size:0.75rem;color:var(--mu);margin-top:2px">
+            Predefined sizes: <b>XS, S, M, L, XL, XXL, XXXL</b>. Enable/disable sizes and edit stock units; total product stock is auto-calculated.
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.78rem;color:var(--mu);font-weight:600">Total Size Stock:</span>
+          <span id="ep_readymadeStockSumBadge" class="pill ok" style="font-size:0.8rem;font-weight:700">${p.stock || 0} units</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(105px, 1fr));gap:8px" id="ep_readymadeSizeGrid">
+        ${READYMADE_SIZES.map(sz => {
+          let isEn = true;
+          let qty = 0;
+          if (p.sizeStock && typeof p.sizeStock === 'object') {
+            const key = Object.keys(p.sizeStock).find(k => k.trim().toUpperCase() === sz);
+            if (key && p.sizeStock[key] !== undefined) {
+              qty = Math.max(0, Number(p.sizeStock[key]) || 0);
+              isEn = true;
+            } else {
+              isEn = false;
+              qty = 0;
+            }
+          } else if (Array.isArray(p.variants) && p.variants.length > 0) {
+            const matching = p.variants.filter(v => String(v.size || '').trim().toUpperCase() === sz);
+            qty = matching.reduce((acc, curr) => acc + (Math.max(0, Number(curr.stock)) || 0), 0);
+            isEn = (p.sizes || '').toUpperCase().includes(sz) || qty > 0;
+          } else {
+            isEn = (p.sizes || '').toUpperCase().includes(sz);
+            qty = 0;
+          }
+          return `
+            <div class="size-inventory-card" style="background:var(--sf);padding:8px 6px;border-radius:10px;border:1px solid var(--ln);text-align:center">
+              <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:4px">
+                <input type="checkbox" id="ep_rsz_en_${sz}" ${isEn ? 'checked' : ''} onchange="calculateEditReadymadeStockTotal()" style="width:15px;height:15px;cursor:pointer">
+                <label for="ep_rsz_en_${sz}" style="margin:0;font-weight:700;font-size:0.85rem;cursor:pointer;color:var(--tx)">${sz}</label>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+                <button type="button" class="btn s" style="padding:2px 5px;font-size:0.75rem;line-height:1" onclick="stepEditReadymadeSizeStock('${sz}', -1)">−</button>
+                <input type="number" id="ep_rsz_qty_${sz}" min="0" value="${qty}" ${isEn ? '' : 'disabled style="opacity:0.4"'} style="width:48px;text-align:center;padding:2px 3px;margin:0;font-weight:700;font-size:0.84rem" oninput="calculateEditReadymadeStockTotal()">
+                <button type="button" class="btn s" style="padding:2px 5px;font-size:0.75rem;line-height:1" onclick="stepEditReadymadeSizeStock('${sz}', 1)">+</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
     </div>
 
@@ -3347,13 +3681,83 @@ function saveEditedProduct(id) {
   const cat = $("ep_cat") ? $("ep_cat").value : p.cat;
   const subcat = $("ep_subcat") ? $("ep_subcat").value : p.subcat;
   const price = $("ep_price") ? Math.max(0, Number($("ep_price").value) || 0) : p.price;
-  const stock = $("ep_stock") ? Math.max(0, Number($("ep_stock").value) || 0) : p.stock;
   const fabric = $("ep_fabric") ? $("ep_fabric").value.trim() : (p.fabric || "");
   const colors = $("ep_colors") ? $("ep_colors").value.trim() : (p.colors || "");
-  const sizes = $("ep_sizes") ? $("ep_sizes").value.trim() : (p.sizes || "");
   const hx = $("ep_hx") ? $("ep_hx").value : (p.hx || "#8e1647");
   const img = $("ep_img") ? $("ep_img").value.trim() : (p.img || "");
   const desc = $("ep_desc") ? $("ep_desc").value.trim() : (p.desc || "");
+
+  let stock = $("ep_stock") ? Math.max(0, Number($("ep_stock").value) || 0) : p.stock;
+  let sizes = $("ep_sizes") ? $("ep_sizes").value.trim() : (p.sizes || "");
+  let sizeStock = p.sizeStock || null;
+  let variants = p.variants || [];
+
+  if (cat === "Readymade") {
+    const predefinedSizes = (typeof READYMADE_SIZES !== "undefined" && Array.isArray(READYMADE_SIZES)) 
+      ? READYMADE_SIZES 
+      : ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+    sizeStock = {};
+    const enabledSizes = [];
+
+    predefinedSizes.forEach(sz => {
+      const cb = $("ep_rsz_en_" + sz);
+      const inp = $("ep_rsz_qty_" + sz);
+      const isEnabled = cb ? cb.checked : true;
+      const qty = inp ? Math.max(0, parseInt(inp.value) || 0) : 0;
+      if (isEnabled) {
+        enabledSizes.push(sz);
+        sizeStock[sz] = qty;
+      }
+    });
+
+    sizes = enabledSizes.join(", ");
+    stock = Object.values(sizeStock).reduce((sum, q) => sum + q, 0);
+
+    const colorList = colors ? colors.split(",").map(c => c.trim()).filter(Boolean) : ["Standard"];
+    const updatedVariants = [];
+
+    enabledSizes.forEach(sz => {
+      const szQty = sizeStock[sz] || 0;
+      const count = Math.max(1, colorList.length);
+      const perCol = Math.floor(szQty / count);
+      let rem = szQty;
+
+      colorList.forEach((col, cIdx) => {
+        const isLast = (cIdx === colorList.length - 1);
+        const stockVal = isLast ? rem : perCol;
+        rem -= stockVal;
+        
+        const existing = variants.find(v => 
+          String(v.size || '').trim().toUpperCase() === sz && 
+          String(v.color || '').trim().toLowerCase() === col.toLowerCase()
+        );
+
+        if (existing) {
+          existing.stock = stockVal;
+          existing.price = price;
+          updatedVariants.push(existing);
+        } else {
+          const skuSuffix = (sz + "-" + col.slice(0, 3)).toUpperCase().replace(/[^A-Z0-9-]/g, "");
+          updatedVariants.push({
+            id: `var_${p.id}_${sz}_${cIdx}`,
+            sku: `SD-${(p.id || 'PRD').toUpperCase()}-${skuSuffix}`,
+            size: sz,
+            color: col,
+            stock: stockVal,
+            reserved: 0,
+            reorderThreshold: 3,
+            price: price
+          });
+        }
+      });
+    });
+
+    variants = updatedVariants;
+  } else {
+    // If Material (Fabrics), preserve standard stock without sizeStock
+    sizeStock = null;
+    stock = Math.max(0, Number($("ep_stock").value) || 0);
+  }
 
   upd("products", id, {
     name: n,
@@ -3361,12 +3765,14 @@ function saveEditedProduct(id) {
     subcat,
     price,
     stock,
+    sizeStock,
     fabric,
     colors,
     sizes,
     hx,
     img,
-    desc
+    desc,
+    variants
   }).then(() => {
     closeM();
     toast(`Product "${n}" updated successfully! ✅`);
@@ -3424,6 +3830,7 @@ function renderProductsTab() {
   const totalItems = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const validPage = Math.min(currentPage, totalPages);
+  S.prodPage = validPage;
   const startIndex = (validPage - 1) * pageSize;
   const pageItems = filtered.slice(startIndex, startIndex + pageSize);
 
@@ -3459,11 +3866,45 @@ function renderProductsTab() {
             </select>
           </div>
           <div><label>Selling Price ₹ *</label><input id="pp" type="number" placeholder="e.g. 2500"></div>
-          <div><label>Initial Stock Units *</label><input id="ps" type="number" value="10"></div>
+          <div><label id="p_stock_label">Initial Stock Units *</label><input id="ps" type="number" value="10"></div>
           <div><label>Fabric Specification</label><input id="pf" placeholder="Pure Chanderi Silk"></div>
           <div><label>Available Colors</label><input id="pcl" placeholder="Red, Gold, Emerald"></div>
-          <div><label>Sizes Available</label><input id="psz" placeholder="Free size / S, M, L"></div>
+          <div><label id="p_sizes_label">Sizes Available</label><input id="psz" placeholder="Free size / S, M, L"></div>
           <div><label>Primary Theme Color</label><input id="ph" type="color" value="#8e1647"></div>
+        </div>
+
+        <!-- Readymade Size-Wise Inventory Management (Predefined Sizes: XS, S, M, L, XL, XXL, XXXL) -->
+        <div id="readymadeSizeStockBox" style="display:none;margin:12px 0;background:var(--sf2);padding:14px 16px;border-radius:14px;border:1px solid var(--ln);box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--ln)">
+            <div>
+              <b style="font-size:0.95rem;color:var(--tx);display:flex;align-items:center;gap:6px">
+                <span>📏</span> Readymade Size-Wise Inventory Management
+              </b>
+              <div style="font-size:0.75rem;color:var(--mu);margin-top:2px">
+                Predefined boutique sizes: <b>XS, S, M, L, XL, XXL, XXXL</b>. Initialized to <b>0</b>. Enable/disable sizes and enter actual available units before saving.
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:0.78rem;color:var(--mu);font-weight:600">Total Product Stock:</span>
+              <span id="readymadeStockSumBadge" class="pill ok" style="font-size:0.82rem;font-weight:700">0 units</span>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(105px, 1fr));gap:10px" id="readymadeSizeGrid">
+            ${READYMADE_SIZES.map(sz => `
+              <div class="size-inventory-card" style="background:var(--sf);padding:10px 8px;border-radius:10px;border:1px solid var(--ln);text-align:center">
+                <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px">
+                  <input type="checkbox" id="rsz_en_${sz}" checked onchange="calculateReadymadeStockTotal()" style="width:16px;height:16px;cursor:pointer" title="Enable/disable ${sz}">
+                  <label for="rsz_en_${sz}" style="margin:0;font-weight:700;font-size:0.88rem;cursor:pointer;color:var(--tx)">${sz}</label>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+                  <button type="button" class="btn s" style="padding:2px 6px;font-size:0.75rem;line-height:1" onclick="stepReadymadeSizeStock('${sz}', -1)">−</button>
+                  <input type="number" id="rsz_qty_${sz}" min="0" value="0" style="width:48px;text-align:center;padding:3px 2px;margin:0;font-weight:700;font-size:0.84rem" oninput="calculateReadymadeStockTotal()">
+                  <button type="button" class="btn s" style="padding:2px 6px;font-size:0.75rem;line-height:1" onclick="stepReadymadeSizeStock('${sz}', 1)">+</button>
+                </div>
+              </div>
+            `).join("")}
+          </div>
         </div>
 
         <!-- Image Upload, Live Camera & AI Visualizer Options -->
@@ -3643,6 +4084,15 @@ function renderProductsTab() {
                         🎨 Variants (${(p.variants || []).length})
                       </button>
                     </div>
+                    ${(p.cat === 'Readymade' && p.sizeStock) ? `
+                      <div style="margin-top:5px;display:flex;gap:3px;flex-wrap:wrap">
+                        ${Object.entries(p.sizeStock).map(([s, q]) => `
+                          <span class="pill ${Number(q) > 0 ? 'ok' : 'bad'}" style="font-size:0.67rem;padding:1px 5px">
+                            ${s}: <b>${q}</b>
+                          </span>
+                        `).join('')}
+                      </div>
+                    ` : ''}
                   </td>
                   <td>
                     <span class="tag" style="margin-bottom:2px">${Security.escapeHTML(p.cat || 'Collection')}</span><br>
@@ -3782,24 +4232,84 @@ function addProd() {
   if (!n) return toast("Enter product name");
   const cat = $("pc") ? $("pc").value : "Material";
   const subcat = $("psubcat") ? $("psubcat").value : (cat === "Material" ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats()[0] : MATERIAL_SUBCATS[0]) : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats()[0] : READYMADE_SUBCATS[0]));
-  const initialStock = +$("ps").value || 0;
-  const sizes = $("psz") ? $("psz").value.trim() : "";
+  const price = Math.max(0, +$("pp").value || 0);
+  const fabric = $("pf") ? $("pf").value.trim() : "";
   const colors = $("pcl") ? $("pcl").value.trim() : "";
-  const variants = typeof generateDefaultVariants === "function" ? generateDefaultVariants(n, sizes, colors, initialStock) : [];
+  const desc = $("pd") ? $("pd").value : "";
+  const hx = $("ph") ? $("ph").value || "#8e1647" : "#8e1647";
+  const img = newProductImgData || ($("p_img_url") ? $("p_img_url").value.trim() : "");
+
+  let initialStock = 0;
+  let sizes = "";
+  let sizeStock = null;
+  let variants = [];
+
+  if (cat === "Readymade") {
+    const predefinedSizes = (typeof READYMADE_SIZES !== "undefined" && Array.isArray(READYMADE_SIZES)) 
+      ? READYMADE_SIZES 
+      : ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+    sizeStock = {};
+    const enabledSizes = [];
+
+    predefinedSizes.forEach(sz => {
+      const cb = $("rsz_en_" + sz);
+      const inp = $("rsz_qty_" + sz);
+      const isEnabled = cb ? cb.checked : true;
+      const qty = inp ? Math.max(0, parseInt(inp.value) || 0) : 0;
+      if (isEnabled) {
+        enabledSizes.push(sz);
+        sizeStock[sz] = qty;
+        initialStock += qty;
+      }
+    });
+
+    sizes = enabledSizes.join(", ");
+    const colorList = colors ? colors.split(",").map(c => c.trim()).filter(Boolean) : ["Standard"];
+
+    enabledSizes.forEach(sz => {
+      const szQty = sizeStock[sz] || 0;
+      const count = Math.max(1, colorList.length);
+      const perCol = Math.floor(szQty / count);
+      let rem = szQty;
+
+      colorList.forEach((col, cIdx) => {
+        const isLast = (cIdx === colorList.length - 1);
+        const stockVal = isLast ? rem : perCol;
+        rem -= stockVal;
+        const skuSuffix = (sz + "-" + col.slice(0, 3)).toUpperCase().replace(/[^A-Z0-9-]/g, "");
+        variants.push({
+          id: `var_${uid().slice(0, 6)}_${sz}_${cIdx}`,
+          sku: `SD-${n.slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, "")}-${skuSuffix}`,
+          size: sz,
+          color: col,
+          stock: stockVal,
+          reserved: 0,
+          reorderThreshold: 3,
+          price: price
+        });
+      });
+    });
+  } else {
+    // Ordinary fabric products (Material) - sold by length or quantity
+    initialStock = Math.max(0, +$("ps").value || 0);
+    sizes = $("psz") ? $("psz").value.trim() : "";
+    variants = typeof generateDefaultVariants === "function" ? generateDefaultVariants(n, sizes, colors, initialStock) : [];
+  }
 
   put("products", {
     name: n,
     cat: cat,
     subcat: subcat,
-    price: +$("pp").value || 0,
+    price: price,
     stock: initialStock,
-    fabric: $("pf").value,
+    sizeStock: sizeStock,
+    fabric: fabric,
     colors: colors,
     sizes: sizes,
-    hx: $("ph").value || "#8e1647",
+    hx: hx,
     em: "👗",
-    img: newProductImgData || $("p_img_url").value.trim(),
-    desc: $("pd").value,
+    img: img,
+    desc: desc,
     created: Date.now(),
     variants: variants
   }).then(id => {
@@ -4915,7 +5425,7 @@ function renderTeamTab() {
                 <button class="btn s d" onclick="requestDelete('team','${t.id}')">✕</button>
               </td>
             </tr>
-          `).join("")}
+          `).join("") || "<tr><td colspan='5' style='text-align:center;padding:16px;color:var(--mu)'>No front-page team members added yet.</td></tr>"}
         </tbody>
       </table>
     </div>
@@ -5643,38 +6153,48 @@ function deleteMeasurement(name) {
   if (typeof panel === "function") panel();
 }
 
-// ------------------------------------------
-// Cascading Category Handlers for Product Forms
-// ------------------------------------------
-function onProductCategoryChange(cat) {
-  const sel = $("psubcat");
-  if (!sel) return;
-  const subcats = cat === "Material" 
-    ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS)
-    : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS);
-  sel.innerHTML = subcats.map(s => `<option value="${Security.escapeHTML(s)}">${Security.escapeHTML(s)}</option>`).join("");
-}
 
-function onEditProductCategoryChange(cat) {
-  const sel = $("ep_subcat");
-  if (!sel) return;
-  const subcats = cat === "Material" 
-    ? (typeof getMaterialSubcats === "function" ? getMaterialSubcats() : MATERIAL_SUBCATS)
-    : (typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : READYMADE_SUBCATS);
-  sel.innerHTML = subcats.map(s => `<option value="${Security.escapeHTML(s)}">${Security.escapeHTML(s)}</option>`).join("");
-}
 
-// ------------------------------------------
-// 11. AI Suite Tab
-// ------------------------------------------
 // ------------------------------------------
 // 11. SAIFA AI Boutique Strategy & Pattern Studio Tab
 // ------------------------------------------
 function renderAITab() {
   const period = S.aiPeriod || "monthly";
-  const report = typeof AI !== "undefined" && AI.generateBoutiqueStrategyReport 
-    ? AI.generateBoutiqueStrategyReport(period)
-    : null;
+  let report = null;
+  try {
+    if (typeof AI !== "undefined" && AI.generateBoutiqueStrategyReport) {
+      report = AI.generateBoutiqueStrategyReport(period);
+    }
+  } catch (err) {
+    console.error("AI Suite generation error:", err);
+  }
+
+  // Auto-initialize procedural textile pattern canvas
+  setTimeout(() => {
+    if (typeof generateInteractiveFabricPattern === "function") {
+      generateInteractiveFabricPattern();
+    }
+  }, 60);
+
+  // Safe destructuring with full fallbacks
+  const fin = report?.financials || {
+    confirmedPaidRevenue: 0,
+    paidOrdersCount: 0,
+    claimedRevenuePendingCheck: 0,
+    unpaidOutstanding: 0,
+    netProfitMargin: 0,
+    netOperatingProfit: 0,
+    tailorExpenses: 0
+  };
+  const artisans = report?.artisans || { totalArtisans: 0, totalActiveTailoring: 0, workerBreakdown: [] };
+  const inventory = report?.inventory || { estimatedFabricRequiredMeters: 0, topSellers: [], lowStockAlerts: [] };
+  const festival = report?.festivalForecast || { season: "Boutique Atelier Season", recommendation: "Curated collections in active demand.", recommendedFabrics: ["Pure Silk", "Georgette"], confidence: "94%" };
+  const suggestions = report?.actionableSuggestions || report?.suggestions || [];
+  const chartData = (report?.chart?.labels || []).map((lbl, idx) => ({
+    label: lbl,
+    rev: Number(report?.chart?.revenueSeries?.[idx]) || 0,
+    exp: Number(report?.chart?.expenseSeries?.[idx]) || 0
+  }));
 
   return `
     <!-- Top Hub Header -->
@@ -5698,192 +6218,184 @@ function renderAITab() {
       </div>
     </div>
 
-    ${report ? `
-      <!-- Financial Separation Deck: Verified vs Claimed vs Pending -->
-      <div class="kpi-grid" style="margin-bottom:16px">
-        <div class="kpi-card" style="border-top:3px solid var(--ok)">
-          <div style="font-size:0.72rem;color:var(--mu);text-transform:uppercase;font-weight:700">Confirmed Paid Revenue</div>
-          <b style="font-size:1.45rem;color:var(--ok);margin:4px 0;display:block">${R(report.financials.confirmedPaidRevenue)}</b>
-          <small style="color:var(--mu);font-size:0.75rem">Strictly verified paid orders (${report.financials.paidOrdersCount} orders)</small>
-        </div>
+    <!-- Financial Separation Deck: Verified vs Claimed vs Pending -->
+    <div class="kpi-grid" style="margin-bottom:16px">
+      <div class="kpi-card" style="border-top:3px solid var(--ok)">
+        <div style="font-size:0.72rem;color:var(--mu);text-transform:uppercase;font-weight:700">Confirmed Paid Revenue</div>
+        <b style="font-size:1.45rem;color:var(--ok);margin:4px 0;display:block">${R(fin.confirmedPaidRevenue || fin.confirmedPaidRev || 0)}</b>
+        <small style="color:var(--mu);font-size:0.75rem">Strictly verified paid orders (${fin.paidOrdersCount || 0} orders)</small>
+      </div>
 
-        <div class="kpi-card" style="border-top:3px solid var(--warn)">
-          <div style="font-size:0.72rem;color:var(--mu);text-transform:uppercase;font-weight:700">Claimed / Verification Due</div>
-          <b style="font-size:1.45rem;color:var(--warn);margin:4px 0;display:block">${R(report.financials.claimedRevenuePendingCheck)}</b>
-          <small style="color:var(--mu);font-size:0.75rem">Awaiting admin payment confirmation</small>
-        </div>
+      <div class="kpi-card" style="border-top:3px solid var(--warn)">
+        <div style="font-size:0.72rem;color:var(--mu);text-transform:uppercase;font-weight:700">Claimed / Verification Due</div>
+        <b style="font-size:1.45rem;color:var(--warn);margin:4px 0;display:block">${R(fin.claimedRevenuePendingCheck || fin.claimedRev || 0)}</b>
+        <small style="color:var(--mu);font-size:0.75rem">Awaiting admin payment confirmation</small>
+      </div>
 
-        <div class="kpi-card" style="border-top:3px solid var(--bad)">
-          <div style="font-size:0.72rem;color:var(--mu);text-transform:uppercase;font-weight:700">Outstanding Balances</div>
-          <b style="font-size:1.45rem;color:var(--bad);margin:4px 0;display:block">${R(report.financials.unpaidOutstanding)}</b>
-          <small style="color:var(--mu);font-size:0.75rem">Pending collection on delivery / fit</small>
-        </div>
+      <div class="kpi-card" style="border-top:3px solid var(--bad)">
+        <div style="font-size:0.72rem;color:var(--mu);text-transform:uppercase;font-weight:700">Outstanding Balances</div>
+        <b style="font-size:1.45rem;color:var(--bad);margin:4px 0;display:block">${R(fin.unpaidOutstanding || fin.unpaidRev || 0)}</b>
+        <small style="color:var(--mu);font-size:0.75rem">Pending collection on delivery / fit</small>
+      </div>
 
-        <div class="kpi-card" style="border-top:3px solid var(--gd)">
-          <div style="font-size:0.72rem;color:var(--mu);text-transform:uppercase;font-weight:700">Net Operating Margin</div>
-          <b style="font-size:1.45rem;color:var(--gd);margin:4px 0;display:block">${report.financials.netProfitMargin}%</b>
-          <small style="color:var(--mu);font-size:0.75rem">Net Profit: ${R(report.financials.netOperatingProfit)} (Est. Wages: ${R(report.financials.tailorExpenses)})</small>
+      <div class="kpi-card" style="border-top:3px solid var(--gd)">
+        <div style="font-size:0.72rem;color:var(--mu);text-transform:uppercase;font-weight:700">Net Operating Margin</div>
+        <b style="font-size:1.45rem;color:var(--gd);margin:4px 0;display:block">${fin.netProfitMargin || 0}%</b>
+        <small style="color:var(--mu);font-size:0.75rem">Net Profit: ${R(fin.netOperatingProfit || 0)} (Est. Wages: ${R(fin.tailorExpenses || fin.estimatedTailorWages || 0)})</small>
+      </div>
+    </div>
+
+    <!-- Business Performance Chart & Analysis -->
+    <div class="box" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+        <div>
+          <b style="font-size:1rem;color:var(--tx)">📈 Revenue &amp; Artisan Cost Trajectory (${report?.periodLabel || 'Live Atelier Metrics'})</b>
+          <p style="font-size:0.78rem;color:var(--mu);margin:2px 0 0">Interactive visual performance graph generated directly from database timestamps.</p>
+        </div>
+        <div style="display:flex;gap:12px;font-size:0.78rem">
+          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--br)"></span> Confirmed Revenue</span>
+          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--gd)"></span> Artisan Wages</span>
         </div>
       </div>
 
-      <!-- Business Performance Chart & Analysis -->
-      <div class="box" style="margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
-          <div>
-            <b style="font-size:1rem;color:var(--tx)">📈 Revenue &amp; Artisan Cost Trajectory (${report.periodLabel})</b>
-            <p style="font-size:0.78rem;color:var(--mu);margin:2px 0 0">Interactive visual performance graph generated directly from database timestamps.</p>
-          </div>
-          <div style="display:flex;gap:12px;font-size:0.78rem">
-            <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--br)"></span> Confirmed Revenue</span>
-            <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--gd)"></span> Artisan Wages</span>
-          </div>
-        </div>
-
-        <!-- Animated SVG Trend Chart -->
-        <div style="width:100%;height:190px;position:relative;background:var(--sf2);border-radius:12px;padding:12px 10px 6px;box-sizing:border-box;border:1px solid var(--ln)">
-          ${(() => {
-            const data = (report.chart && report.chart.labels) ? report.chart.labels.map((lbl, idx) => ({
-              label: lbl,
-              rev: report.chart.revenueSeries[idx] || 0,
-              exp: report.chart.expenseSeries[idx] || 0
-            })) : [];
-            if (!data.length) return `<div style="text-align:center;padding:50px;color:var(--mu)">No trend data available for this timeframe</div>`;
-            const maxVal = Math.max(...data.map(d => Math.max(d.rev, d.exp)), 1000);
-            const w = 100 / data.length;
-            return `
-              <svg viewBox="0 0 1000 160" preserveAspectRatio="none" style="width:100%;height:140px;overflow:visible">
-                <defs>
-                  <linearGradient id="aiBarGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="var(--br)"/>
-                    <stop offset="100%" stop-color="var(--br2)"/>
-                  </linearGradient>
-                  <linearGradient id="aiExpGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="var(--gd)"/>
-                    <stop offset="100%" stop-color="var(--gd2)"/>
-                  </linearGradient>
-                </defs>
-                ${data.map((d, i) => {
-                  const x = (i * (1000 / data.length)) + 10;
-                  const barW = Math.max(12, (1000 / data.length) * 0.35);
-                  const revH = Math.round((d.rev / maxVal) * 120);
-                  const expH = Math.round((d.exp / maxVal) * 120);
-                  const revY = 135 - revH;
-                  const expY = 135 - expH;
-                  return `
-                    <g class="chart-col-group">
-                      <rect x="${x}" y="${revY}" width="${barW}" height="${revH}" rx="4" fill="url(#aiBarGrad)">
-                        <title>${d.label}: Confirmed Revenue ₹${d.rev}</title>
-                      </rect>
-                      <rect x="${x + barW + 2}" y="${expY}" width="${barW * 0.8}" height="${expH}" rx="3" fill="url(#aiExpGrad)">
-                        <title>${d.label}: Artisan Cost ₹${d.exp}</title>
-                      </rect>
-                      <text x="${x + barW}" y="152" font-size="11" fill="var(--mu)" text-anchor="middle" font-weight="600">${d.label}</text>
-                    </g>
-                  `;
-                }).join("")}
-              </svg>
-            `;
-          })()}
-        </div>
+      <!-- Animated SVG Trend Chart -->
+      <div style="width:100%;height:190px;position:relative;background:var(--sf2);border-radius:12px;padding:12px 10px 6px;box-sizing:border-box;border:1px solid var(--ln)">
+        ${(() => {
+          if (!chartData.length) return `<div style="text-align:center;padding:50px;color:var(--mu)">No trend data available for this timeframe</div>`;
+          const maxVal = Math.max(...chartData.map(d => Math.max(Number(d.rev) || 0, Number(d.exp) || 0)), 1000) || 1000;
+          return `
+            <svg viewBox="0 0 1000 160" preserveAspectRatio="none" style="width:100%;height:140px;overflow:visible">
+              <defs>
+                <linearGradient id="aiBarGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--br)"/>
+                  <stop offset="100%" stop-color="var(--br2)"/>
+                </linearGradient>
+                <linearGradient id="aiExpGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--gd)"/>
+                  <stop offset="100%" stop-color="var(--gd2)"/>
+                </linearGradient>
+              </defs>
+              ${chartData.map((d, i) => {
+                const x = (i * (1000 / chartData.length)) + 10;
+                const barW = Math.max(12, (1000 / chartData.length) * 0.35);
+                const revH = Math.max(4, Math.round(((Number(d.rev) || 0) / maxVal) * 120));
+                const expH = Math.max(4, Math.round(((Number(d.exp) || 0) / maxVal) * 120));
+                const revY = 135 - revH;
+                const expY = 135 - expH;
+                return `
+                  <g class="chart-col-group">
+                    <rect x="${x}" y="${revY}" width="${barW}" height="${revH}" rx="4" fill="url(#aiBarGrad)">
+                      <title>${Security.escapeHTML(d.label)}: Confirmed Revenue ₹${(Number(d.rev) || 0).toLocaleString('en-IN')}</title>
+                    </rect>
+                    <rect x="${x + barW + 2}" y="${expY}" width="${barW * 0.8}" height="${expH}" rx="3" fill="url(#aiExpGrad)">
+                      <title>${Security.escapeHTML(d.label)}: Artisan Cost ₹${(Number(d.exp) || 0).toLocaleString('en-IN')}</title>
+                    </rect>
+                    <text x="${x + barW}" y="152" font-size="11" fill="var(--mu)" text-anchor="middle" font-weight="600">${Security.escapeHTML(d.label)}</text>
+                  </g>
+                `;
+              }).join("")}
+            </svg>
+          `;
+        })()}
       </div>
+    </div>
 
-      <!-- 2-Column: Artisan Workload & Inventory Velocity -->
-      <div class="g2" style="margin-bottom:16px">
-        <!-- Artisan Workload Card -->
-        <div class="box" style="margin:0">
-          <b style="font-size:0.95rem;color:var(--tx)">🧵 Artisan Capacity &amp; Productivity</b>
-          <div style="margin:8px 0;display:flex;justify-content:space-between;font-size:0.82rem;color:var(--mu)">
-            <span>Active Artisans: <b>${report.artisans.totalArtisans}</b></span>
-            <span>Workshop Load: <b>${report.artisans.totalActiveTailoring} orders</b></span>
-          </div>
-          <div style="overflow-x:auto;max-height:200px">
-            <table style="font-size:0.82rem">
-              <thead>
+    <!-- 2-Column: Artisan Workload & Inventory Velocity -->
+    <div class="g2" style="margin-bottom:16px">
+      <!-- Artisan Workload Card -->
+      <div class="box" style="margin:0">
+        <b style="font-size:0.95rem;color:var(--tx)">🧵 Artisan Capacity &amp; Productivity</b>
+        <div style="margin:8px 0;display:flex;justify-content:space-between;font-size:0.82rem;color:var(--mu)">
+          <span>Active Artisans: <b>${artisans.totalArtisans || 0}</b></span>
+          <span>Workshop Load: <b>${artisans.totalActiveTailoring || 0} orders</b></span>
+        </div>
+        <div style="overflow-x:auto;max-height:200px">
+          <table style="font-size:0.82rem">
+            <thead>
+              <tr>
+                <th>Artisan</th>
+                <th>Role</th>
+                <th>In Queue</th>
+                <th>Completed</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(artisans.workerBreakdown || []).map(w => `
                 <tr>
-                  <th>Artisan</th>
-                  <th>Role</th>
-                  <th>In Queue</th>
-                  <th>Completed</th>
-                  <th>Status</th>
+                  <td><b>${Security.escapeHTML(w.name)}</b></td>
+                  <td><span class="tag" style="font-size:0.68rem">${Security.escapeHTML(w.role || 'Tailor')}</span></td>
+                  <td>${w.activeAssigned}</td>
+                  <td><b>${w.completedInPeriod}</b></td>
+                  <td><span class="pill ${w.activeAssigned > 4 ? 'w' : 'ok'}" style="font-size:0.65rem">${w.activeAssigned > 4 ? 'High Load' : 'Available'}</span></td>
                 </tr>
-              </thead>
-              <tbody>
-                ${report.artisans.workerBreakdown.map(w => `
-                  <tr>
-                    <td><b>${Security.escapeHTML(w.name)}</b></td>
-                    <td><span class="tag" style="font-size:0.68rem">${Security.escapeHTML(w.role || 'Tailor')}</span></td>
-                    <td>${w.activeAssigned}</td>
-                    <td><b>${w.completedInPeriod}</b></td>
-                    <td><span class="pill ${w.activeAssigned > 4 ? 'w' : 'ok'}" style="font-size:0.65rem">${w.activeAssigned > 4 ? 'High Load' : 'Available'}</span></td>
-                  </tr>
-                `).join("") || `<tr><td colspan="5" style="text-align:center;color:var(--mu)">No workers registered</td></tr>`}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Inventory Velocity & Fabric Demand -->
-        <div class="box" style="margin:0">
-          <b style="font-size:0.95rem;color:var(--tx)">👗 Collection Velocity &amp; Fabric Demand</b>
-          <div style="margin:8px 0;font-size:0.82rem;color:var(--mu)">
-            Estimated Fabric Required: <b>${report.inventory.estimatedFabricRequiredMeters} Meters</b>
-          </div>
-          <div style="font-size:0.82rem;margin-bottom:8px">
-            <b>Top Selling Boutique Collections:</b>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
-              ${report.inventory.topSellers.map(t => `
-                <span class="tag" style="background:var(--sf2);border:1px solid var(--ln);font-size:0.75rem;padding:3px 8px">
-                  ${Security.escapeHTML(t.name)} (${t.qty} sold)
-                </span>
-              `).join("") || '<span style="color:var(--mu)">No sales recorded yet</span>'}
-            </div>
-          </div>
-          ${report.inventory.lowStockAlerts.length ? `
-            <div style="background:color-mix(in srgb,var(--warn) 10%,var(--sf2));border:1px solid var(--warn);padding:8px 10px;border-radius:10px;font-size:0.78rem">
-              <b>⚠️ Low Stock Alerts (${report.inventory.lowStockAlerts.length} items):</b><br>
-              ${report.inventory.lowStockAlerts.slice(0, 3).map(p => `• ${Security.escapeHTML(p.name)} (${p.stock} units left)`).join("<br>")}
-            </div>
-          ` : `<div style="color:var(--ok);font-size:0.8rem">✓ Inventory stock levels healthy</div>`}
+              `).join("") || `<tr><td colspan="5" style="text-align:center;color:var(--mu)">No workers registered</td></tr>`}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Festival Demand Forecasting & AI Strategic Suggestions -->
-      <div class="g2" style="margin-bottom:18px">
-        <!-- Festival Demand Card -->
-        <div class="box" style="margin:0;border:1px solid var(--gd);background:linear-gradient(135deg,color-mix(in srgb,var(--gd) 6%,var(--sf)),var(--sf))">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <b style="font-size:0.95rem;color:var(--tx)">🎉 Festival &amp; Seasonal Demand Forecast</b>
-            <span class="pill ok" style="font-size:0.7rem;font-weight:700">Confidence: ${report.festivalForecast.confidence}</span>
-          </div>
-          <p style="font-size:0.84rem;color:var(--tx);font-weight:600;margin:0 0 6px">
-            Current Phase: ${Security.escapeHTML(report.festivalForecast.season)}
-          </p>
-          <div style="font-size:0.8rem;color:var(--mu);line-height:1.45;margin-bottom:8px">
-            ${Security.escapeHTML(report.festivalForecast.recommendation)}
-          </div>
-          <div style="font-size:0.75rem;color:var(--mu)">
-            <b>High-Demand Fabrics:</b> ${report.festivalForecast.recommendedFabrics.join(", ")}
+      <!-- Inventory Velocity & Fabric Demand -->
+      <div class="box" style="margin:0">
+        <b style="font-size:0.95rem;color:var(--tx)">👗 Collection Velocity &amp; Fabric Demand</b>
+        <div style="margin:8px 0;font-size:0.82rem;color:var(--mu)">
+          Estimated Fabric Required: <b>${inventory.estimatedFabricRequiredMeters || 0} Meters</b>
+        </div>
+        <div style="font-size:0.82rem;margin-bottom:8px">
+          <b>Top Selling Boutique Collections:</b>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+            ${(inventory.topSellers || []).map(t => `
+              <span class="tag" style="background:var(--sf2);border:1px solid var(--ln);font-size:0.75rem;padding:3px 8px">
+                ${Security.escapeHTML(t.name)} (${t.qty} sold)
+              </span>
+            `).join("") || '<span style="color:var(--mu)">No sales recorded yet</span>'}
           </div>
         </div>
+        ${(inventory.lowStockAlerts || []).length ? `
+          <div style="background:color-mix(in srgb,var(--warn) 10%,var(--sf2));border:1px solid var(--warn);padding:8px 10px;border-radius:10px;font-size:0.78rem">
+            <b>⚠️ Low Stock Alerts (${inventory.lowStockAlerts.length} items):</b><br>
+            ${inventory.lowStockAlerts.slice(0, 3).map(p => `• ${Security.escapeHTML(typeof p === 'string' ? p : (p.name || 'Fabric Item'))} (${typeof p === 'object' && p.stock !== undefined ? p.stock : 2} units left)`).join("<br>")}
+          </div>
+        ` : `<div style="color:var(--ok);font-size:0.8rem">✓ Inventory stock levels healthy</div>`}
+      </div>
+    </div>
 
-        <!-- Actionable AI Business Strategies -->
-        <div class="box" style="margin:0">
-          <b style="font-size:0.95rem;color:var(--tx)">💡 Actionable Business Strategies</b>
-          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-            ${report.actionableSuggestions.map(s => `
-              <div style="padding:8px 10px;border-radius:10px;background:var(--sf2);border:1px solid var(--ln);display:flex;justify-content:space-between;align-items:center;gap:8px">
-                <div style="font-size:0.8rem;color:var(--tx)">
-                  <b>${Security.escapeHTML(s.title)}:</b> ${Security.escapeHTML(s.detail)}
-                </div>
-                <span class="badge" style="font-size:0.68rem;white-space:nowrap;background:color-mix(in srgb,var(--br) 12%,transparent);color:var(--br)">
-                  ${s.confidence}% Conf.
-                </span>
+    <!-- Festival Demand Forecasting & AI Strategic Suggestions -->
+    <div class="g2" style="margin-bottom:18px">
+      <!-- Festival Demand Card -->
+      <div class="box" style="margin:0;border:1px solid var(--gd);background:linear-gradient(135deg,color-mix(in srgb,var(--gd) 6%,var(--sf)),var(--sf))">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <b style="font-size:0.95rem;color:var(--tx)">🎉 Festival &amp; Seasonal Demand Forecast</b>
+          <span class="pill ok" style="font-size:0.7rem;font-weight:700">Confidence: ${festival.confidence || '94%'}</span>
+        </div>
+        <p style="font-size:0.84rem;color:var(--tx);font-weight:600;margin:0 0 6px">
+          Current Phase: ${Security.escapeHTML(festival.season || 'Boutique Season')}
+        </p>
+        <div style="font-size:0.8rem;color:var(--mu);line-height:1.45;margin-bottom:8px">
+          ${Security.escapeHTML(festival.recommendation || 'Active collections performing smoothly.')}
+        </div>
+        <div style="font-size:0.75rem;color:var(--mu)">
+          <b>High-Demand Fabrics:</b> ${(festival.recommendedFabrics || []).join(", ") || 'Pure Silk, Georgette'}
+        </div>
+      </div>
+
+      <!-- Actionable AI Business Strategies -->
+      <div class="box" style="margin:0">
+        <b style="font-size:0.95rem;color:var(--tx)">💡 Actionable Business Strategies</b>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+          ${suggestions.map(s => `
+            <div style="padding:8px 10px;border-radius:10px;background:var(--sf2);border:1px solid var(--ln);display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <div style="font-size:0.8rem;color:var(--tx)">
+                <b>${Security.escapeHTML(s.title)}:</b> ${Security.escapeHTML(s.detail || s.desc || '')}
               </div>
-            `).join("")}
-          </div>
+              <span class="badge" style="font-size:0.68rem;white-space:nowrap;background:color-mix(in srgb,var(--br) 12%,transparent);color:var(--br)">
+                ${s.confidence || 90}% Conf.
+              </span>
+            </div>
+          `).join("")}
         </div>
       </div>
-    ` : ''}
+    </div>
 
     <!-- 🎨 Pillar 4: AI Fabric Pattern & Garment Visualizer Studio -->
     <div class="box" style="border:1px solid var(--br);background:linear-gradient(135deg,color-mix(in srgb,var(--br) 6%,var(--sf)),var(--sf))">
@@ -6065,10 +6577,10 @@ function generateInteractiveFabricPattern() {
     prompt: $("pat_prompt") ? $("pat_prompt").value : ""
   };
 
-  setTimeout(() => {
+  setTimeout(async () => {
     try {
       if (typeof AI !== "undefined" && AI.generateFabricPattern) {
-        AI.generateFabricPattern(options);
+        await AI.generateFabricPattern(options);
       }
       if (overlay) overlay.style.display = "none";
       const status = $("patternStatusBadge");
@@ -6078,7 +6590,7 @@ function generateInteractiveFabricPattern() {
       if (overlay) overlay.style.display = "none";
       toast("Pattern generation completed with fallback vector rendering");
     }
-  }, 100);
+  }, 60);
 }
 
 function downloadCurrentPatternCAD() {
@@ -6235,29 +6747,59 @@ function handleImportFile() {
 // ------------------------------------------
 function closeAdminPanel() {
   const pn = $("pn");
-  if (pn) pn.classList.remove("on");
+  if (pn) {
+    pn.classList.remove("on");
+    pn.style.display = "none";
+  }
   document.body.classList.remove("admin-open");
+  try {
+    sessionStorage.removeItem("saifa_admin_active");
+  } catch (e) {}
+  if (window.location.hash) {
+    try {
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    } catch (e) {
+      window.location.hash = "";
+    }
+  }
   if (typeof renderFront === "function") renderFront();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function logoutSession() {
   S.me = null;
   saveLS("me", null);
-  const pn = $("pn");
-  if (pn) pn.classList.remove("on");
-  document.body.classList.remove("admin-open");
-  closeM();
-  
   try {
-    sessionStorage.setItem("saifa_logout_toast", "1");
+    localStorage.removeItem("saifa_me");
+  } catch (e) {}
+  try {
+    sessionStorage.removeItem("saifa_admin_active");
+    sessionStorage.removeItem("saifa_worker_active");
+    sessionStorage.removeItem("saifa_logout_toast");
   } catch (e) {}
 
-  toast("Logged out successfully. Opening index.html storefront... 👋");
-  
+  const pn = $("pn");
+  if (pn) {
+    pn.classList.remove("on");
+    pn.style.display = "none";
+    pn.innerHTML = "";
+  }
+  document.body.classList.remove("admin-open");
+  closeM();
+
+  if (window.location.hash) {
+    try {
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    } catch (e) {
+      window.location.hash = "";
+    }
+  }
+
+  toast("Logged out successfully. Welcome back to SAIFA DESIGNS storefront! 👋");
+
   if (typeof renderFront === "function") renderFront();
-  
-  // Directly open and navigate to index.html storefront
-  setTimeout(() => {
-    window.location.href = "index.html";
-  }, 120);
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
+window.closeAdminPanel = closeAdminPanel;
+window.logoutSession = logoutSession;

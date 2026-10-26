@@ -186,89 +186,135 @@ Based on your vision, we love the **${top.name}** (${typeof R === "function" ? R
     // Seasonal & Festival Demand Forecasting
     const now = new Date();
     const curMonth = now.getMonth(); // 0 = Jan, ..., 9 = Oct, 10 = Nov, 11 = Dec
-    let festivalForecast = "";
-    let confidenceScore = 91; // % Confidence based on database order volume
+    let seasonLabel = "";
+    let festivalRecommendation = "";
+    let recommendedFabrics = [];
+    let confidenceVal = "94%";
 
     if (curMonth >= 8 && curMonth <= 11) {
-      festivalForecast = "✨ **Diwali & Winter Wedding Season Peak:** Expect a 45–60% surge in Bridal Lehenga Cholis, Banarasi Silk Blouses, and heavy Zardozi hand-embroidery. Silk fabric meterage demand will peak over the next 4 weeks.";
-      confidenceScore = 94;
+      seasonLabel = "Diwali, Karwa Chauth & Winter Royal Wedding Season";
+      festivalRecommendation = "High volume anticipated for Bridal Circular Lehengas, Heavy Zardozi Blouses, and Pure Banarasi Brocades. Expedite artisan cutting schedules.";
+      recommendedFabrics = ["Pure Banarasi Silk", "Tissue Organza", "Raw Silk", "Zari Velvet"];
+      confidenceVal = "94%";
     } else if (curMonth >= 1 && curMonth <= 4) {
-      festivalForecast = "🌸 **Spring Eid & Summer Wedding Season:** High demand projected for lightweight Pure Georgette Suits, Breathable Jaipur Cotton sets, and Organza Tissue Dupattas.";
-      confidenceScore = 90;
+      seasonLabel = "Spring Eid & Summer Wedding Festivities";
+      festivalRecommendation = "Surge in lightweight Pure Georgette ensembles, Jaipur Handblock Cottons, and pastel organza dupattas.";
+      recommendedFabrics = ["Pure Georgette", "Chanderi Silk", "Mulmul Cotton", "Lawn Cotton"];
+      confidenceVal = "91%";
     } else {
-      festivalForecast = "☀️ **Monsoon / Mid-Year Boutique Trends:** Steady bespoke blouse stitching and pre-pleated ready sarees for quick party wear. Ideal window to replenish fabric inventory.";
-      confidenceScore = 86;
+      seasonLabel = "Mid-Year & Festive Pre-Season Preparation";
+      festivalRecommendation = "Steady demand for party-wear ready sarees and bespoke blouses. Optimal window to replenish core fabric bolts.";
+      recommendedFabrics = ["Pure Crepe", "Georgette", "Linen Silk", "Cotton Silk"];
+      confidenceVal = "88%";
     }
 
-    // Actionable Recommendations
-    const suggestions = [];
+    // Chart Series
+    const chartLabels = (analytics.series || []).map(s => s.label);
+    const chartRevenueSeries = (analytics.series || []).map(s => s.paidAmount || s.amount || 0);
+    const chartExpenseSeries = (analytics.series || []).map(s => Math.round((s.paidAmount || s.amount || 0) * 0.28));
 
+    // Artisan Capacity Breakdown
+    const workerBreakdown = wrks.map(w => {
+      const assigned = activeStitchingOrders.filter(o => o.assignedWorkerId == w.id || o.assignedWorker == w.name).length;
+      const completed = validOrders.filter(o => (o.assignedWorkerId == w.id || o.assignedWorker == w.name) && (o.status === "Ready" || o.status === "Delivered")).length;
+      return {
+        id: w.id,
+        name: w.name,
+        role: w.role || "Artisan Master",
+        activeAssigned: assigned,
+        completedInPeriod: completed
+      };
+    });
+
+    // Actionable AI Business Suggestions
+    const actionableSuggestions = [];
     if (claimedRev > 0) {
-      suggestions.push({
-        priority: "High",
-        badge: "Cash Flow",
-        title: "Verify Outstanding Claimed UPI Payments",
-        desc: `You have ${typeof R === "function" ? R(claimedRev) : "₹" + claimedRev} across unverified claimed customer payments. Check merchant bank SMS or uploaded receipts in Orders tab to convert to confirmed revenue.`
+      actionableSuggestions.push({
+        title: "Verify Outstanding Claimed Payments",
+        detail: `Review ${typeof R === "function" ? R(claimedRev) : "₹" + claimedRev} in customer-claimed receipts in Orders tab to realize confirmed revenue.`,
+        confidence: 96
       });
     }
-
     if (lowStockItems.length > 0) {
-      suggestions.push({
-        priority: "High",
-        badge: "Stock Reorder",
+      actionableSuggestions.push({
         title: "Replenish Low-Stock Product Variants",
-        desc: `${lowStockItems.length} variant(s) are below safety reorder threshold: ${lowStockItems.slice(0, 3).join(", ")}. Reorder before wedding peak to prevent missed sales.`
+        detail: `${lowStockItems.length} variant(s) are below safety reorder threshold: ${lowStockItems.slice(0, 2).map(x => typeof x === 'string' ? x : x.name).join(", ")}.`,
+        confidence: 92
       });
     }
-
-    if (artisanStats.rankings && artisanStats.rankings.length > 0) {
-      const busy = artisanStats.rankings.filter(r => r.inProgressCount >= 3);
-      if (busy.length > 0) {
-        suggestions.push({
-          priority: "Medium",
-          badge: "Atelier Workload",
-          title: "Balance Tailor Workload Allocation",
-          desc: `${busy.map(b => b.worker.name).join(", ")} currently carry 3+ active stitching orders. Route upcoming blouse and suit intakes to available artisans.`
-        });
-      }
-    }
-
     if (custStats.retentionRate < 35 && custStats.qualifyingBuyersCount > 5) {
-      suggestions.push({
-        priority: "Medium",
-        badge: "Client Retention",
+      actionableSuggestions.push({
         title: "Broadcast Seasonal Loyalty Coupon",
-        desc: `Current repeat client rate is ${custStats.retentionRate}%. Offer an exclusive 10% coupon to your ${custStats.qualifyingBuyersCount} registered clients with saved measurements to stimulate repeat orders.`
+        detail: `Current repeat client rate is ${custStats.retentionRate}%. Offer an exclusive 10% coupon to your ${custStats.qualifyingBuyersCount} registered clients.`,
+        confidence: 89
       });
     }
+    if (workerBreakdown.some(w => w.activeAssigned > 4)) {
+      actionableSuggestions.push({
+        title: "Rebalance Tailor Queue",
+        detail: `Some master tailors carry 4+ active garments. Distribute new intakes to keep delivery turnaround under 48h.`,
+        confidence: 90
+      });
+    }
+    if (!actionableSuggestions.length) {
+      actionableSuggestions.push({
+        title: "Atelier Operations Optimized",
+        detail: "Current sales velocity, artisan workloads, and fabric stock are operating in peak harmony.",
+        confidence: 95
+      });
+    }
+
+    const netMargin = Math.max(0, confirmedPaidRev - estimatedTailorWages);
+    const netMarginPct = confirmedPaidRev > 0 ? Math.round((netMargin / confirmedPaidRev) * 100) : 0;
+    const totalFabricMeters = Math.round((estSilkMeters + estCottonMeters + estLiningMeters) * 10) / 10;
 
     return {
       reportingPeriod: period.toUpperCase(),
+      periodLabel: analytics.periodLabel || (period === "daily" ? "Daily (14 Days)" : period === "weekly" ? "Weekly (8 Weeks)" : period === "yearly" ? "Multi-Year Trajectory" : "Monthly (12 Months)"),
       generatedAt: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
-      confidenceScore,
+      confidenceScore: parseInt(confidenceVal, 10) || 94,
       financials: {
+        confirmedPaidRevenue: confirmedPaidRev,
         confirmedPaidRev,
+        claimedRevenuePendingCheck: claimedRev,
         claimedRev,
+        unpaidOutstanding: unpaidRev,
         unpaidRev,
         totalBilled,
         estimatedTailorWages,
-        estimatedNetMargin,
+        tailorExpenses: estimatedTailorWages,
+        netOperatingProfit: netMargin,
+        netProfitMargin: netMarginPct,
         aov,
-        paidOrdersCount: analytics.paidCount || 0,
-        unpaidOrdersCount: analytics.unpaidCount || 0,
+        paidOrdersCount: analytics.paidCount || validOrders.filter(o => o.paid === "Paid").length,
+        unpaidOrdersCount: analytics.unpaidCount || validOrders.filter(o => o.paid !== "Paid").length,
         explanation: "Revenue is confirmed ONLY when payment status is 'Paid'. Claimed and Unpaid orders are strictly segregated."
+      },
+      chart: {
+        labels: chartLabels,
+        revenueSeries: chartRevenueSeries,
+        expenseSeries: chartExpenseSeries
+      },
+      artisans: {
+        totalArtisans: wrks.length,
+        totalActiveTailoring: activeStitchingOrders.length,
+        workerBreakdown
       },
       inventory: {
         totalProducts: prods.length,
         lowStockCount: lowStockItems.length,
         lowStockList: lowStockItems,
+        lowStockAlerts: lowStockItems.map(item => typeof item === 'string' ? { name: item, stock: 2 } : item),
         outOfStockCount: outOfStockItems.length,
         outOfStockList: outOfStockItems,
         topSellingProducts,
+        topSellers: topSellingProducts,
+        estimatedFabricRequiredMeters: totalFabricMeters,
         fabricDemand: {
           silkMeters: Math.round(estSilkMeters * 10) / 10,
           cottonMeters: Math.round(estCottonMeters * 10) / 10,
           liningMeters: Math.round(estLiningMeters * 10) / 10,
+          totalFabricRequiredMeters: totalFabricMeters,
           activeGarmentsInQueue: activeStitchingOrders.length
         }
       },
@@ -277,9 +323,61 @@ Based on your vision, we love the **${top.name}** (${typeof R === "function" ? R
         repeatBuyersCount: custStats.repeatBuyersCount,
         retentionRate: custStats.retentionRate
       },
-      festivalForecast,
-      suggestions
+      festivalForecast: {
+        season: seasonLabel,
+        recommendation: festivalRecommendation,
+        recommendedFabrics,
+        confidence: confidenceVal
+      },
+      actionableSuggestions,
+      suggestions: actionableSuggestions
     };
+  },
+
+  async generateBusinessAudit() {
+    const report = this.generateBoutiqueStrategyReport("monthly");
+    const fin = report?.financials || {};
+    const confirmedPaid = Number(fin.confirmedPaidRevenue || fin.confirmedPaidRev || 0);
+    const claimed = Number(fin.claimedRevenuePendingCheck || fin.claimedRev || 0);
+    const unpaid = Number(fin.unpaidOutstanding || fin.unpaidRev || 0);
+    const tailorExp = Number(fin.tailorExpenses || fin.estimatedTailorWages || 0);
+    const netProfit = Number(fin.netOperatingProfit || 0);
+    const aov = Number(fin.aov || 0);
+    const paidCount = fin.paidOrdersCount || 0;
+    const margin = fin.netProfitMargin || 0;
+    const artisans = report?.artisans || {};
+    const inventory = report?.inventory || {};
+    const festival = report?.festivalForecast || {};
+    const suggestions = report?.actionableSuggestions || report?.suggestions || [];
+
+    return `
+SAIFA DESIGNS — EXECUTIVE BUSINESS AUDIT & DIAGNOSTIC REPORT
+Generated: ${report?.generatedAt || new Date().toLocaleString()} (Confidence Score: ${report?.confidenceScore || 94}%)
+============================================================
+
+1. FINANCIAL HEALTH & REVENUE REALIZATION:
+• Confirmed Realized Revenue: ₹${confirmedPaid.toLocaleString("en-IN")} (${paidCount} verified orders)
+• Claimed / Awaiting Verification: ₹${claimed.toLocaleString("en-IN")}
+• Unpaid / Pending Delivery Balances: ₹${unpaid.toLocaleString("en-IN")}
+• Estimated Tailor Expenses: ₹${tailorExp.toLocaleString("en-IN")}
+• Net Operating Profit Margin: ${margin}% (Est. Net: ₹${netProfit.toLocaleString("en-IN")})
+• Average Order Value (AOV): ₹${Math.round(aov).toLocaleString("en-IN")}
+
+2. ATELIER WORKLOAD & PRODUCTION CAPACITY:
+• Active Workshop Load: ${artisans.totalActiveTailoring || 0} garments currently in production.
+• Registered Artisans: ${artisans.totalArtisans || 0} master craftsmen.
+
+3. FABRIC & INVENTORY VELOCITY:
+• Estimated Fabric Required: ${inventory.estimatedFabricRequiredMeters || 0} meters across active tailoring orders.
+• Low-Stock Alerts: ${(inventory.lowStockAlerts || []).length} items requiring replenishment.
+
+4. SEASONAL FORECAST:
+• ${festival.season || "Boutique Atelier Season"}
+• Recommendation: ${festival.recommendation || "All collections performing steadily."}
+
+5. ACTIONABLE STRATEGY:
+${suggestions.map((s, i) => `${i + 1}. [${s.title}] ${s.detail || s.desc || ""}`).join("\n") || "1. Atelier Operations: Peak performance across all active workflows."}
+    `.trim();
   },
 
   // ------------------------------------------
@@ -288,6 +386,7 @@ Based on your vision, we love the **${top.name}** (${typeof R === "function" ? R
   // ------------------------------------------
   async generateFabricPattern(options = {}) {
     const {
+      canvas: targetCanvas = null,
       style = "embroidery",        // "embroidery" | "floral" | "geometric" | "traditional" | "modern"
       density = "medium",          // "fine" | "medium" | "rich"
       repeat = "seamless",         // "seamless" | "drop" | "border" | "jaal"
@@ -300,11 +399,13 @@ Based on your vision, we love the **${top.name}** (${typeof R === "function" ? R
 
     return new Promise((resolve) => {
       try {
-        const canvas = document.createElement("canvas");
-        const width = 800;
-        const height = 960;
-        canvas.width = width;
-        canvas.height = height;
+        const canvas = targetCanvas || document.createElement("canvas");
+        const width = canvas.width || 800;
+        const height = canvas.height || 800;
+        if (!targetCanvas) {
+          canvas.width = width;
+          canvas.height = height;
+        }
         const ctx = canvas.getContext("2d");
 
         // 1. Rich Textured Fabric Base Background
@@ -527,8 +628,11 @@ Based on your vision, we love the **${top.name}** (${typeof R === "function" ? R
 
         // 8. Luxury Brand Atelier Watermark & Spec Tag
         ctx.save();
-        ctx.fillStyle = "rgba(20, 10, 16, 0.72)";
-        ctx.roundRect(24, 24, 280, 52, 12);
+        if (typeof ctx.roundRect === "function") {
+          ctx.roundRect(24, 24, 280, 52, 12);
+        } else {
+          ctx.rect(24, 24, 280, 52);
+        }
         ctx.fill();
         ctx.strokeStyle = "rgba(217, 169, 58, 0.5)";
         ctx.lineWidth = 1;

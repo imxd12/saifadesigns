@@ -25,7 +25,7 @@ const Realtime = {
       if (e.key && e.key.startsWith("saifa_")) {
         const stateKey = e.key.replace("saifa_", "");
         try {
-          const newVal = JSON.parse(e.newValue);
+          const newVal = (e.newValue && e.newValue.trim() !== "") ? JSON.parse(e.newValue) : [];
           S[stateKey] = newVal;
           this.triggerLocalRefresh(stateKey);
         } catch (err) {}
@@ -72,15 +72,38 @@ const Realtime = {
 
     // Reload corresponding data in state
     switch (msg.type) {
+      case "RECORD_DELETED": {
+        const col = msg.payload && msg.payload.col;
+        if (col) {
+          const stateKey = (col === "products" || col === "prod") ? "prod" : col;
+          S[stateKey] = loadLS(stateKey, []);
+        }
+        break;
+      }
+      case "RECORD_UPDATED":
+      case "RECORD_SAVED": {
+        const col = msg.payload && msg.payload.col;
+        if (col) {
+          const stateKey = (col === "products" || col === "prod") ? "prod" : col;
+          S[stateKey] = loadLS(stateKey, []);
+        }
+        break;
+      }
       case "ORDER_CREATED":
       case "ORDER_UPDATED":
         S.orders = loadLS("orders", []);
         break;
       case "PRODUCT_UPDATED":
-        S.prod = loadLS("prod", SEED_PROD);
+        S.prod = loadLS("prod", []);
         break;
       case "CUSTOMER_UPDATED":
         S.customers = loadLS("customers", []);
+        break;
+      case "WORKER_UPDATED":
+        S.workers = loadLS("workers", []);
+        break;
+      case "TEAM_UPDATED":
+        S.team = loadLS("team", []);
         break;
       case "WORK_LOGGED":
         S.work = loadLS("work", []);
@@ -111,12 +134,20 @@ const Realtime = {
 
     if (typeof refresh === "function") {
       refresh();
+    } else {
+      if (typeof renderFront === "function") renderFront();
+      if (typeof panel === "function" && S.tab && S.me && S.me.role === "admin" && $("pn")?.classList.contains("on")) panel();
+      if (typeof wpanel === "function" && S.me && S.me.role === "worker" && $("pn")?.classList.contains("on")) wpanel();
     }
   },
 
   triggerLocalRefresh(key) {
     if (typeof refresh === "function") {
       refresh();
+    } else {
+      if (typeof renderFront === "function") renderFront();
+      if (typeof panel === "function" && S.tab && S.me && S.me.role === "admin" && $("pn")?.classList.contains("on")) panel();
+      if (typeof wpanel === "function" && S.me && S.me.role === "worker" && $("pn")?.classList.contains("on")) wpanel();
     }
   },
 

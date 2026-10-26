@@ -32,11 +32,28 @@ const App = {
       }
     } catch (e) {}
 
-    // 6. Restore authenticated admin or worker session if active
-    if (S.me && S.me.role === "admin" && typeof panel === "function") {
+    // 6. Ensure Index storefront opens first by default. Only restore admin or worker if explicitly requested via hash or active session
+    const hasAdminHash = window.location.hash === "#admin";
+    const hasWorkerHash = window.location.hash === "#worker";
+    let adminSessionActive = false;
+    let workerSessionActive = false;
+    try {
+      adminSessionActive = sessionStorage.getItem("saifa_admin_active") === "1";
+      workerSessionActive = sessionStorage.getItem("saifa_worker_active") === "1";
+    } catch (e) {}
+
+    if (S.me && S.me.role === "admin" && (hasAdminHash || adminSessionActive) && typeof panel === "function") {
       panel();
-    } else if (S.me && S.me.role === "worker" && typeof wpanel === "function") {
+    } else if (S.me && S.me.role === "worker" && (hasWorkerHash || workerSessionActive) && typeof wpanel === "function") {
       wpanel();
+    } else {
+      // By default, always display the Index storefront first cleanly!
+      const pn = $("pn");
+      if (pn) {
+        pn.classList.remove("on");
+        pn.style.display = "none";
+      }
+      document.body.classList.remove("admin-open");
     }
 
     console.log("✨ SAIFA DESIGNS Enterprise Suite Initialized [Online Realtime Sync Active]");
@@ -301,6 +318,9 @@ const App = {
           sessionToken: Security.createSessionToken("admin", "admin")
         };
         saveLS("me", S.me);
+        try {
+          sessionStorage.setItem("saifa_admin_active", "1");
+        } catch (e) {}
 
         toast("Welcome back, Administrator! 👑");
         closeM();
@@ -384,6 +404,9 @@ const App = {
           sessionToken: Security.createSessionToken("worker", worker.id)
         };
         saveLS("me", S.me);
+        try {
+          sessionStorage.setItem("saifa_worker_active", "1");
+        } catch (e) {}
 
         toast(`Welcome, ${worker.name}! 🧵`);
         closeM();
@@ -642,8 +665,10 @@ function toast(msg) {
 // Global real-time view refresh controller
 function refresh() {
   if (typeof renderFront === "function") renderFront();
-  if (typeof panel === "function" && S.tab && S.me && S.me.role === "admin") panel();
-  if (typeof wpanel === "function" && S.me && S.me.role === "worker") wpanel();
+  const pn = $("pn");
+  const isPanelOpen = pn && pn.classList.contains("on");
+  if (isPanelOpen && typeof panel === "function" && S.tab && S.me && S.me.role === "admin") panel();
+  if (isPanelOpen && typeof wpanel === "function" && S.me && S.me.role === "worker") wpanel();
 }
 
 window.getTheme = getTheme;

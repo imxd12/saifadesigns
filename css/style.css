@@ -1687,6 +1687,12 @@ details p {
   font-weight: 700;
 }
 
+.variant-chip.out-of-stock {
+  opacity: 0.65;
+  border-style: dashed;
+  background: color-mix(in srgb, var(--sf2) 80%, transparent);
+}
+
 
 /* ------------------------------------------
    Interactive Tailor Cloth & Sewing Needle Animation
@@ -2173,7 +2179,8 @@ details p {
 }
 
 /* Polished Info List Tiles */
-.info {
+ul.info,
+#info.info {
   list-style: none;
   padding: 0;
   margin: 0;

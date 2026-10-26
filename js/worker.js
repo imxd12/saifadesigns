@@ -10,9 +10,22 @@ const WorkerPortal = {
   showPanel() {
     const m = S.me;
     if (!m || m.role !== "worker") {
-      if (typeof openLogin === "function") openLogin("worker");
+      const pn = $("pn");
+      if (pn) {
+        pn.classList.remove("on");
+        pn.style.display = "none";
+        pn.innerHTML = "";
+      }
+      document.body.classList.remove("admin-open");
+      try {
+        sessionStorage.removeItem("saifa_worker_active");
+      } catch (e) {}
       return;
     }
+
+    try {
+      sessionStorage.setItem("saifa_worker_active", "1");
+    } catch (e) {}
 
     const myWork = (S.work || []).filter(w => w.wk == m.id);
     const myAssignedOrders = orders().filter(o => o.worker == m.id && !["Delivered", "Cancelled"].includes(o.status));
@@ -252,6 +265,7 @@ const WorkerPortal = {
 
     const pn = $("pn");
     if (pn) {
+      pn.style.display = "block";
       pn.classList.add("on");
       pn.scrollTop = 0;
     }

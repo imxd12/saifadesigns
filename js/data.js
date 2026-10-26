@@ -239,6 +239,10 @@ const SEED_PROD = [
 ];
 
 const STANDARD_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "Free Size", "Custom"];
+const READYMADE_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+if (typeof window !== "undefined") {
+  window.READYMADE_SIZES = READYMADE_SIZES;
+}
 const DEFAULT_VARIANT_THRESHOLD = 3;
 const REVIEW_STATUSES = ["Approved", "Pending", "Flagged", "Hidden"];
 const REVIEW_FRAUD_LEVELS = ["Clean", "Review Needed", "Suspicious"];
@@ -286,6 +290,13 @@ SEED_PROD.forEach((p, idx) => {
   }
   if (!p.variants || !p.variants.length) {
     p.variants = generateDefaultVariants(p);
+  }
+  if (p.cat === "Readymade" && (!p.sizeStock || typeof p.sizeStock !== "object")) {
+    p.sizeStock = {};
+    READYMADE_SIZES.forEach(sz => {
+      const match = (p.variants || []).filter(v => String(v.size).toUpperCase() === sz);
+      p.sizeStock[sz] = match.reduce((a, v) => a + (Number(v.stock) || 0), 0);
+    });
   }
 });
 

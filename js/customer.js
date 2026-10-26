@@ -717,22 +717,35 @@ const Customer = {
 
     const variants = p.variants || [];
     const colorList = (p.colors || "").split(",").map(c => c.trim()).filter(Boolean);
-    const sizeList = (p.sizes || "").split(",").map(s => s.trim()).filter(Boolean);
+    let sizeList = (p.sizes || "").split(",").map(s => s.trim()).filter(Boolean);
+
+    // If Readymade garment with sizeStock, derive sizes directly from sizeStock if sizes list is empty or matches
+    if (p.cat === "Readymade" && p.sizeStock && typeof p.sizeStock === "object") {
+      const stockKeys = Object.keys(p.sizeStock);
+      if (stockKeys.length > 0 && (!sizeList.length || stockKeys.some(k => sizeList.includes(k)))) {
+        sizeList = stockKeys;
+      }
+    }
 
     this._currentProduct = p;
     this._selectedColor = colorList[0] || (variants[0] ? variants[0].color : "Standard");
-    this._selectedSize = sizeList[0] || (variants[0] ? variants[0].size : "Standard");
 
-    const getMatchedVariant = (size, color) => {
-      if (!variants.length) return null;
-      return variants.find(v => 
-        (String(v.size).toLowerCase() === String(size).toLowerCase()) &&
-        (String(v.color).toLowerCase() === String(color).toLowerCase())
-      ) || variants.find(v => String(v.size).toLowerCase() === String(size).toLowerCase()) || variants[0];
-    };
+    // Default to the first in-stock size if available, otherwise first size in list
+    let preferredSize = sizeList[0] || (variants[0] ? variants[0].size : "Standard");
+    for (const sz of sizeList) {
+      const szStock = typeof getProductSizeStock === "function" 
+        ? getProductSizeStock(p, sz, this._selectedColor) 
+        : (Number(p.stock) || 0);
+      if (szStock > 0) {
+        preferredSize = sz;
+        break;
+      }
+    }
+    this._selectedSize = preferredSize;
 
-    const curV = getMatchedVariant(this._selectedSize, this._selectedColor);
-    const availableStock = curV ? Number(curV.stock) : Number(p.stock) || 0;
+    const availableStock = typeof getProductSizeStock === "function" 
+      ? getProductSizeStock(p, this._selectedSize, this._selectedColor) 
+      : (Number(p.stock) || 0);
     const isOutOfStock = availableStock <= 0;
 
     modal(`
@@ -762,7 +775,7 @@ const Customer = {
           </label>
           <div style="display:flex;gap:8px;flex-wrap:wrap" id="colorChipsWrap">
             ${colorList.map((col, idx) => `
-              <button type="button" class="variant-chip ${idx === 0 ? 'active' : ''}" onclick="Customer.selectDetailVariant('color', '${Security.escapeHTML(col)}', this)">
+              <button type="button" class="variant-chip ${col === this._selectedColor ? 'active' : ''}" onclick="Customer.selectDetailVariant('color', '${Security.escapeHTML(col)}', this)">
                 ${Security.escapeHTML(col)}
               </button>
             `).join("")}
@@ -777,18 +790,30 @@ const Customer = {
             📏 Select Size / Cut: <span id="selectedSizeLabel" style="color:var(--tx);font-weight:600">${Security.escapeHTML(this._selectedSize)}</span>
           </label>
           <div style="display:flex;gap:8px;flex-wrap:wrap" id="sizeChipsWrap">
-            ${sizeList.map((sz, idx) => `
-              <button type="button" class="variant-chip ${idx === 0 ? 'active' : ''}" onclick="Customer.selectDetailVariant('size', '${Security.escapeHTML(sz)}', this)">
-                ${Security.escapeHTML(sz)}
-              </button>
-            `).join("")}
+            ${sizeList.map((sz) => {
+              const szStock = typeof getProductSizeStock === "function" 
+                ? getProductSizeStock(p, sz, this._selectedColor) 
+                : (Number(p.stock) || 0);
+              const isSzOut = szStock <= 0;
+              const isSelected = sz === this._selectedSize;
+              return `
+                <button type="button" 
+                  class="variant-chip ${isSelected ? 'active' : ''} ${isSzOut ? 'out-of-stock' : ''}" 
+                  data-size="${Security.escapeHTML(sz)}"
+                  onclick="Customer.selectDetailVariant('size', '${Security.escapeHTML(sz)}', this)"
+                  style="${isSzOut ? 'opacity:0.6;border-style:dashed;' : ''}">
+                  ${Security.escapeHTML(sz)}
+                  ${isSzOut ? ' <span style="font-size:0.68rem;color:var(--bad);font-weight:700">· Sold Out</span>' : ` <span style="font-size:0.68rem;color:var(--mu);font-weight:600">(${szStock})</span>`}
+                </button>
+              `;
+            }).join("")}
           </div>
         </div>
       ` : ''}
 
       <table style="margin:12px 0">
         <tr><th>Fabric Spec</th><td><b>${E(p.fabric)}</b></td></tr>
-        <tr><th>Stock Status</th><td id="detailStockStatus">${isOutOfStock ? `<span class="pill bad">Out of stock in ${Security.escapeHTML(this._selectedSize)}</span>` : `<span class="pill ok">${availableStock} units available (${Security.escapeHTML(this._selectedSize)} / ${Security.escapeHTML(this._selectedColor)})</span>`}</td></tr>
+        <tr><th>Stock Status</th><td id="detailStockStatus">${isOutOfStock ? `<span class="pill bad">Out of stock in ${Security.escapeHTML(this._selectedSize)}</span>` : `<span class="pill ok">${availableStock} units available (${Security.escapeHTML(this._selectedSize)} · ${Security.escapeHTML(this._selectedColor)})</span>`}</td></tr>
       </table>
       <p style="font-size:0.8rem;color:var(--mu);margin:10px 0">
         🧵 Complimentary minor alterations · Handcrafted finishing · UPI, Cash on Delivery, or Pay at boutique
@@ -819,24 +844,39 @@ const Customer = {
       if (btnEl) btnEl.classList.add("active");
     }
 
-    // Recalculate variant-level stock dynamically
+    // Refresh size chips stock badges when color changes
     const p = this._currentProduct;
     if (p) {
-      const variants = p.variants || [];
-      const matched = variants.find(v => 
-        (String(v.size).toLowerCase() === String(this._selectedSize).toLowerCase()) &&
-        (String(v.color).toLowerCase() === String(this._selectedColor).toLowerCase())
-      ) || variants.find(v => String(v.size).toLowerCase() === String(this._selectedSize).toLowerCase()) || variants[0];
+      const sizeWrap = $("sizeChipsWrap");
+      if (sizeWrap && type === "color") {
+        sizeWrap.querySelectorAll(".variant-chip").forEach(chip => {
+          const sz = chip.dataset.size;
+          if (sz) {
+            const szStock = typeof getProductSizeStock === "function" 
+              ? getProductSizeStock(p, sz, this._selectedColor) 
+              : (Number(p.stock) || 0);
+            const isSzOut = szStock <= 0;
+            chip.style.opacity = isSzOut ? "0.6" : "1";
+            chip.style.borderStyle = isSzOut ? "dashed" : "solid";
+            chip.innerHTML = `${Security.escapeHTML(sz)} ${isSzOut ? '<span style="font-size:0.68rem;color:var(--bad);font-weight:700">· Sold Out</span>' : `<span style="font-size:0.68rem;color:var(--mu);font-weight:600">(${szStock})</span>`}`;
+            if (chip.dataset.size === this._selectedSize) {
+              chip.classList.add("active");
+            }
+          }
+        });
+      }
 
-      const stock = matched ? Number(matched.stock) : Number(p.stock) || 0;
+      const stock = typeof getProductSizeStock === "function" 
+        ? getProductSizeStock(p, this._selectedSize, this._selectedColor)
+        : (Number(p.stock) || 0);
       const isOut = stock <= 0;
       const statusEl = $("detailStockStatus");
       const addBtn = $("detailAddToCartBtn");
 
       if (statusEl) {
         statusEl.innerHTML = isOut 
-          ? `<span class="pill bad">Out of stock in ${Security.escapeHTML(this._selectedSize)} / ${Security.escapeHTML(this._selectedColor)}</span>`
-          : `<span class="pill ok">${stock} units available (${Security.escapeHTML(this._selectedSize)} / ${Security.escapeHTML(this._selectedColor)})</span>`;
+          ? `<span class="pill bad">Out of stock in ${Security.escapeHTML(this._selectedSize)} (${Security.escapeHTML(this._selectedColor)})</span>`
+          : `<span class="pill ok">${stock} units available (${Security.escapeHTML(this._selectedSize)} · ${Security.escapeHTML(this._selectedColor)})</span>`;
       }
       if (addBtn) {
         addBtn.disabled = isOut;
@@ -862,10 +902,18 @@ const Customer = {
     if (!p) return;
     const colorList = (p.colors || "").split(",").map(c => c.trim()).filter(Boolean);
     const sizeList = (p.sizes || "").split(",").map(s => s.trim()).filter(Boolean);
-    if (colorList.length > 1 || sizeList.length > 1) {
+    if (colorList.length > 1 || sizeList.length > 1 || p.cat === "Readymade") {
       toast("Please pick your preferred Size & Color ✨");
       this.openDetail(id);
     } else {
+      const stock = typeof getProductSizeStock === "function" 
+        ? getProductSizeStock(p, sizeList[0] || "Standard", colorList[0] || "Standard")
+        : (Number(p.stock) || 0);
+      if (stock <= 0) {
+        toast(`Sorry, "${p.name}" is currently out of stock`);
+        this.openDetail(id);
+        return;
+      }
       this.addToCart(id, sizeList[0] || "Standard", colorList[0] || "Standard");
     }
   },
@@ -913,7 +961,9 @@ const Customer = {
       }
     }
 
-    const availableStock = targetVariant ? Number(targetVariant.stock) : (Number(p.stock) || 0);
+    const availableStock = typeof getProductSizeStock === "function" 
+      ? getProductSizeStock(p, chosenSize, chosenColor) 
+      : (targetVariant ? Number(targetVariant.stock) : (Number(p.stock) || 0));
     const existingInCart = S.cart.filter(c => (c.itemKey && c.itemKey === itemKey) || (c.id == id && c.size === chosenSize && c.color === chosenColor)).reduce((a, c) => a + c.q, 0);
 
     if (availableStock <= 0) {
@@ -1051,8 +1101,22 @@ const Customer = {
   },
 
   updateCartQty(i, d) {
-    S.cart[i].q += d;
-    if (S.cart[i].q < 1) S.cart.splice(i, 1);
+    if (!S.cart || !S.cart[i]) return;
+    const item = S.cart[i];
+    if (d > 0) {
+      const pr = products().find(p => String(p.id) === String(item.id));
+      if (pr) {
+        const availableStock = typeof getProductSizeStock === "function" 
+          ? getProductSizeStock(pr, item.size, item.color) 
+          : (Number(pr.stock) || 0);
+        if (item.q + d > availableStock) {
+          const szLabel = item.size ? ` (${item.size})` : "";
+          return toast(`Maximum stock of ${availableStock} reached for "${item.n}"${szLabel}`);
+        }
+      }
+    }
+    item.q += d;
+    if (item.q < 1) S.cart.splice(i, 1);
     this.saveCart();
     this.openCart(true);
   },
@@ -1745,8 +1809,9 @@ const Customer = {
     }
     const heroCust = $("heroCustStat");
     if (heroCust) {
-      const custStats = typeof getGenuineCustomerStats === "function" ? getGenuineCustomerStats() : { totalGenuineCustomers: 48 };
-      heroCust.textContent = `${custStats.totalGenuineCustomers || 48}+`;
+      const custStats = typeof getGenuineCustomerStats === "function" ? getGenuineCustomerStats() : { totalGenuineCustomers: 0 };
+      const genuineCount = (custStats.totalGenuineCustomers !== undefined) ? custStats.totalGenuineCustomers : (custStats.displayCount || 0);
+      heroCust.textContent = genuineCount > 0 ? `${genuineCount}+` : `Atelier Clients`;
     }
 
     // 5. Star Distribution Progress Bars

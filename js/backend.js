@@ -20,7 +20,11 @@ function loadLS(key, fallback) {
 
 function saveLS(key, data) {
   try {
-    localStorage.setItem("saifa_" + key, JSON.stringify(data));
+    if (data === null || data === undefined) {
+      localStorage.removeItem("saifa_" + key);
+    } else {
+      localStorage.setItem("saifa_" + key, JSON.stringify(data));
+    }
   } catch (e) {}
 }
 
@@ -97,6 +101,32 @@ if (S.cfg.pay && S.cfg.pay["Gown / Anarkali"]) {
   delete S.cfg.pay["Gown / Anarkali"];
   saveLS("cfg", S.cfg);
 }
+
+// Ensure Readymade products in local state have valid sizeStock
+if (Array.isArray(S.prod)) {
+  const predefinedSizes = (typeof READYMADE_SIZES !== "undefined" && Array.isArray(READYMADE_SIZES)) 
+    ? READYMADE_SIZES 
+    : ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+  let modified = false;
+  S.prod.forEach(p => {
+    if (p.cat === "Readymade" && (!p.sizeStock || typeof p.sizeStock !== "object")) {
+      p.sizeStock = {};
+      predefinedSizes.forEach(sz => {
+        if (Array.isArray(p.variants) && p.variants.length > 0) {
+          const matching = p.variants.filter(v => String(v.size || '').trim().toUpperCase() === sz);
+          p.sizeStock[sz] = matching.reduce((acc, curr) => acc + (Math.max(0, Number(curr.stock)) || 0), 0);
+        } else {
+          p.sizeStock[sz] = (p.sizes || '').toUpperCase().includes(sz) ? Math.max(0, Math.floor((Number(p.stock) || 0) / 3)) : 0;
+        }
+      });
+      const sum = Object.values(p.sizeStock).reduce((a, b) => a + Number(b), 0);
+      if (sum > 0) p.stock = sum;
+      modified = true;
+    }
+  });
+  if (modified) saveLS("prod", S.prod);
+}
+
 
 // Global Phone Formatting & Internationalization Helpers
 function formatPhone(ph) {
@@ -239,7 +269,8 @@ function getGenuineCustomerStats() {
     qualifyingBuyersCount,
     repeatBuyersCount,
     retentionRate,
-    displayCount: qualifyingBuyersCount > 0 ? qualifyingBuyersCount : Math.max(1, totalRegistered)
+    totalGenuineCustomers: qualifyingBuyersCount > 0 ? qualifyingBuyersCount : totalRegistered,
+    displayCount: qualifyingBuyersCount > 0 ? qualifyingBuyersCount : totalRegistered
   };
 }
 
@@ -512,7 +543,7 @@ function setShopLiveStatus(newStatus) {
     Realtime.broadcast("SHOP_STATUS_CHANGED", { status: newStatus });
   }
   toast(`Shop status updated to "${newStatus}" 🏪`);
-  if (typeof panel === "function" && S.tab) panel();
+  if (typeof panel === "function" && S.tab && S.me && S.me.role === "admin" && $("pn")?.classList.contains("on")) panel();
   if (typeof renderFront === "function") renderFront();
 }
 
@@ -556,24 +587,19 @@ function findWorkerByLoginId(identifier) {
         collections.forEach(col => {
           rtdb.ref(col).on("value", snapshot => {
             const val = snapshot.val();
-            if (val) {
+            const stateKey = (col === "products" || col === "prod") ? "prod" : col;
+            if (val && typeof val === "object" && Object.keys(val).length > 0) {
               const mapped = Array.isArray(val) ? val.filter(Boolean) : Object.keys(val).map(k => ({ ...val[k], id: val[k].id || k }));
-              const stateKey = (col === "products" || col === "prod") ? "prod" : col;
               S[stateKey] = mapped;
               saveLS(stateKey, mapped);
-              if (typeof refresh === "function") refresh();
             } else {
-              // Auto-seed initial catalogue if cloud collection is fresh/empty
-              const stateKey = (col === "products" || col === "prod") ? "prod" : col;
-              const sourceArr = S[stateKey];
-              if (Array.isArray(sourceArr) && sourceArr.length > 0) {
-                const seedObj = {};
-                sourceArr.forEach(item => {
-                  if (item && item.id) seedObj[item.id] = item;
-                });
-                rtdb.ref(col).set(seedObj).catch(() => {});
-              }
+              // Cloud collection is completely empty or all records deleted
+              S[stateKey] = [];
+              saveLS(stateKey, []);
             }
+            if (typeof refresh === "function") refresh();
+            if (typeof panel === "function" && S.tab && S.me && S.me.role === "admin" && $("pn")?.classList.contains("on")) panel();
+            if (typeof renderFront === "function") renderFront();
           });
         });
 
@@ -604,10 +630,12 @@ function findWorkerByLoginId(identifier) {
         ["products", "orders", "customers", "team", "workers", "work", "coupons", "payouts", "attendance", "reviews"].forEach(col => {
           fstore.collection(col).onSnapshot(sn => {
             const mapped = sn.docs.map(d => ({ ...d.data(), id: d.id }));
-            const stateKey = col === "products" ? "prod" : col;
+            const stateKey = (col === "products" || col === "prod") ? "prod" : col;
             S[stateKey] = mapped;
             saveLS(stateKey, mapped);
             if (typeof refresh === "function") refresh();
+            if (typeof panel === "function" && S.tab && S.me && S.me.role === "admin" && $("pn")?.classList.contains("on")) panel();
+            if (typeof renderFront === "function") renderFront();
           }, () => {});
         });
 
@@ -695,29 +723,25 @@ function upd(col, id, patch) {
   return Promise.resolve();
 }
 
-function del(col, id) {
+async function del(col, id) {
   const stateKey = (col === "products" || col === "prod") ? "prod" : col;
   const deletedItem = (S[stateKey] || []).find(x => String(x.id) === String(id));
   S[stateKey] = (S[stateKey] || []).filter(x => String(x.id) !== String(id));
   saveLS(stateKey, S[stateKey]);
 
-  if (col === "coupons" && deletedItem && deletedItem.isBanner) {
-    S.cfg.offerBanner = "";
-    saveLS("cfg", S.cfg);
+  if (col === "coupons") {
+    if (deletedItem && deletedItem.isBanner) {
+      S.cfg.offerBanner = "";
+      saveLS("cfg", S.cfg);
+    }
+    if (S.appliedCoupon && String(S.appliedCoupon.id) === String(id)) {
+      S.appliedCoupon = null;
+    }
   }
 
   // Restore inventory stock when an order is deleted
   if (col === "orders" && deletedItem && !deletedItem.stockRestored && Array.isArray(deletedItem.items)) {
-    let restoredCount = 0;
-    deletedItem.items.forEach(it => {
-      const pr = products().find(p => p.id == it.id);
-      if (pr) {
-        const addedQty = Number(it.q) || 1;
-        const newStock = (Number(pr.stock) || 0) + addedQty;
-        upd("products", pr.id, { stock: newStock });
-        restoredCount += addedQty;
-      }
-    });
+    const restoredCount = (typeof restoreOrderStock === "function") ? restoreOrderStock(deletedItem) : 0;
     if (typeof toast === "function" && restoredCount > 0) {
       toast(`Order deleted & ${restoredCount} item(s) restored to inventory stock 📦`);
     }
@@ -731,22 +755,41 @@ function del(col, id) {
       Realtime.broadcast("PRODUCT_UPDATED", S.prod);
     } else if (col === "orders") {
       Realtime.broadcast("ORDER_UPDATED", { id, status: "Deleted" });
+    } else if (col === "reviews") {
+      Realtime.broadcast("REVIEW_DELETED", { id });
+    } else if (col === "customers") {
+      Realtime.broadcast("CUSTOMER_UPDATED", S.customers);
+    } else if (col === "workers") {
+      Realtime.broadcast("WORKER_UPDATED", S.workers);
+    } else if (col === "team") {
+      Realtime.broadcast("TEAM_UPDATED", S.team);
     }
   }
 
-  if (typeof panel === "function" && S.tab) panel();
+  if (typeof panel === "function" && S.tab && S.me && S.me.role === "admin" && $("pn")?.classList.contains("on")) panel();
   if (typeof renderFront === "function") renderFront();
   if (typeof refresh === "function") refresh();
 
+  const syncPromises = [];
+
   // Cloud Realtime Database Sync
   if (window._rtdb) {
-    window._rtdb.ref(stateKey + "/" + id).remove().catch(() => {});
+    const rtdbKey = (col === "products" || col === "prod") ? "prod" : col;
+    syncPromises.push(window._rtdb.ref(rtdbKey + "/" + id).remove().catch(err => {
+      console.warn("RTDB delete notice:", err);
+    }));
   }
 
   // Cloud Firestore Sync
   if (db && db.collection) {
-    db.collection(col).doc(id).delete().catch(() => {});
+    const fstoreCol = (col === "prod" || col === "products") ? "products" : col;
+    syncPromises.push(db.collection(fstoreCol).doc(String(id)).delete().catch(err => {
+      console.warn("Firestore delete notice:", err);
+    }));
   }
+
+  await Promise.all(syncPromises);
+  return true;
 }
 
 function saveCfg() {
@@ -851,28 +894,14 @@ function updateOrderStatus(orderId, newStatus, customerNote = "") {
 
   // Stock restoration on order cancellation
   if (newStatus === "Cancelled" && !o.stockRestored && Array.isArray(o.items) && o.items.length > 0) {
-    let restoredCount = 0;
-    o.items.forEach(it => {
-      const pr = products().find(p => p.id == it.id);
-      if (pr) {
-        const addedQty = Number(it.q) || 1;
-        const newStock = (Number(pr.stock) || 0) + addedQty;
-        upd("products", pr.id, { stock: newStock });
-        restoredCount += addedQty;
-      }
-    });
+    const restoredCount = (typeof restoreOrderStock === "function") ? restoreOrderStock(o) : 0;
     patch.stockRestored = true;
     if (typeof toast === "function") toast(`Order marked Cancelled & ${restoredCount} item(s) restored to stock 📦`);
   } else if (newStatus !== "Cancelled" && o.stockRestored && Array.isArray(o.items) && o.items.length > 0) {
     // If status reverted from Cancelled back to an active status, deduct stock again
-    o.items.forEach(it => {
-      const pr = products().find(p => p.id == it.id);
-      if (pr) {
-        const deductedQty = Number(it.q) || 1;
-        const newStock = Math.max(0, (Number(pr.stock) || 0) - deductedQty);
-        upd("products", pr.id, { stock: newStock });
-      }
-    });
+    if (typeof reDeductOrderStock === "function") {
+      reDeductOrderStock(o);
+    }
     patch.stockRestored = false;
   }
 
@@ -926,7 +955,7 @@ function updateOrderPayment(orderId, newPaidStatus) {
   if (typeof Realtime !== "undefined") {
     Realtime.broadcast("ORDER_UPDATED", { orderId, patch });
   }
-  if (typeof panel === "function" && S.tab) panel();
+  if (typeof panel === "function" && S.tab && S.me && S.me.role === "admin" && $("pn")?.classList.contains("on")) panel();
   if (typeof renderFront === "function") renderFront();
 }
 
@@ -1052,7 +1081,7 @@ function setCouponAsBanner(couponId) {
     toast(`Coupon ${target.code} set as live storefront announcement banner! 🌟`);
   }
   if (typeof renderFront === "function") renderFront();
-  if (typeof panel === "function") panel();
+  if (typeof panel === "function" && S.me && S.me.role === "admin" && $("pn")?.classList.contains("on")) panel();
 }
 
 function toggleCouponActive(id) {
@@ -1070,7 +1099,7 @@ function toggleCouponActive(id) {
       }
       toast(`Coupon ${cp.code} is now ${newActive ? 'Active ▶' : 'Paused ⏸'}`);
       if (typeof renderFront === "function") renderFront();
-      if (typeof panel === "function") panel();
+      if (typeof panel === "function" && S.me && S.me.role === "admin" && $("pn")?.classList.contains("on")) panel();
     });
   }
 }
@@ -1096,7 +1125,7 @@ function logAttendance(wid, date, status, note = "", otHours = 0) {
     if (typeof Realtime !== "undefined") {
       Realtime.broadcast("ATTENDANCE_UPDATED", { wid, date, status, data });
     }
-    if (typeof panel === "function" && S.tab === "Salary") panel();
+    if (typeof panel === "function" && S.tab === "Salary" && S.me && S.me.role === "admin" && $("pn")?.classList.contains("on")) panel();
     return id;
   });
 }
@@ -1108,18 +1137,104 @@ function deleteAttendance(wid, date) {
     if (typeof Realtime !== "undefined") {
       Realtime.broadcast("ATTENDANCE_UPDATED", { wid, date, status: "Deleted" });
     }
-    if (typeof panel === "function" && S.tab === "Salary") panel();
+    if (typeof panel === "function" && S.tab === "Salary" && S.me && S.me.role === "admin" && $("pn")?.classList.contains("on")) panel();
   }
 }
 
 // ------------------------------------------
+// ------------------------------------------
 // Product Size, Colour & Variant-Level Inventory Engine
 // ------------------------------------------
+
+function getProductSizeStock(product, sizeName = "", colorName = "") {
+  if (!product) return 0;
+  // If product is Material category (ordinary fabrics), return total stock directly
+  if (product.cat === "Material") {
+    return Math.max(0, Number(product.stock) || 0);
+  }
+
+  const sNorm = (sizeName || "").trim().toUpperCase();
+  const cNorm = (colorName || "").trim().toLowerCase();
+
+  // 1. If variants are defined, check for specific size & color match first
+  if (Array.isArray(product.variants) && product.variants.length > 0) {
+    if (sNorm && cNorm) {
+      const match = product.variants.find(v => 
+        String(v.size || "").trim().toUpperCase() === sNorm &&
+        String(v.color || "").trim().toLowerCase() === cNorm
+      );
+      if (match) return Math.max(0, Number(match.stock) || 0);
+    }
+    if (sNorm) {
+      const matchSizes = product.variants.filter(v => String(v.size || "").trim().toUpperCase() === sNorm);
+      if (matchSizes.length > 0) {
+        return matchSizes.reduce((acc, curr) => acc + (Math.max(0, Number(curr.stock)) || 0), 0);
+      }
+    }
+  }
+
+  // 2. Next check sizeStock dictionary
+  if (product.sizeStock && typeof product.sizeStock === "object") {
+    if (sNorm) {
+      const key = Object.keys(product.sizeStock).find(k => k.trim().toUpperCase() === sNorm);
+      if (key && product.sizeStock[key] !== undefined) {
+        return Math.max(0, Number(product.sizeStock[key]) || 0);
+      }
+    }
+  }
+
+  // 3. Fallback to product.stock if no size specified or product lacks sizeStock
+  return Math.max(0, Number(product.stock) || 0);
+}
+
 function ensureProductVariants(product) {
   if (!product) return [];
   if (Array.isArray(product.variants) && product.variants.length > 0) {
     return product.variants;
   }
+
+  if (product.cat === "Readymade") {
+    const predefinedSizes = (typeof READYMADE_SIZES !== "undefined" && Array.isArray(READYMADE_SIZES)) 
+      ? READYMADE_SIZES 
+      : ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+    const sizeStock = product.sizeStock || {};
+    const colors = (product.colors || "Standard").split(",").map(c => c.trim()).filter(Boolean);
+    const variants = [];
+
+    predefinedSizes.forEach(sz => {
+      const szStock = (sizeStock[sz] !== undefined) ? (Math.max(0, Number(sizeStock[sz])) || 0) : 0;
+      const count = Math.max(1, colors.length);
+      const perCol = Math.floor(szStock / count);
+      let rem = szStock;
+
+      colors.forEach((col, cIdx) => {
+        const isLast = (cIdx === colors.length - 1);
+        const stockVal = isLast ? rem : perCol;
+        rem -= stockVal;
+        const skuSuffix = (sz + "-" + col.slice(0, 3)).toUpperCase().replace(/[^A-Z0-9-]/g, "");
+        variants.push({
+          id: `var_${product.id || 'prd'}_${sz}_${cIdx}`,
+          sku: `SD-${(product.id || "PRD").toUpperCase()}-${skuSuffix}`,
+          size: sz,
+          color: col,
+          stock: stockVal,
+          reserved: 0,
+          reorderThreshold: 3,
+          price: product.price || 0
+        });
+      });
+    });
+
+    product.variants = variants;
+    if (!product.sizeStock) {
+      product.sizeStock = {};
+      predefinedSizes.forEach(sz => {
+        product.sizeStock[sz] = 0;
+      });
+    }
+    return product.variants;
+  }
+
   if (typeof generateDefaultVariants === "function") {
     product.variants = generateDefaultVariants(product);
   } else {
@@ -1146,7 +1261,11 @@ function updateVariantStock(productId, variantId, qtyDelta, isDirectSet = false)
     v.stock = isDirectSet ? Math.max(0, Number(qtyDelta) || 0) : Math.max(0, (Number(v.stock) || 0) + Number(qtyDelta));
     p.stock = vars.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0);
     p.variants = vars;
-    return upd("products", p.id, { stock: p.stock, variants: vars });
+    if (p.sizeStock && v.size && p.sizeStock[v.size] !== undefined) {
+      p.sizeStock[v.size] = vars.filter(x => String(x.size).toUpperCase() === String(v.size).toUpperCase())
+                               .reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0);
+    }
+    return upd("products", p.id, { stock: p.stock, sizeStock: p.sizeStock, variants: vars });
   }
   return Promise.resolve();
 }
@@ -1168,7 +1287,11 @@ function addVariantToProduct(productId, variantData) {
   vars.push(newVar);
   p.stock = vars.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0);
   p.variants = vars;
-  return upd("products", p.id, { stock: p.stock, variants: vars });
+  if (p.sizeStock && newVar.size && p.sizeStock[newVar.size] !== undefined) {
+    p.sizeStock[newVar.size] = vars.filter(x => String(x.size).toUpperCase() === String(newVar.size).toUpperCase())
+                             .reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0);
+  }
+  return upd("products", p.id, { stock: p.stock, sizeStock: p.sizeStock, variants: vars });
 }
 
 function deleteVariantFromProduct(productId, variantId) {
@@ -1184,52 +1307,200 @@ function validateAndDeductStock(cartItems) {
   if (!Array.isArray(cartItems) || !cartItems.length) return { valid: false, message: "Cart is empty" };
   const allProds = products();
 
+  // 1. Group requested quantities by product & size to prevent overselling on duplicate cart entries
+  const requestedTotals = {};
   for (const item of cartItems) {
-    const pr = allProds.find(p => p.id === item.id);
+    const sNorm = (item.size || "").trim().toUpperCase();
+    const cNorm = (item.color || "").trim().toLowerCase();
+    const key = `${item.id}__${sNorm}__${cNorm}`;
+    requestedTotals[key] = (requestedTotals[key] || 0) + (Math.max(1, Number(item.q) || 1));
+  }
+
+  // Pre-validation pass
+  for (const item of cartItems) {
+    const pr = allProds.find(p => String(p.id) === String(item.id));
     if (!pr) {
       return { valid: false, message: `Product "${item.n}" is no longer in our boutique catalogue.` };
     }
-    const vars = Array.isArray(pr.variants) && pr.variants.length > 0 ? pr.variants : null;
-    if (vars && item.variantId) {
-      const v = vars.find(x => x.id === item.variantId);
-      if (!v || v.stock < item.q) {
-        return { valid: false, message: `Insufficient stock for "${pr.name}" (${item.size || ''} ${item.color || ''}). Available: ${v ? v.stock : 0}` };
-      }
-    } else if (vars && (item.size || item.color)) {
-      const v = vars.find(x => (!item.size || x.size === item.size) && (!item.color || x.color === item.color));
-      if (v && v.stock < item.q) {
-        return { valid: false, message: `Insufficient stock for "${pr.name}" (${item.size} · ${item.color}). Available: ${v.stock}` };
-      }
-    } else {
-      if ((pr.stock || 0) < item.q) {
-        return { valid: false, message: `Insufficient stock for "${pr.name}". Available: ${pr.stock || 0}` };
-      }
+    const sNorm = (item.size || "").trim().toUpperCase();
+    const cNorm = (item.color || "").trim().toLowerCase();
+    const key = `${item.id}__${sNorm}__${cNorm}`;
+    const totalQtyNeeded = requestedTotals[key] || item.q;
+    const available = getProductSizeStock(pr, item.size, item.color);
+
+    if (available < totalQtyNeeded) {
+      const sizeLabel = item.size ? ` in size ${item.size}` : "";
+      return {
+        valid: false,
+        message: `Insufficient stock for "${pr.name}"${sizeLabel}. Only ${available} unit(s) available.`
+      };
     }
   }
 
+  // 2. Atomic deduction pass
   cartItems.forEach(item => {
-    const pr = allProds.find(p => p.id === item.id);
+    const pr = allProds.find(p => String(p.id) === String(item.id));
     if (!pr) return;
-    const vars = Array.isArray(pr.variants) && pr.variants.length > 0 ? pr.variants : null;
+    const qty = Math.max(1, Number(item.q) || 1);
+    const sNorm = (item.size || "").trim().toUpperCase();
+    const cNorm = (item.color || "").trim().toLowerCase();
 
-    if (vars && item.variantId) {
-      const v = vars.find(x => x.id === item.variantId);
-      if (v) v.stock = Math.max(0, v.stock - item.q);
-    } else if (vars && (item.size || item.color)) {
-      const v = vars.find(x => (!item.size || x.size === item.size) && (!item.color || x.color === item.color));
-      if (v) v.stock = Math.max(0, v.stock - item.q);
-    }
+    if (pr.cat === "Readymade") {
+      // Deduct from sizeStock if exists
+      if (pr.sizeStock && typeof pr.sizeStock === "object") {
+        const szKey = Object.keys(pr.sizeStock).find(k => k.toUpperCase() === sNorm) || item.size;
+        if (szKey && pr.sizeStock[szKey] !== undefined) {
+          pr.sizeStock[szKey] = Math.max(0, (Number(pr.sizeStock[szKey]) || 0) - qty);
+        }
+      }
 
-    if (vars) {
-      pr.stock = vars.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0);
-      upd("products", pr.id, { stock: pr.stock, variants: vars });
+      // Deduct from matching variant
+      const vars = Array.isArray(pr.variants) && pr.variants.length > 0 ? pr.variants : null;
+      if (vars) {
+        let v = null;
+        if (item.variantId) {
+          v = vars.find(x => x.id === item.variantId);
+        }
+        if (!v && sNorm && cNorm) {
+          v = vars.find(x => String(x.size).toUpperCase() === sNorm && String(x.color).toLowerCase() === cNorm);
+        }
+        if (!v && sNorm) {
+          v = vars.find(x => String(x.size).toUpperCase() === sNorm);
+        }
+        if (v) {
+          v.stock = Math.max(0, (Number(v.stock) || 0) - qty);
+        }
+      }
+
+      // Recalculate total product stock atomically
+      if (pr.sizeStock) {
+        pr.stock = Object.values(pr.sizeStock).reduce((acc, curr) => acc + (Math.max(0, Number(curr)) || 0), 0);
+      } else if (vars) {
+        pr.stock = vars.reduce((acc, curr) => acc + (Math.max(0, Number(curr.stock)) || 0), 0);
+      } else {
+        pr.stock = Math.max(0, (Number(pr.stock) || 0) - qty);
+      }
+
+      upd("products", pr.id, { stock: pr.stock, sizeStock: pr.sizeStock, variants: pr.variants });
     } else {
-      const newStock = Math.max(0, (Number(pr.stock) || 0) - item.q);
+      // Ordinary fabric products (Material) - sold by length or quantity
+      const newStock = Math.max(0, (Number(pr.stock) || 0) - qty);
+      pr.stock = newStock;
       upd("products", pr.id, { stock: newStock });
     }
   });
 
   return { valid: true };
+}
+
+function restoreOrderStock(o) {
+  if (!o || o.stockRestored || !Array.isArray(o.items) || !o.items.length) return 0;
+  let restoredCount = 0;
+  const allProds = products();
+
+  o.items.forEach(it => {
+    const pr = allProds.find(p => String(p.id) === String(it.id));
+    if (!pr) return;
+    const qty = Math.max(1, Number(it.q) || 1);
+    const sNorm = (it.size || "").trim().toUpperCase();
+    const cNorm = (it.color || "").trim().toLowerCase();
+
+    if (pr.cat === "Readymade") {
+      if (pr.sizeStock && typeof pr.sizeStock === "object") {
+        const szKey = Object.keys(pr.sizeStock).find(k => k.toUpperCase() === sNorm) || it.size;
+        if (szKey && pr.sizeStock[szKey] !== undefined) {
+          pr.sizeStock[szKey] = (Number(pr.sizeStock[szKey]) || 0) + qty;
+        }
+      }
+      const vars = Array.isArray(pr.variants) && pr.variants.length > 0 ? pr.variants : null;
+      if (vars) {
+        let v = null;
+        if (it.variantId) {
+          v = vars.find(x => x.id === it.variantId);
+        }
+        if (!v && sNorm && cNorm) {
+          v = vars.find(x => String(x.size).toUpperCase() === sNorm && String(x.color).toLowerCase() === cNorm);
+        }
+        if (!v && sNorm) {
+          v = vars.find(x => String(x.size).toUpperCase() === sNorm);
+        }
+        if (v) {
+          v.stock = (Number(v.stock) || 0) + qty;
+        }
+      }
+      if (pr.sizeStock) {
+        pr.stock = Object.values(pr.sizeStock).reduce((acc, curr) => acc + (Math.max(0, Number(curr)) || 0), 0);
+      } else if (vars) {
+        pr.stock = vars.reduce((acc, curr) => acc + (Math.max(0, Number(curr.stock)) || 0), 0);
+      } else {
+        pr.stock = (Number(pr.stock) || 0) + qty;
+      }
+      upd("products", pr.id, { stock: pr.stock, sizeStock: pr.sizeStock, variants: pr.variants });
+    } else {
+      const newStock = (Number(pr.stock) || 0) + qty;
+      pr.stock = newStock;
+      upd("products", pr.id, { stock: newStock });
+    }
+    restoredCount += qty;
+  });
+
+  o.stockRestored = true;
+  return restoredCount;
+}
+
+function reDeductOrderStock(o) {
+  if (!o || !o.stockRestored || !Array.isArray(o.items) || !o.items.length) return 0;
+  let deductedCount = 0;
+  const allProds = products();
+
+  o.items.forEach(it => {
+    const pr = allProds.find(p => String(p.id) === String(it.id));
+    if (!pr) return;
+    const qty = Math.max(1, Number(it.q) || 1);
+    const sNorm = (it.size || "").trim().toUpperCase();
+    const cNorm = (it.color || "").trim().toLowerCase();
+
+    if (pr.cat === "Readymade") {
+      if (pr.sizeStock && typeof pr.sizeStock === "object") {
+        const szKey = Object.keys(pr.sizeStock).find(k => k.toUpperCase() === sNorm) || it.size;
+        if (szKey && pr.sizeStock[szKey] !== undefined) {
+          pr.sizeStock[szKey] = Math.max(0, (Number(pr.sizeStock[szKey]) || 0) - qty);
+        }
+      }
+      const vars = Array.isArray(pr.variants) && pr.variants.length > 0 ? pr.variants : null;
+      if (vars) {
+        let v = null;
+        if (it.variantId) {
+          v = vars.find(x => x.id === it.variantId);
+        }
+        if (!v && sNorm && cNorm) {
+          v = vars.find(x => String(x.size).toUpperCase() === sNorm && String(x.color).toLowerCase() === cNorm);
+        }
+        if (!v && sNorm) {
+          v = vars.find(x => String(x.size).toUpperCase() === sNorm);
+        }
+        if (v) {
+          v.stock = Math.max(0, (Number(v.stock) || 0) - qty);
+        }
+      }
+      if (pr.sizeStock) {
+        pr.stock = Object.values(pr.sizeStock).reduce((acc, curr) => acc + (Math.max(0, Number(curr)) || 0), 0);
+      } else if (vars) {
+        pr.stock = vars.reduce((acc, curr) => acc + (Math.max(0, Number(curr.stock)) || 0), 0);
+      } else {
+        pr.stock = Math.max(0, (Number(pr.stock) || 0) - qty);
+      }
+      upd("products", pr.id, { stock: pr.stock, sizeStock: pr.sizeStock, variants: pr.variants });
+    } else {
+      const newStock = Math.max(0, (Number(pr.stock) || 0) - qty);
+      pr.stock = newStock;
+      upd("products", pr.id, { stock: newStock });
+    }
+    deductedCount += qty;
+  });
+
+  o.stockRestored = false;
+  return deductedCount;
 }
 
 // ------------------------------------------
@@ -1783,6 +2054,9 @@ window.deleteVariantFromProduct = deleteVariantFromProduct;
 window.validateAndDeductStock = validateAndDeductStock;
 window.getRevenueAnalytics = getRevenueAnalytics;
 window.exportReviewsCSV = exportReviewsCSV;
+window.getProductSizeStock = getProductSizeStock;
+window.restoreOrderStock = restoreOrderStock;
+window.reDeductOrderStock = reDeductOrderStock;
 window.saveCfg = saveCfg;
 window.setShopLiveStatus = setShopLiveStatus;
 

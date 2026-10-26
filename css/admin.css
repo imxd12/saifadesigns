@@ -456,25 +456,48 @@ body.admin-open {
 
 .header-badge {
   font-size: 0.76rem;
-  height: 34px;
-  padding: 0 13px;
+  height: 32px;
+  line-height: 1;
+  padding: 0 12px;
   border-radius: var(--adm-radius-pill);
   font-weight: 600;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  white-space: nowrap !important;
   user-select: none;
   background: var(--sf);
   border: 1px solid var(--ln);
   color: var(--tx);
   transition: all var(--adm-transition-fast);
   box-shadow: var(--adm-shadow-xs);
+  box-sizing: border-box !important;
+  flex-shrink: 0;
+}
+
+.header-badge .badge-icon {
+  font-size: 0.9rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.header-badge .badge-text,
+.header-badge > span:not(.badge-icon) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .header-badge:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1.5px);
   box-shadow: var(--adm-shadow-md);
 }
 
@@ -490,19 +513,21 @@ body.admin-open {
 
 @keyframes badgeAlertPulse {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--warn) 45%, transparent); }
-  50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--warn) 0%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--warn) 0%, transparent); }
 }
 
+.header-badge.badge-orders,
 .header-badge.info {
-  background: color-mix(in srgb, var(--sf2) 90%, var(--sf));
-  color: var(--tx);
-  border-color: var(--ln);
+  background: color-mix(in srgb, #3b82f6 14%, var(--sf2)) !important;
+  color: var(--tx) !important;
+  border-color: color-mix(in srgb, #3b82f6 40%, var(--ln)) !important;
 }
 
+.header-badge.badge-tailoring,
 .header-badge.gold {
-  background: color-mix(in srgb, var(--gd) 14%, var(--sf));
-  color: var(--tx);
-  border-color: color-mix(in srgb, var(--gd) 45%, transparent);
+  background: color-mix(in srgb, var(--gd) 14%, var(--sf2)) !important;
+  color: var(--tx) !important;
+  border-color: color-mix(in srgb, var(--gd) 42%, var(--ln)) !important;
 }
 
 /* Header Right: Controls & Profile */
@@ -1248,27 +1273,28 @@ label {
   background: color-mix(in srgb, var(--sf) 94%, var(--sf2));
   border: 1px solid color-mix(in srgb, var(--ln) 85%, var(--gd) 15%);
   border-radius: var(--adm-radius-md);
-  padding: 10px 16px;
+  padding: 12px 18px !important;
   margin-bottom: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px 16px;
+  gap: 12px 16px;
   box-shadow: var(--adm-shadow-xs);
   transition: all var(--adm-transition-fast);
+  box-sizing: border-box;
 }
 
 /* Temple Icon Container */
 .shop-status-control-banner > div:first-child > div:first-child {
-  width: 34px !important;
-  height: 34px !important;
+  width: 36px !important;
+  height: 36px !important;
   border-radius: var(--adm-radius-xs) !important;
   background: var(--sf2) !important;
   border: 1px solid var(--ln) !important;
   display: grid !important;
   place-items: center !important;
-  font-size: 1.05rem !important;
+  font-size: 1.1rem !important;
   flex-shrink: 0 !important;
 }
 
@@ -1276,7 +1302,7 @@ label {
 .shop-status-control-banner > div:first-child {
   display: flex !important;
   align-items: center !important;
-  gap: 10px !important;
+  gap: 12px !important;
   flex-wrap: nowrap !important;
   min-width: 0 !important;
   flex: 1 1 auto !important;
@@ -1286,7 +1312,7 @@ label {
 .shop-status-control-banner > div:first-child > div:last-child {
   display: flex !important;
   flex-direction: column !important;
-  gap: 2px !important;
+  gap: 3px !important;
   min-width: 0 !important;
 }
 
@@ -1295,11 +1321,11 @@ label {
   display: flex !important;
   align-items: center !important;
   flex-wrap: wrap !important;
-  gap: 6px 8px !important;
+  gap: 6px 10px !important;
 }
 
 .shop-status-control-banner > div:first-child > div:last-child > div:first-child > b {
-  font-size: 0.85rem !important;
+  font-size: 0.88rem !important;
   font-weight: 700 !important;
   color: var(--tx) !important;
   letter-spacing: -0.01em !important;
@@ -1310,10 +1336,10 @@ label {
 .shop-status-pill-badge {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 5px !important;
-  padding: 2.5px 8.5px !important;
+  gap: 6px !important;
+  padding: 3px 10px !important;
   border-radius: var(--adm-radius-pill) !important;
-  font-size: 0.72rem !important;
+  font-size: 0.74rem !important;
   font-weight: 700 !important;
   line-height: 1.25 !important;
   letter-spacing: 0.01em !important;
@@ -1323,8 +1349,8 @@ label {
 }
 
 .shop-status-pill-badge .status-dot {
-  width: 5px !important;
-  height: 5px !important;
+  width: 6px !important;
+  height: 6px !important;
   border-radius: 50% !important;
   flex-shrink: 0 !important;
   margin-top: -1px !important;
@@ -1354,12 +1380,13 @@ label {
 
 /* Secondary Business Information Text */
 .shop-status-control-banner small {
-  font-size: 0.71rem !important;
+  font-size: 0.74rem !important;
   color: var(--mu) !important;
-  line-height: 1.35 !important;
+  line-height: 1.45 !important;
   display: block !important;
   letter-spacing: 0.01em !important;
   word-break: break-word !important;
+  margin-top: 2px !important;
 }
 
 .shop-status-control-banner small b {
@@ -1825,10 +1852,11 @@ label {
 
   .admin-top-bar.luxury-header {
     flex-wrap: wrap;
-    padding: 10px 14px;
+    padding: 12px 16px 14px;
     border-radius: var(--adm-radius-md);
-    gap: 8px 12px;
+    gap: 10px 14px;
     min-height: auto;
+    overflow: visible;
   }
 
   .header-left {
@@ -1844,7 +1872,7 @@ label {
     order: 2;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     flex-shrink: 0;
   }
 
@@ -1852,18 +1880,30 @@ label {
     order: 3;
     width: 100%;
     flex: 1 1 100%;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
     justify-content: flex-start;
     overflow-x: auto;
+    overflow-y: visible;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     flex-wrap: nowrap;
-    padding: 4px 0 2px;
-    gap: 6px;
-    margin-top: 2px;
+    padding: 8px 0 4px;
+    gap: 8px;
+    margin-top: 4px;
+    border-top: 1px solid color-mix(in srgb, var(--ln) 65%, transparent);
   }
 
   .header-center::-webkit-scrollbar {
     display: none;
+  }
+
+  .header-badge {
+    height: 30px !important;
+    padding: 0 11px !important;
+    font-size: 0.74rem !important;
+    gap: 6px !important;
   }
 
   .theme-toggle-btn .theme-label,
@@ -1874,8 +1914,8 @@ label {
   .theme-toggle-btn,
   .header-btn {
     padding: 0;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     justify-content: center;
     border-radius: 50%;
   }
@@ -1891,11 +1931,11 @@ label {
   }
 
   .admin-top-bar.luxury-header {
-    padding: 8px 12px 10px;
+    padding: 10px 14px 12px;
     border-radius: var(--adm-radius-md);
     top: 6px;
     margin-bottom: 12px;
-    gap: 6px 8px;
+    gap: 8px 10px;
     min-height: auto;
     overflow: visible;
   }
@@ -1974,14 +2014,20 @@ label {
   .header-center {
     margin-top: 4px;
     gap: 6px;
-    padding: 2px 0;
+    padding: 6px 0 2px;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    overflow-x: auto;
+    overflow-y: visible;
+    border-top: 1px solid color-mix(in srgb, var(--ln) 65%, transparent);
   }
 
   .header-badge {
-    height: 28px;
-    padding: 0 9px;
-    font-size: 0.71rem;
-    gap: 4px;
+    height: 28px !important;
+    padding: 0 9px !important;
+    font-size: 0.71rem !important;
+    gap: 5px !important;
   }
 
   .kpi-grid {
@@ -2303,4 +2349,18 @@ label {
   to {
     stroke-dashoffset: 0;
   }
+}
+
+/* ==========================================================================
+   24. Readymade Size-Wise Inventory Management Grid
+   ========================================================================== */
+.size-inventory-card {
+  transition: all 0.2s ease;
+  border: 1px solid var(--ln);
+}
+
+.size-inventory-card:hover {
+  border-color: color-mix(in srgb, var(--br) 40%, var(--ln));
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transform: translateY(-1px);
 }

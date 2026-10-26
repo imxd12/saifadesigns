@@ -287,8 +287,9 @@ body.admin-open {
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid color-mix(in srgb, var(--gd) 32%, var(--ln));
   border-radius: var(--adm-radius-lg);
-  padding: 12px 20px;
-  margin-bottom: 22px;
+  padding: 10px 18px;
+  margin-bottom: 16px;
+  min-height: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1241,42 +1242,186 @@ label {
 }
 
 /* --------------------------------------------------------------------------
-   13. Shop Status Control Banner
+   13. Shop Status Control Banner (Compact, Luxury, Fully Responsive)
    -------------------------------------------------------------------------- */
 .shop-status-control-banner {
-  background: var(--sf);
-  border: 1px solid var(--ln);
-  border-radius: var(--adm-radius-lg);
-  padding: 14px 20px;
-  margin-bottom: 22px;
+  background: color-mix(in srgb, var(--sf) 94%, var(--sf2));
+  border: 1px solid color-mix(in srgb, var(--ln) 85%, var(--gd) 15%);
+  border-radius: var(--adm-radius-md);
+  padding: 10px 16px;
+  margin-bottom: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 10px 16px;
   box-shadow: var(--adm-shadow-xs);
+  transition: all var(--adm-transition-fast);
 }
 
+/* Temple Icon Container */
+.shop-status-control-banner > div:first-child > div:first-child {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: var(--adm-radius-xs) !important;
+  background: var(--sf2) !important;
+  border: 1px solid var(--ln) !important;
+  display: grid !important;
+  place-items: center !important;
+  font-size: 1.05rem !important;
+  flex-shrink: 0 !important;
+}
+
+/* Shop Status Info Block (Left Column) */
+.shop-status-control-banner > div:first-child {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: nowrap !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+/* Status Text Stack */
+.shop-status-control-banner > div:first-child > div:last-child {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+
+/* Title and Badge Line */
+.shop-status-control-banner > div:first-child > div:last-child > div:first-child {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 6px 8px !important;
+}
+
+.shop-status-control-banner > div:first-child > div:last-child > div:first-child > b {
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  color: var(--tx) !important;
+  letter-spacing: -0.01em !important;
+  white-space: nowrap !important;
+}
+
+/* Compact Status Badge */
 .shop-status-pill-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 14px;
-  border-radius: var(--adm-radius-pill);
-  font-size: 0.82rem;
-  font-weight: 700;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 2.5px 8.5px !important;
+  border-radius: var(--adm-radius-pill) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.01em !important;
+  max-width: 100% !important;
+  word-break: break-word !important;
+  transition: all var(--adm-transition-fast) !important;
+}
+
+.shop-status-pill-badge .status-dot {
+  width: 5px !important;
+  height: 5px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+  margin-top: -1px !important;
 }
 
 .shop-status-pill-badge.open {
-  background: color-mix(in srgb, var(--ok) 16%, transparent);
-  color: var(--ok);
-  border: 1px solid var(--ok);
+  background: color-mix(in srgb, var(--ok) 14%, var(--sf2)) !important;
+  color: var(--ok) !important;
+  border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent) !important;
+}
+
+.shop-status-pill-badge.open .status-dot {
+  background: var(--ok) !important;
+  box-shadow: 0 0 5px color-mix(in srgb, var(--ok) 70%, transparent) !important;
 }
 
 .shop-status-pill-badge.closed {
-  background: color-mix(in srgb, var(--bad) 16%, transparent);
-  color: var(--bad);
-  border: 1px solid var(--bad);
+  background: color-mix(in srgb, var(--bad) 14%, var(--sf2)) !important;
+  color: #f87171 !important;
+  border: 1px solid color-mix(in srgb, var(--bad) 40%, transparent) !important;
+}
+
+.shop-status-pill-badge.closed .status-dot {
+  background: #ef4444 !important;
+  box-shadow: 0 0 5px color-mix(in srgb, #ef4444 70%, transparent) !important;
+}
+
+/* Secondary Business Information Text */
+.shop-status-control-banner small {
+  font-size: 0.71rem !important;
+  color: var(--mu) !important;
+  line-height: 1.35 !important;
+  display: block !important;
+  letter-spacing: 0.01em !important;
+  word-break: break-word !important;
+}
+
+.shop-status-control-banner small b {
+  color: var(--tx) !important;
+  font-weight: 600 !important;
+  font-size: 0.71rem !important;
+}
+
+/* Right Buttons Container */
+.shop-status-control-banner > div:last-child {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  flex-shrink: 0 !important;
+}
+
+/* Compact, Consistently Sized Buttons */
+.shop-status-control-banner .btn {
+  height: 29px !important;
+  padding: 0 10px !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  border-radius: var(--adm-radius-pill) !important;
+  letter-spacing: 0.01em !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  white-space: nowrap !important;
+  transition: all var(--adm-transition-fast) !important;
+  box-shadow: none !important;
+}
+
+.shop-status-control-banner .btn.p {
+  background: linear-gradient(135deg, var(--br), var(--br2)) !important;
+  color: #fff !important;
+  border: 1px solid var(--br) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--br) 35%, transparent) !important;
+}
+
+.shop-status-control-banner .btn.ok {
+  background: color-mix(in srgb, var(--ok) 18%, var(--sf2)) !important;
+  color: var(--ok) !important;
+  border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent) !important;
+}
+
+.shop-status-control-banner .btn.d {
+  background: color-mix(in srgb, var(--bad) 18%, var(--sf2)) !important;
+  color: #f87171 !important;
+  border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent) !important;
+}
+
+.shop-status-control-banner .btn:not(.p):not(.ok):not(.d) {
+  background: var(--sf2) !important;
+  border: 1px solid var(--ln) !important;
+  color: var(--tx) !important;
+}
+
+.shop-status-control-banner .btn:hover {
+  transform: translateY(-1px) !important;
+  filter: brightness(1.08) !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -1680,19 +1825,27 @@ label {
 
   .admin-top-bar.luxury-header {
     flex-wrap: wrap;
-    padding: 12px 16px;
+    padding: 10px 14px;
     border-radius: var(--adm-radius-md);
-    gap: 10px;
+    gap: 8px 12px;
+    min-height: auto;
   }
 
   .header-left {
     order: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
     flex: 1 1 auto;
   }
 
   .header-right {
     order: 2;
-    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
   .header-center {
@@ -1704,8 +1857,9 @@ label {
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     flex-wrap: nowrap;
-    padding: 2px 0;
-    gap: 8px;
+    padding: 4px 0 2px;
+    gap: 6px;
+    margin-top: 2px;
   }
 
   .header-center::-webkit-scrollbar {
@@ -1720,14 +1874,16 @@ label {
   .theme-toggle-btn,
   .header-btn {
     padding: 0;
-    width: 36px;
+    width: 32px;
+    height: 32px;
     justify-content: center;
+    border-radius: 50%;
   }
 }
 
 @media (max-width: 768px) {
   .admin-main {
-    padding: 10px 3% 85px;
+    padding: 8px 2.5% 85px;
   }
 
   .admin-mobile-dock {
@@ -1735,23 +1891,97 @@ label {
   }
 
   .admin-top-bar.luxury-header {
-    padding: 10px 12px;
+    padding: 8px 12px 10px;
     border-radius: var(--adm-radius-md);
     top: 6px;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
+    gap: 6px 8px;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  /* Hide redundant atelier brand line in header on mobile to prevent wrapping and overlaps */
+  .header-brand-line {
+    display: none !important;
+  }
+
+  .header-titles {
+    gap: 0;
+    min-width: 0;
+  }
+
+  .header-title-row {
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .menu-toggle-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .header-page-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 1.05rem;
+    flex-shrink: 0;
   }
 
   .header-page-title {
-    font-size: 1.22rem;
+    font-size: 1.15rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-right {
+    gap: 5px;
+    flex-shrink: 0;
   }
 
   .admin-info {
-    display: none;
+    display: none !important;
   }
 
   .admin-profile-pill {
     padding: 0 4px;
-    height: 34px;
+    height: 30px;
+    gap: 4px;
+  }
+
+  .admin-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 0.72rem;
+  }
+
+  .admin-logout-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 0.7rem;
+  }
+
+  .theme-toggle-btn,
+  .header-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+  }
+
+  .header-center {
+    margin-top: 4px;
+    gap: 6px;
+    padding: 2px 0;
+  }
+
+  .header-badge {
+    height: 28px;
+    padding: 0 9px;
+    font-size: 0.71rem;
+    gap: 4px;
   }
 
   .kpi-grid {
@@ -1785,44 +2015,101 @@ label {
   .box table {
     min-width: 580px;
   }
+
+  .shop-status-control-banner {
+    padding: 10px 12px !important;
+    gap: 10px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    text-align: left !important;
+    margin-bottom: 14px !important;
+  }
+
+  .shop-status-control-banner > div:first-child {
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .shop-status-control-banner > div:first-child > div:last-child > div:first-child {
+    gap: 4px 6px !important;
+  }
+
+  .shop-status-control-banner > div:last-child {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+    margin-top: 2px !important;
+  }
+
+  .shop-status-control-banner .btn {
+    width: 100% !important;
+    padding: 0 4px !important;
+    font-size: 0.7rem !important;
+    height: 28px !important;
+    text-align: center !important;
+  }
 }
 
 @media (max-width: 480px) {
   .admin-top-bar.luxury-header {
-    padding: 8px 10px;
+    padding: 6px 10px 8px;
     border-radius: var(--adm-radius-sm);
-    gap: 6px;
+    gap: 5px 6px;
+    top: 4px;
+    margin-bottom: 10px;
   }
 
   .menu-toggle-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 1rem;
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
   }
 
   .header-page-icon {
-    width: 28px;
-    height: 28px;
-    font-size: 1.1rem;
+    width: 26px;
+    height: 26px;
+    font-size: 0.95rem;
   }
 
   .header-page-title {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
   }
 
-  .header-brand-tag {
-    font-size: 0.58rem;
-  }
-
-  .header-sync-pill {
-    font-size: 0.58rem;
-    padding: 1px 6px;
+  .header-right {
+    gap: 4px;
   }
 
   .theme-toggle-btn,
   .header-btn {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+  }
+
+  .admin-profile-pill {
+    height: 28px;
+    padding: 0 3px;
+    gap: 3px;
+  }
+
+  .admin-avatar {
+    width: 22px;
+    height: 22px;
+    font-size: 0.68rem;
+  }
+
+  .admin-logout-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+  }
+
+  .header-badge {
+    height: 26px;
+    padding: 0 8px;
+    font-size: 0.68rem;
   }
 
   .kpi-grid {
@@ -1830,10 +2117,53 @@ label {
   }
 
   .shop-status-control-banner {
-    padding: 10px 12px;
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
+    padding: 8px 10px !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .shop-status-control-banner > div:first-child > div:first-child {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 0.95rem !important;
+  }
+
+  .shop-status-control-banner > div:first-child > div:last-child > div:first-child > b {
+    font-size: 0.8rem !important;
+  }
+
+  .shop-status-pill-badge {
+    font-size: 0.68rem !important;
+    padding: 2px 7px !important;
+  }
+
+  .shop-status-control-banner small {
+    font-size: 0.68rem !important;
+  }
+
+  .shop-status-control-banner .btn {
+    height: 27px !important;
+    font-size: 0.67rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .header-page-title {
+    font-size: 0.95rem;
+  }
+
+  .header-right {
+    gap: 3px;
+  }
+
+  .theme-toggle-btn,
+  .header-btn {
+    width: 26px;
+    height: 26px;
+  }
+
+  .shop-status-control-banner > div:last-child {
+    grid-template-columns: 1fr !important;
   }
 }
 

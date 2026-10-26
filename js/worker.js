@@ -250,7 +250,12 @@ const WorkerPortal = {
       </div>
     `;
 
-    $("pn").classList.add("on");
+    const pn = $("pn");
+    if (pn) {
+      pn.classList.add("on");
+      pn.scrollTop = 0;
+    }
+    document.body.classList.add("admin-open");
     window.scrollTo({ top: 0, behavior: "smooth" });
   },
 

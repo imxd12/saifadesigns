@@ -406,7 +406,12 @@ function panel() {
       </nav>
     </div>
   `;
-  $("pn").classList.add("on");
+  const pn = $("pn");
+  if (pn) {
+    pn.classList.add("on");
+    pn.scrollTop = 0;
+  }
+  document.body.classList.add("admin-open");
 }
 
 // ------------------------------------------
@@ -634,7 +639,7 @@ function renderDash() {
   const lowStock = products().filter(p => p.stock < 5);
   const claimed = os.filter(x => x.paid === "Claimed");
   const activeCoupons = coupons().filter(c => c.active);
-  const c = S.cfg;
+  const c = S.cfg || (typeof DEF !== "undefined" ? DEF : {});
   const liveStatus = typeof getShopLiveStatus === "function" ? getShopLiveStatus() : { isOpen: true, label: "Open Now", badgeClass: "open" };
 
   return `
@@ -5400,7 +5405,9 @@ function handleImportFile() {
 // Navigation & Session Helpers
 // ------------------------------------------
 function closeAdminPanel() {
-  $("pn").classList.remove("on");
+  const pn = $("pn");
+  if (pn) pn.classList.remove("on");
+  document.body.classList.remove("admin-open");
   if (typeof renderFront === "function") renderFront();
 }
 
@@ -5409,6 +5416,7 @@ function logoutSession() {
   saveLS("me", null);
   const pn = $("pn");
   if (pn) pn.classList.remove("on");
+  document.body.classList.remove("admin-open");
   closeM();
   
   try {

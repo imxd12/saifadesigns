@@ -40,7 +40,7 @@ let S = {
   cart: loadLS("cart", []),
   appliedCoupon: null,
   cat: "All",
-  me: null,
+  me: loadLS("me", null),
   tab: "Dashboard",
   sfilter: "All",
   ofilter: "All",

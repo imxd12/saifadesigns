@@ -2559,9 +2559,12 @@ footer {
 #pn {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  width: 100vw;
+  height: 100vh;
+  z-index: 950;
   background: var(--bg);
-  overflow: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   display: none;
 }
 

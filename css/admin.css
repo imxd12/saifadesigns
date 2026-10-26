@@ -38,17 +38,25 @@
    2. Base Reset & Admin Shell Layout
    -------------------------------------------------------------------------- */
 #pn {
-  position: relative;
-  width: 100%;
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 950;
   background: var(--bg);
   color: var(--tx);
   font-family: var(--adm-font-body);
   display: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 #pn.on {
   display: block;
+}
+
+body.admin-open {
+  overflow: hidden !important;
 }
 
 .admin-shell {

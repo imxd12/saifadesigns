@@ -32,6 +32,13 @@ const App = {
       }
     } catch (e) {}
 
+    // 6. Restore authenticated admin or worker session if active
+    if (S.me && S.me.role === "admin" && typeof panel === "function") {
+      panel();
+    } else if (S.me && S.me.role === "worker" && typeof wpanel === "function") {
+      wpanel();
+    }
+
     console.log("✨ SAIFA DESIGNS Enterprise Suite Initialized [Online Realtime Sync Active]");
   },
 
@@ -293,6 +300,7 @@ const App = {
           id: "admin",
           sessionToken: Security.createSessionToken("admin", "admin")
         };
+        saveLS("me", S.me);
 
         toast("Welcome back, Administrator! 👑");
         closeM();
@@ -375,6 +383,7 @@ const App = {
           img: worker.img || "",
           sessionToken: Security.createSessionToken("worker", worker.id)
         };
+        saveLS("me", S.me);
 
         toast(`Welcome, ${worker.name}! 🧵`);
         closeM();
@@ -583,6 +592,14 @@ initTheme();
 // Global DOM and UI Helper Bindings
 // ------------------------------------------
 function openLogin(role = "admin") {
+  if (S.me && S.me.role === "admin" && typeof panel === "function") {
+    panel();
+    return;
+  }
+  if (S.me && S.me.role === "worker" && typeof wpanel === "function") {
+    wpanel();
+    return;
+  }
   App.openLoginModal(role);
 }
 

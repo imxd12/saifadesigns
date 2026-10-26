@@ -1390,6 +1390,21 @@ const Customer = {
       $("foot").innerHTML = `© 2026 SAIFA DESIGNS · Ladies Tailor &amp; Boutique · 📍 ${Security.escapeHTML(c.address)} · 📞 ${Security.escapeHTML(formattedPhone)} · ${Security.escapeHTML(c.hours)}`;
     }
 
+    // Dynamic Header Staff / Admin Button status
+    const lgBtn = $("lg");
+    if (lgBtn) {
+      if (S.me && S.me.role === "admin") {
+        lgBtn.innerHTML = '<span class="login-icon">👑</span> <span class="login-label">Admin Portal</span>';
+        lgBtn.title = "Return to Admin Portal";
+      } else if (S.me && S.me.role === "worker") {
+        lgBtn.innerHTML = '<span class="login-icon">🧵</span> <span class="login-label">Tailor Portal</span>';
+        lgBtn.title = "Return to Artisan Portal";
+      } else {
+        lgBtn.innerHTML = '<span class="login-icon">🔑</span> <span class="login-label">Staff Login</span>';
+        lgBtn.title = "Staff & Artisan Portal Login";
+      }
+    }
+
     // Dynamically calculate and render customer rating system
     this.renderRatingWidget();
 

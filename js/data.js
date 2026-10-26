@@ -238,6 +238,57 @@ const SEED_PROD = [
   }
 ];
 
+const STANDARD_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "Free Size", "Custom"];
+const DEFAULT_VARIANT_THRESHOLD = 3;
+const REVIEW_STATUSES = ["Approved", "Pending", "Flagged", "Hidden"];
+const REVIEW_FRAUD_LEVELS = ["Clean", "Review Needed", "Suspicious"];
+
+// Helper to auto-generate variant combinations for products lacking explicit variants
+function generateDefaultVariants(product) {
+  if (Array.isArray(product.variants) && product.variants.length > 0) {
+    return product.variants;
+  }
+  const sizes = (product.sizes || "Free Size").split(",").map(s => s.trim()).filter(Boolean);
+  const colors = (product.colors || "Standard").split(",").map(c => c.trim()).filter(Boolean);
+  const totalStock = Number(product.stock) || 0;
+  const combos = [];
+  const count = Math.max(1, sizes.length * colors.length);
+  const perVariant = Math.max(1, Math.floor(totalStock / count));
+  let allocated = 0;
+
+  sizes.forEach((sz, sIdx) => {
+    colors.forEach((col, cIdx) => {
+      const isLast = (sIdx === sizes.length - 1) && (cIdx === colors.length - 1);
+      const stockVal = isLast ? Math.max(0, totalStock - allocated) : perVariant;
+      allocated += stockVal;
+      const skuSuffix = (sz.slice(0, 3) + "-" + col.slice(0, 3)).toUpperCase().replace(/[^A-Z0-9-]/g, "");
+      combos.push({
+        id: `var_${product.id}_${sIdx}_${cIdx}`,
+        sku: `SD-${(product.id || "PRD").toUpperCase()}-${skuSuffix}`,
+        size: sz,
+        color: col,
+        stock: stockVal,
+        reserved: 0,
+        reorderThreshold: DEFAULT_VARIANT_THRESHOLD,
+        price: product.price || 0
+      });
+    });
+  });
+  return combos;
+}
+
+// Enhance seed products with variants and creation timestamps
+SEED_PROD.forEach((p, idx) => {
+  if (!p.created) {
+    // Stagger timestamps: some new (last 3-5 days), others older
+    const daysAgo = idx % 3 === 0 ? 2 : (idx * 3 + 4);
+    p.created = Date.now() - (daysAgo * 86400000);
+  }
+  if (!p.variants || !p.variants.length) {
+    p.variants = generateDefaultVariants(p);
+  }
+});
+
 const SEED_TEAM = [];
 const SEED_WORKERS = [];
 const SEED_COUPONS = [];

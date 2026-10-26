@@ -3994,3 +3994,60 @@ img, video, canvas, svg {
   }
 }
 
+/* ==========================================
+   NEW ARRIVALS & VARIANT SELECTOR STYLES
+   ========================================== */
+.new-arrivals-section {
+  padding: 56px 0 28px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--sf2) 60%, transparent) 0%, transparent 100%);
+  border-top: 1px solid color-mix(in srgb, var(--ln) 50%, transparent);
+}
+
+.new-arrival-card {
+  position: relative;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease;
+  border: 1px solid color-mix(in srgb, var(--gd) 25%, var(--ln));
+}
+
+.new-arrival-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--br) 12%, transparent);
+  border-color: color-mix(in srgb, var(--gd) 65%, transparent);
+}
+
+/* Detail Modal Variant Chips (Size & Color) */
+.variant-chip {
+  padding: 6px 14px;
+  border-radius: 99px;
+  border: 1px solid var(--ln);
+  background: var(--sf2);
+  color: var(--tx);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.variant-chip:hover {
+  border-color: var(--br);
+  background: color-mix(in srgb, var(--br) 8%, var(--sf2));
+}
+
+.variant-chip.active {
+  background: var(--br);
+  color: #fff;
+  border-color: var(--br);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--br) 35%, transparent);
+}
+
+/* Eligible Orders Selector in Review Modal */
+#eligibleOrdersWrap select {
+  background: var(--sf2);
+  border: 1.5px solid color-mix(in srgb, var(--ok) 40%, var(--ln));
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.86rem;
+  color: var(--tx);
+  outline: none;
+}
+

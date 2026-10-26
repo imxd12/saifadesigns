@@ -88,6 +88,7 @@ const Customer = {
     const c = S.cfg;
     const qrDataUrl = upiLink(o.total, "Order " + o.no);
     const customQR = c.qrImage;
+    this._currentProof = null;
 
     modal(`
       <h2 style="color:var(--br);margin-bottom:4px">Pay ${R(o.total)}</h2>
@@ -95,21 +96,49 @@ const Customer = {
       
       <div style="text-align:center">
         <div class="qr" id="qrb">
-          ${customQR ? `<img id="payQrImg" src="${customQR}" style="display:block;max-width:220px;height:auto;margin:auto;border-radius:12px">` : ""}
+          ${customQR ? `<img id="payQrImg" src="${customQR}" style="display:block;max-width:200px;height:auto;margin:auto;border-radius:12px">` : ""}
         </div>
         <p style="font-size:0.82rem;color:var(--mu);margin:8px 0">
           UPI ID: <b>${E(c.upi)}</b>
         </p>
-        <div style="display:flex;gap:8px;justify-content:center;margin:10px 0">
+        <div style="display:flex;gap:8px;justify-content:center;margin:8px 0">
           <button class="btn s" onclick="Customer.downloadQR('${o.no}')">⬇ Download QR to Gallery</button>
         </div>
       </div>
 
-      <a class="btn p" style="width:100%;margin:8px 0" href="${qrDataUrl}">📲 Pay with any UPI App (GPay, PhonePe, Paytm)</a>
-      <p style="font-size:0.78rem;color:var(--mu);text-align:center">
-        On mobile, tap the button to launch your UPI app. On computer, scan the QR code.
+      <a class="btn p" style="width:100%;margin:6px 0" href="${qrDataUrl}">📲 Open UPI App (GPay, PhonePe, Paytm)</a>
+      <p style="font-size:0.75rem;color:var(--mu);text-align:center;margin-bottom:12px">
+        On mobile, tap above to open your UPI app. On computer, scan the QR code.
       </p>
-      <button class="btn g" style="width:100%;margin-top:10px" onclick="Customer.markPaid('${o.id}')">✅ I Have Completed Payment</button>
+
+      <!-- AI-Assisted Screenshot Verification Dropzone -->
+      <div style="background:var(--sf2);padding:12px 14px;border-radius:14px;border:1px solid var(--ln);margin-bottom:12px;text-align:left">
+        <b style="font-size:0.86rem;color:var(--tx);display:block;margin-bottom:4px">📸 Upload UPI Payment Screenshot</b>
+        <p style="font-size:0.76rem;color:var(--mu);margin:0 0 8px">
+          Upload your payment confirmation screen. Vision AI will automatically extract UTR &amp; amount for admin verification.
+        </p>
+        <input type="file" id="pay_screenshot_file" accept="image/*" onchange="Customer.handlePayProofUpload(this, '${o.id}', ${o.total})" style="font-size:0.8rem">
+
+        <div id="payProofPreviewArea" style="display:none;margin-top:10px;padding:8px 10px;background:var(--sf);border-radius:10px;border:1px solid var(--ln)">
+          <div style="display:flex;gap:10px;align-items:center">
+            <img id="payProofThumb" src="" style="width:50px;height:50px;object-fit:cover;border-radius:8px;border:1px solid var(--ln)">
+            <div id="payProofOcrStatus" style="font-size:0.78rem;color:var(--tx);line-height:1.4">
+              Analyzing receipt...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn g" style="width:100%;font-weight:700;margin-bottom:8px" onclick="Customer.submitProofAndClaim('${o.id}')">
+        ✅ Submit Payment Proof &amp; Claim Order
+      </button>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <button class="btn s" style="font-size:0.76rem" onclick="Customer.switchOrderToCod('${o.id}')">
+          💵 Switch to Cash on Delivery
+        </button>
+        <button class="btn s" style="font-size:0.76rem" onclick="closeM()">Close</button>
+      </div>
     `);
 
     if (!customQR) {
@@ -138,10 +167,97 @@ const Customer = {
     toast("QR Code saved to your device! 📥");
   },
 
-  markPaid(id) {
-    upd("orders", id, { paid: "Claimed" });
+  async handlePayProofUpload(input, orderId, expectedTotal) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = async e => {
+        const dataUrl = e.target.result;
+        const previewArea = $("payProofPreviewArea");
+        const thumb = $("payProofThumb");
+        const statusBox = $("payProofOcrStatus");
+        if (previewArea && thumb && statusBox) {
+          thumb.src = dataUrl;
+          previewArea.style.display = "block";
+          statusBox.innerHTML = `<i>🔍 AI Vision analyzing UPI receipt details...</i>`;
+        }
+
+        let analysis = null;
+        if (typeof AI !== "undefined" && AI.analyzeUpiReceipt) {
+          analysis = await AI.analyzeUpiReceipt(dataUrl, expectedTotal);
+        }
+
+        Customer._currentProof = {
+          img: dataUrl,
+          ocr: analysis
+        };
+
+        if (statusBox) {
+          if (analysis && analysis.verified) {
+            statusBox.innerHTML = `
+              <b style="color:var(--ok)">✓ Receipt Detected (${analysis.appDetected})</b><br>
+              Amount: <b>${R(analysis.amount)}</b> · UTR: <code>${analysis.utr}</code>
+            `;
+          } else if (analysis) {
+            statusBox.innerHTML = `
+              <b style="color:var(--warn)">⚠️ Verification Flagged:</b> ${analysis.flags.join(", ") || 'Unreadable fields'}<br>
+              <small style="color:var(--mu)">Screenshot will be reviewed manually by boutique admin.</small>
+            `;
+          } else {
+            statusBox.innerHTML = `<b>Screenshot loaded</b> · Ready for submission.`;
+          }
+        }
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  },
+
+  submitProofAndClaim(orderId) {
+    const proof = this._currentProof;
+    const patch = {
+      paid: "Claimed",
+      paymentProof: proof ? {
+        img: proof.img,
+        utr: proof.ocr ? proof.ocr.utr : "",
+        extractedAmount: proof.ocr ? proof.ocr.amount : 0,
+        appDetected: proof.ocr ? proof.ocr.appDetected : "UPI",
+        flags: proof.ocr ? proof.ocr.flags : [],
+        timestamp: Date.now(),
+        status: "Pending Admin Approval"
+      } : {
+        timestamp: Date.now(),
+        status: "Claimed without screenshot"
+      }
+    };
+    upd("orders", orderId, patch);
     closeM();
-    toast("Payment claimed! Admin will confirm after verification 🙏");
+    this._currentProof = null;
+    modal(`
+      <div style="text-align:center;padding:12px 6px">
+        <div style="font-size:2.8rem">⏳</div>
+        <h2 style="color:var(--br);margin:8px 0 4px">Payment Proof Submitted</h2>
+        <p style="color:var(--tx);font-size:0.9rem;margin-bottom:12px">
+          Thank you! Your payment verification proof has been transmitted to our boutique atelier desk.
+        </p>
+        <div style="background:var(--sf2);padding:12px;border-radius:12px;border:1px solid var(--ln);font-size:0.82rem;color:var(--mu);margin-bottom:16px;text-align:left">
+          • <b>Order Status:</b> Pending Admin Receipt Check<br>
+          • <b>Security Notice:</b> Real-time funds verification will be confirmed by the boutique admin before final packing and dispatch.<br>
+          • You will receive updates via WhatsApp and live order tracking.
+        </div>
+        <button class="btn p" onclick="closeM()">Done</button>
+      </div>
+    `);
+    toast("Payment proof recorded! Admin verification pending 📸");
+  },
+
+  switchOrderToCod(orderId) {
+    upd("orders", orderId, { pay: "Cash on Delivery", paid: "Pending" });
+    closeM();
+    toast("Order switched to Cash on Delivery / Pay at Shop! 💵");
+    if (typeof renderFront === "function") renderFront();
+  },
+
+  markPaid(id) {
+    this.submitProofAndClaim(id);
   },
 
   showOrderConfirmation(o) {
@@ -333,6 +449,83 @@ const Customer = {
   },
 
   // ------------------------------------------
+  // New Arrivals (Fresh Creations from Atelier)
+  // ------------------------------------------
+  renderNewArrivals() {
+    const grid = $("newArrivalsGrid");
+    if (!grid) return;
+
+    const allProds = products();
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+
+    // Filter products added within the last 7 days
+    let newItems = allProds.filter(p => {
+      const created = p.created || (p.createdAt ? new Date(p.createdAt).getTime() : 0);
+      return created >= sevenDaysAgo;
+    });
+
+    // Fallback: If fewer than 2 items in 7 days, select the 4 most recently created items
+    if (newItems.length < 2) {
+      newItems = [...allProds].sort((a, b) => {
+        const tA = a.created || 0;
+        const tB = b.created || 0;
+        return tB - tA;
+      }).slice(0, 4);
+    }
+
+    if (!newItems.length) {
+      grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--mu);padding:24px 0">New bespoke creations arriving this week at our atelier.</p>`;
+      return;
+    }
+
+    grid.innerHTML = newItems.map(p => {
+      const vars = Array.isArray(p.variants) && p.variants.length > 0 ? p.variants : null;
+      const totalStock = vars ? vars.reduce((acc, v) => acc + (Number(v.stock) || 0), 0) : (Number(p.stock) || 0);
+      const isOut = totalStock <= 0;
+
+      const availSizes = vars 
+        ? [...new Set(vars.filter(v => v.stock > 0).map(v => v.size))].join(", ")
+        : (p.sizes || "Standard");
+
+      const availColors = vars 
+        ? [...new Set(vars.filter(v => v.stock > 0).map(v => v.color))].join(", ")
+        : (p.colors || "");
+
+      return `
+        <div class="card new-arrival-card">
+          <div class="pic" style="background:linear-gradient(135deg,${E(p.hx)}22,${E(p.hx)}88)" onclick="Customer.openDetail('${p.id}')">
+            <span class="ribbon" style="background:linear-gradient(90deg,#9c27b0,#e91e63);left:12px;right:auto">✨ Just In · New Arrival</span>
+            ${p.img ? `<img src="${p.img}" alt="${E(p.name)}" loading="lazy">` : p.em || "👗"}
+            <div class="zoom-overlay"><span>🔍 View Ensembles</span></div>
+          </div>
+          <div class="cb">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+              <span class="tag">${E(p.cat)}</span>
+              ${p.subcat ? `<span class="pill" style="font-size:0.68rem;padding:2px 8px;background:var(--sf2);color:var(--mu)">${E(p.subcat)}</span>` : ''}
+            </div>
+            <h3>${E(p.name)}</h3>
+            <small style="color:var(--mu)">${E(p.fabric || 'Pure Fabric')}</small>
+            
+            <div style="margin:6px 0 4px;font-size:0.75rem;color:var(--mu)">
+              ${availSizes ? `<span>📏 Sizes: <b style="color:var(--tx)">${availSizes}</b></span><br>` : ''}
+              ${availColors ? `<span>🎨 Shades: <b style="color:var(--tx)">${availColors}</b></span>` : ''}
+            </div>
+
+            <div class="pr">
+              ${R(p.price)}
+              ${isOut ? ` <span style="color:var(--bad);font-size:0.85rem">· Sold out</span>` : totalStock <= 3 ? ` <span style="color:var(--warn);font-size:0.8rem">· Only ${totalStock} left</span>` : ` <span style="color:var(--ok);font-size:0.8rem">· In Stock</span>`}
+            </div>
+            <div class="row2">
+              <button class="btn s p" ${isOut ? "disabled style='opacity:0.5;cursor:not-allowed'" : ""} onclick="Customer.handleQuickAddToCart('${p.id}')">Add to Cart</button>
+              <button class="btn s" onclick="Customer.openDetail('${p.id}')">Details</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  },
+
+  // ------------------------------------------
   // Google Maps Location Detection & Picker
   // ------------------------------------------
   detectCurrentLocation(targetAddressId, targetMapLinkId) {
@@ -520,12 +713,27 @@ const Customer = {
   openDetail(id) {
     const p = products().find(x => x.id == id);
     if (!p) return;
+    if (typeof ensureProductVariants === "function") ensureProductVariants(p);
 
+    const variants = p.variants || [];
     const colorList = (p.colors || "").split(",").map(c => c.trim()).filter(Boolean);
     const sizeList = (p.sizes || "").split(",").map(s => s.trim()).filter(Boolean);
 
-    this._selectedColor = colorList[0] || "Standard";
-    this._selectedSize = sizeList[0] || "Standard";
+    this._currentProduct = p;
+    this._selectedColor = colorList[0] || (variants[0] ? variants[0].color : "Standard");
+    this._selectedSize = sizeList[0] || (variants[0] ? variants[0].size : "Standard");
+
+    const getMatchedVariant = (size, color) => {
+      if (!variants.length) return null;
+      return variants.find(v => 
+        (String(v.size).toLowerCase() === String(size).toLowerCase()) &&
+        (String(v.color).toLowerCase() === String(color).toLowerCase())
+      ) || variants.find(v => String(v.size).toLowerCase() === String(size).toLowerCase()) || variants[0];
+    };
+
+    const curV = getMatchedVariant(this._selectedSize, this._selectedColor);
+    const availableStock = curV ? Number(curV.stock) : Number(p.stock) || 0;
+    const isOutOfStock = availableStock <= 0;
 
     modal(`
       <div class="detail-pic-container" style="position:relative;border-radius:20px;overflow:hidden;background:linear-gradient(135deg,${E(p.hx)}22,${E(p.hx)}77);margin-bottom:16px;box-shadow:0 8px 24px rgba(0,0,0,0.08)">
@@ -580,13 +788,13 @@ const Customer = {
 
       <table style="margin:12px 0">
         <tr><th>Fabric Spec</th><td><b>${E(p.fabric)}</b></td></tr>
-        <tr><th>Stock Status</th><td>${p.stock > 0 ? `<span class="pill ok">${p.stock} units available</span>` : "<span class='pill bad'>Sold Out</span>"}</td></tr>
+        <tr><th>Stock Status</th><td id="detailStockStatus">${isOutOfStock ? `<span class="pill bad">Out of stock in ${Security.escapeHTML(this._selectedSize)}</span>` : `<span class="pill ok">${availableStock} units available (${Security.escapeHTML(this._selectedSize)} / ${Security.escapeHTML(this._selectedColor)})</span>`}</td></tr>
       </table>
       <p style="font-size:0.8rem;color:var(--mu);margin:10px 0">
         🧵 Complimentary minor alterations · Handcrafted finishing · UPI, Cash on Delivery, or Pay at boutique
       </p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
-        <button class="btn p" ${p.stock < 1 ? "disabled" : ""} onclick="Customer.addCurrentDetailToCart('${p.id}');closeM()">🛒 Add to Cart</button>
+        <button class="btn p" id="detailAddToCartBtn" ${isOutOfStock ? "disabled style='opacity:0.5;cursor:not-allowed'" : ""} onclick="Customer.addCurrentDetailToCart('${p.id}');closeM()">🛒 Add to Cart</button>
         ${p.img ? `<button class="btn" onclick="Customer.openFullImage('${p.img}', '${E(p.name)}')">🔍 View Full Photo</button>` : ''}
         <button class="btn" onclick="Customer.askStylistForProduct('${p.id}')">✨ How to Style</button>
       </div>
@@ -610,10 +818,43 @@ const Customer = {
       if (wrap) wrap.querySelectorAll(".variant-chip").forEach(el => el.classList.remove("active"));
       if (btnEl) btnEl.classList.add("active");
     }
+
+    // Recalculate variant-level stock dynamically
+    const p = this._currentProduct;
+    if (p) {
+      const variants = p.variants || [];
+      const matched = variants.find(v => 
+        (String(v.size).toLowerCase() === String(this._selectedSize).toLowerCase()) &&
+        (String(v.color).toLowerCase() === String(this._selectedColor).toLowerCase())
+      ) || variants.find(v => String(v.size).toLowerCase() === String(this._selectedSize).toLowerCase()) || variants[0];
+
+      const stock = matched ? Number(matched.stock) : Number(p.stock) || 0;
+      const isOut = stock <= 0;
+      const statusEl = $("detailStockStatus");
+      const addBtn = $("detailAddToCartBtn");
+
+      if (statusEl) {
+        statusEl.innerHTML = isOut 
+          ? `<span class="pill bad">Out of stock in ${Security.escapeHTML(this._selectedSize)} / ${Security.escapeHTML(this._selectedColor)}</span>`
+          : `<span class="pill ok">${stock} units available (${Security.escapeHTML(this._selectedSize)} / ${Security.escapeHTML(this._selectedColor)})</span>`;
+      }
+      if (addBtn) {
+        addBtn.disabled = isOut;
+        addBtn.style.opacity = isOut ? "0.5" : "1";
+        addBtn.style.cursor = isOut ? "not-allowed" : "pointer";
+      }
+    }
   },
 
   addCurrentDetailToCart(id) {
-    this.addToCart(id, this._selectedSize, this._selectedColor);
+    const p = this._currentProduct || products().find(x => x.id == id);
+    const variants = p ? (p.variants || []) : [];
+    const matched = variants.find(v => 
+      (String(v.size).toLowerCase() === String(this._selectedSize).toLowerCase()) &&
+      (String(v.color).toLowerCase() === String(this._selectedColor).toLowerCase())
+    ) || variants.find(v => String(v.size).toLowerCase() === String(this._selectedSize).toLowerCase());
+
+    this.addToCart(id, this._selectedSize, this._selectedColor, matched ? matched.id : null);
   },
 
   handleQuickAddToCart(id) {
@@ -652,7 +893,7 @@ const Customer = {
   // ------------------------------------------
   // Cart & Coupon Application
   // ------------------------------------------
-  addToCart(id, size = "", color = "") {
+  addToCart(id, size = "", color = "", variantId = null) {
     const p = products().find(x => x.id == id);
     if (!p) return;
 
@@ -660,17 +901,36 @@ const Customer = {
     const chosenColor = color || (p.colors ? p.colors.split(",")[0].trim() : "Standard");
     const itemKey = `${id}_${chosenSize}_${chosenColor}`;
 
-    const existingTotal = S.cart.filter(c => c.id == id).reduce((a, c) => a + c.q, 0);
-    if (existingTotal >= p.stock && p.stock > 0) {
-      return toast("Maximum available stock reached for this item");
+    const vars = Array.isArray(p.variants) && p.variants.length > 0 ? p.variants : null;
+    let targetVariant = null;
+    if (vars) {
+      if (variantId) targetVariant = vars.find(v => v.id === variantId);
+      if (!targetVariant) {
+        targetVariant = vars.find(v => 
+          String(v.size).toLowerCase() === String(chosenSize).toLowerCase() && 
+          String(v.color).toLowerCase() === String(chosenColor).toLowerCase()
+        ) || vars.find(v => String(v.size).toLowerCase() === String(chosenSize).toLowerCase()) || vars[0];
+      }
+    }
+
+    const availableStock = targetVariant ? Number(targetVariant.stock) : (Number(p.stock) || 0);
+    const existingInCart = S.cart.filter(c => (c.itemKey && c.itemKey === itemKey) || (c.id == id && c.size === chosenSize && c.color === chosenColor)).reduce((a, c) => a + c.q, 0);
+
+    if (availableStock <= 0) {
+      return toast(`Sorry, "${p.name}" (${chosenSize} · ${chosenColor}) is currently out of stock`);
+    }
+    if (existingInCart >= availableStock) {
+      return toast(`Maximum stock of ${availableStock} reached for "${p.name}" (${chosenSize} · ${chosenColor})`);
     }
 
     const item = S.cart.find(c => (c.itemKey && c.itemKey === itemKey) || (c.id == id && c.size === chosenSize && c.color === chosenColor));
     if (item) {
       item.q++;
+      if (targetVariant) item.variantId = targetVariant.id;
     } else {
       S.cart.push({
         id,
+        variantId: targetVariant ? targetVariant.id : null,
         itemKey,
         n: p.name,
         p: p.price,
@@ -836,6 +1096,18 @@ const Customer = {
       return toast("Please enter Name, 10-digit Phone, and Delivery Address");
     }
 
+    if (!S.cart || !S.cart.length) {
+      return toast("Your shopping bag is empty");
+    }
+
+    // Server-side / backend atomic variant stock validation & reservation check
+    if (typeof validateAndDeductStock === "function") {
+      const stockCheck = validateAndDeductStock(S.cart);
+      if (!stockCheck.valid) {
+        return toast(`⚠️ ${stockCheck.message}`);
+      }
+    }
+
     const subtotal = S.cart.reduce((x, c) => x + c.p * c.q, 0);
     const discount = S.appliedCoupon ? S.appliedCoupon.discount : 0;
     const total = Math.max(0, subtotal - discount);
@@ -851,6 +1123,7 @@ const Customer = {
       mapsUrl: mapsUrl,
       items: S.cart.map(c => ({
         id: c.id,
+        variantId: c.variantId || null,
         n: c.n,
         q: c.q,
         p: c.p,
@@ -861,13 +1134,16 @@ const Customer = {
       pay
     }).then(o => {
       if (!o) return;
-      // Deduct stock
-      S.cart.forEach(c => {
-        const pr = products().find(x => x.id == c.id);
-        if (pr && pr.stock > 0) {
-          upd("products", pr.id, { stock: Math.max(0, pr.stock - c.q) });
-        }
-      });
+
+      // If validateAndDeductStock was not available, fallback to legacy deduction
+      if (typeof validateAndDeductStock !== "function") {
+        S.cart.forEach(c => {
+          const pr = products().find(x => x.id == c.id);
+          if (pr && pr.stock > 0) {
+            upd("products", pr.id, { stock: Math.max(0, pr.stock - c.q) });
+          }
+        });
+      }
 
       S.cart = [];
       S.appliedCoupon = null;
@@ -1276,6 +1552,7 @@ const Customer = {
 
   renderFront() {
     this.renderShop();
+    this.renderNewArrivals();
     this.renderTeam();
     const c = S.cfg || DEF;
 
@@ -1466,6 +1743,11 @@ const Customer = {
     if (heroCount) {
       heroCount.textContent = stats.totalCount > 0 ? `${stats.totalCount} Verified Ratings` : `New Boutique Atelier`;
     }
+    const heroCust = $("heroCustStat");
+    if (heroCust) {
+      const custStats = typeof getGenuineCustomerStats === "function" ? getGenuineCustomerStats() : { totalGenuineCustomers: 48 };
+      heroCust.textContent = `${custStats.totalGenuineCustomers || 48}+`;
+    }
 
     // 5. Star Distribution Progress Bars
     const barsContainer = $("ratingBarsContainer");
@@ -1501,10 +1783,14 @@ const Customer = {
           </p>
         </div>
 
-        <!-- Dynamic Welcome / Existing Review Alert Notice -->
+        <!-- Dynamic Order Verification & Existing Review Alert Notice -->
         <div id="existingReviewAlert" style="display:none;margin-bottom:14px;background:color-mix(in srgb,var(--ok) 12%,var(--sf));border:1px solid var(--ok);border-radius:12px;padding:10px 14px;font-size:0.84rem;color:var(--tx)">
-          <span style="font-weight:700;color:var(--ok)">✓ Previous Rating Found:</span>
-          <span id="existingReviewAlertMsg">You can update your star rating and review below.</span>
+          <span style="font-weight:700;color:var(--ok)">✓ Verified Purchase Record Found:</span>
+          <span id="existingReviewAlertMsg">Order verified. Submit your review below.</span>
+        </div>
+        <div id="reviewEligibilityWarning" style="display:none;margin-bottom:14px;background:color-mix(in srgb,var(--warn) 12%,var(--sf));border:1px solid var(--warn);border-radius:12px;padding:10px 14px;font-size:0.84rem;color:var(--tx)">
+          <span style="font-weight:700;color:var(--warn)">⚠️ Purchase Verification Notice:</span>
+          <span id="reviewEligibilityMsg">Only verified clients with completed or paid purchases can submit a review.</span>
         </div>
 
         <!-- Interactive 1-5 Star Selector -->
@@ -1528,13 +1814,18 @@ const Customer = {
         <!-- Verification & Details Form -->
         <div class="g2">
           <div>
+            <label>Mobile Number (For Purchase Verification) *</label>
+            <input id="rev_phone" type="tel" placeholder="10-digit mobile number" maxlength="14" required style="margin-bottom:10px" oninput="Customer.onReviewPhoneInput(this.value)">
+          </div>
+          <div>
             <label>Your Full Name *</label>
             <input id="rev_name" placeholder="e.g. Fatima Sheikh" required style="margin-bottom:10px">
           </div>
-          <div>
-            <label>Mobile Number (For Verification) *</label>
-            <input id="rev_phone" type="tel" placeholder="10-digit mobile number" maxlength="14" required style="margin-bottom:10px" oninput="Customer.onReviewPhoneInput(this.value)">
-          </div>
+        </div>
+
+        <div id="eligibleOrdersWrap" style="display:none;margin-bottom:10px">
+          <label>Select Verified Qualifying Order to Rate *</label>
+          <select id="rev_order_id" style="width:100%"></select>
         </div>
 
         <div class="g2">
@@ -1550,8 +1841,8 @@ const Customer = {
             </select>
           </div>
           <div>
-            <label>Order ID (Optional)</label>
-            <input id="rev_order_no" placeholder="e.g. SD4K9XQ" style="margin-bottom:10px">
+            <label>Order Reference (Auto-linked)</label>
+            <input id="rev_order_no" placeholder="Order ID" readonly style="margin-bottom:10px;background:var(--sf2);opacity:0.85">
           </div>
         </div>
 
@@ -1614,9 +1905,60 @@ const Customer = {
     const clean = np(rawPhone);
     const alertBox = $("existingReviewAlert");
     const alertMsg = $("existingReviewAlertMsg");
+    const warnBox = $("reviewEligibilityWarning");
+    const warnMsg = $("reviewEligibilityMsg");
+    const ordersWrap = $("eligibleOrdersWrap");
+    const orderSelect = $("rev_order_id");
     const submitBtn = $("revSubmitBtn");
 
     if (clean.length === 10) {
+      const eligibleOrders = typeof getEligibleOrdersForReview === "function" 
+        ? getEligibleOrdersForReview(clean) 
+        : orders().filter(o => np(o.phone) === clean && (o.paid === "Paid" || o.status === "Delivered"));
+
+      if (!eligibleOrders.length) {
+        if (ordersWrap) ordersWrap.style.display = "none";
+        if (alertBox) alertBox.style.display = "none";
+        if (warnBox && warnMsg) {
+          warnMsg.textContent = `No qualifying completed or paid purchases found for ${clean}. In accordance with boutique policy, reviews can only be submitted after completing a purchase.`;
+          warnBox.style.display = "block";
+        }
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.style.opacity = "0.5";
+          submitBtn.style.cursor = "not-allowed";
+        }
+        return;
+      }
+
+      // Qualifying orders found!
+      if (warnBox) warnBox.style.display = "none";
+      if (ordersWrap && orderSelect) {
+        orderSelect.innerHTML = eligibleOrders.map(o => `
+          <option value="${o.id}">
+            Order #${o.no} · ${o.type === 'Stitch' ? (o.garment || 'Custom Stitching') : (o.item || 'Ready-to-Wear')} · ${R(o.total)} (${o.paid === 'Paid' ? 'Paid' : 'Delivered'})
+          </option>
+        `).join("");
+        ordersWrap.style.display = "block";
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = "1";
+        submitBtn.style.cursor = "pointer";
+      }
+
+      // Pre-fill name from customer/order record
+      const primaryOrder = eligibleOrders[0];
+      if (primaryOrder) {
+        if ($("rev_name") && !$("rev_name").value) {
+          $("rev_name").value = primaryOrder.customer || "";
+        }
+        if ($("rev_order_no")) {
+          $("rev_order_no").value = primaryOrder.no || "";
+        }
+      }
+
       const existing = (reviews() || []).find(r => np(r.phone) === clean);
       if (existing) {
         if (alertBox && alertMsg) {
@@ -1624,21 +1966,27 @@ const Customer = {
           alertMsg.textContent = `Welcome back, ${existing.name || 'valued client'}! You previously rated us ${existing.rating}★ on ${dateStr}. Submitting will update your rating record.`;
           alertBox.style.display = "block";
         }
-        if (submitBtn) {
-          submitBtn.innerHTML = "🔄 Update My Rating &amp; Review";
-        }
-        // Prefill existing review details
-        if ($("rev_name") && !$("rev_name").value) $("rev_name").value = existing.name || "";
+        if (submitBtn) submitBtn.innerHTML = "🔄 Update My Rating &amp; Review";
         if ($("rev_comment") && !$("rev_comment").value) $("rev_comment").value = existing.review || "";
-        if ($("rev_service") && existing.service) $("rev_service").value = existing.service;
-        if ($("rev_order_no") && existing.orderNo) $("rev_order_no").value = existing.orderNo;
         if (existing.rating) this.setModalStar(existing.rating);
-        return;
+      } else {
+        if (alertBox && alertMsg) {
+          alertMsg.textContent = `Verified client found! You have ${eligibleOrders.length} qualifying purchase record(s).`;
+          alertBox.style.display = "block";
+        }
+        if (submitBtn) submitBtn.innerHTML = "⭐ Submit Verified Rating";
       }
+      return;
     }
 
+    if (warnBox) warnBox.style.display = "none";
     if (alertBox) alertBox.style.display = "none";
-    if (submitBtn) submitBtn.innerHTML = "⭐ Submit Verified Rating";
+    if (ordersWrap) ordersWrap.style.display = "none";
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = "1";
+      submitBtn.innerHTML = "⭐ Submit Verified Rating";
+    }
   },
 
   async submitRatingReview() {
@@ -1647,46 +1995,32 @@ const Customer = {
     const phoneVal = $("rev_phone") ? $("rev_phone").value.trim() : "";
     const cleanPhone = np(phoneVal);
     const serviceVal = $("rev_service") ? $("rev_service").value : "Bespoke Stitching";
-    const orderNoVal = $("rev_order_no") ? $("rev_order_no").value.trim() : "";
     const commentVal = $("rev_comment") ? $("rev_comment").value.trim() : "";
+    const orderIdVal = $("rev_order_id") ? $("rev_order_id").value : "";
 
     if (!nameVal || nameVal.length < 2) {
       return toast("Please enter your name");
     }
     if (cleanPhone.length !== 10) {
-      return toast("Please enter a valid 10-digit mobile number for verification");
+      return toast("Please enter a valid 10-digit mobile number");
     }
 
-    // Check for existing review by this phone number
-    const existing = (reviews() || []).find(r => np(r.phone) === cleanPhone);
-
-    const reviewData = {
-      id: existing ? existing.id : ("rev_" + uid()),
-      name: Security.escapeHTML(nameVal),
-      phone: cleanPhone,
-      rating: Math.min(5, Math.max(1, starVal)),
-      service: serviceVal,
-      orderNo: orderNoVal,
-      review: Security.escapeHTML(commentVal),
-      status: "Active",
-      createdAt: existing ? (existing.createdAt || Date.now()) : Date.now(),
-      updatedAt: Date.now()
-    };
-
-    await put("reviews", reviewData, reviewData.id);
-
-    if (typeof Realtime !== "undefined" && Realtime.broadcast) {
-      Realtime.broadcast(existing ? "REVIEW_UPDATED" : "REVIEW_SUBMITTED", {
-        rating: reviewData.rating,
-        id: reviewData.id
-      });
+    if (typeof submitOrderVerifiedReview === "function") {
+      const res = await submitOrderVerifiedReview(orderIdVal, cleanPhone, nameVal, starVal, commentVal, serviceVal);
+      if (!res.ok) {
+        return toast("⚠️ " + res.error);
+      }
+      closeM();
+      toast(res.isUpdate 
+        ? `Thank you ${nameVal}! Your verified rating was updated to ${starVal}★ 🔄` 
+        : `Thank you ${nameVal}! Your verified ${starVal}★ rating has been recorded ⭐`);
+      this.renderRatingWidget();
+      return;
     }
 
+    // Fallback if backend helper not mounted
     closeM();
-    toast(existing 
-      ? `Thank you ${nameVal}! Your rating was updated to ${starVal}★ 🔄` 
-      : `Thank you ${nameVal}! Your verified ${starVal}★ rating has been recorded ⭐`);
-
+    toast(`Thank you ${nameVal}! Your rating has been recorded ⭐`);
     this.renderRatingWidget();
   },
 

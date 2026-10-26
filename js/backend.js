@@ -212,6 +212,139 @@ function getShopRatingStats() {
   };
 }
 
+// ------------------------------------------
+// Genuine Customer Analytics & Order-Linked Reviews
+// ------------------------------------------
+function getGenuineCustomerStats() {
+  const os = orders();
+  const qualifyingOrders = os.filter(o => o.status === "Delivered" || o.paid === "Paid");
+  const uniquePhones = new Set();
+  const phoneOrderCounts = {};
+
+  qualifyingOrders.forEach(o => {
+    const clean = np(o.phone);
+    if (clean && clean.length === 10) {
+      uniquePhones.add(clean);
+      phoneOrderCounts[clean] = (phoneOrderCounts[clean] || 0) + 1;
+    }
+  });
+
+  const totalRegistered = (S.customers || []).length;
+  const qualifyingBuyersCount = uniquePhones.size;
+  const repeatBuyersCount = Object.values(phoneOrderCounts).filter(cnt => cnt >= 2).length;
+  const retentionRate = qualifyingBuyersCount > 0 ? Math.round((repeatBuyersCount / qualifyingBuyersCount) * 100) : 0;
+
+  return {
+    totalRegistered,
+    qualifyingBuyersCount,
+    repeatBuyersCount,
+    retentionRate,
+    displayCount: qualifyingBuyersCount > 0 ? qualifyingBuyersCount : Math.max(1, totalRegistered)
+  };
+}
+
+function getEligibleOrdersForReview(phone) {
+  const clean = np(phone);
+  if (!clean || clean.length !== 10) return [];
+  const os = orders();
+  const revs = reviews();
+
+  const eligible = os.filter(o => {
+    const matchPhone = np(o.phone) === clean;
+    const isQualifying = o.paid === "Paid" || o.status === "Delivered";
+    const notCancelled = o.status !== "Cancelled";
+    return matchPhone && isQualifying && notCancelled;
+  });
+
+  return eligible.map(o => {
+    const existingRev = revs.find(r => r.orderId === o.id || (r.orderNo && r.orderNo === o.no));
+    const itemsSummary = o.type === "Stitch" 
+      ? (o.garment || "Bespoke Custom Stitching") 
+      : (Array.isArray(o.items) ? o.items.map(i => `${i.n} (${i.size || 'Std'})`).join(", ") : "Boutique Collection");
+
+    return {
+      id: o.id,
+      no: o.no,
+      type: o.type,
+      garment: o.garment,
+      itemsSummary,
+      total: o.total,
+      paid: o.paid,
+      status: o.status,
+      date: o.ts,
+      dateFormatted: new Date(o.ts).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+      isReviewed: Boolean(existingRev),
+      reviewId: existingRev ? existingRev.id : null,
+      existingRating: existingRev ? existingRev.rating : null,
+      existingReviewText: existingRev ? existingRev.review : ""
+    };
+  });
+}
+
+function submitOrderVerifiedReview(orderId, phone, name, rating, comment, service = "Bespoke Stitching") {
+  const cleanPhone = np(phone);
+  const o = orders().find(x => x.id === orderId || x.no === orderId);
+  if (!o) {
+    return Promise.resolve({ success: false, message: "Order not found. Reviews require a valid boutique purchase." });
+  }
+  if (np(o.phone) !== cleanPhone) {
+    return Promise.resolve({ success: false, message: "Mobile number does not match this order's registered client." });
+  }
+  if (o.paid !== "Paid" && o.status !== "Delivered") {
+    return Promise.resolve({ success: false, message: "Reviews are eligible only for paid or delivered orders." });
+  }
+
+  const existing = reviews().find(r => r.orderId === o.id || (r.orderNo && r.orderNo === o.no));
+
+  const fraudAnalysis = typeof AI !== "undefined" && typeof AI.analyzeReviewFraud === "function"
+    ? AI.analyzeReviewFraud(comment, rating, o, { phone: cleanPhone, name })
+    : { fraudScore: 5, fraudFlags: [], recommendation: "Approved" };
+
+  const reviewRecord = {
+    id: existing ? existing.id : ("rev_" + uid()),
+    orderId: o.id,
+    orderNo: o.no,
+    verifiedPurchase: true,
+    name: Security.sanitize(name || o.customer || "Valued Client"),
+    phone: cleanPhone,
+    rating: Math.min(5, Math.max(1, Number(rating) || 5)),
+    service: Security.sanitize(service || (o.type === 'Stitch' ? o.garment : 'Readymade Wear')),
+    review: Security.sanitize(comment || ""),
+    status: fraudAnalysis.fraudScore >= 60 ? "Flagged" : (existing ? existing.status : "Approved"),
+    fraudScore: fraudAnalysis.fraudScore || 0,
+    fraudFlags: fraudAnalysis.fraudFlags || [],
+    fraudReason: fraudAnalysis.reason || "Verified purchase match",
+    createdAt: existing ? (existing.createdAt || Date.now()) : Date.now(),
+    updatedAt: Date.now()
+  };
+
+  return put("reviews", reviewRecord, reviewRecord.id).then(() => {
+    if (typeof Realtime !== "undefined" && Realtime.broadcast) {
+      Realtime.broadcast(existing ? "REVIEW_UPDATED" : "REVIEW_SUBMITTED", reviewRecord);
+    }
+    return {
+      success: true,
+      review: reviewRecord,
+      isUpdate: Boolean(existing),
+      message: existing 
+        ? `Your review for Order #${o.no} was updated successfully! 🔄` 
+        : `Thank you ${reviewRecord.name}! Your verified ${reviewRecord.rating}★ rating has been recorded ⭐`
+    };
+  });
+}
+
+function moderateReview(reviewId, newStatus, adminNote = "") {
+  const r = reviews().find(x => x.id === reviewId);
+  if (!r) return Promise.resolve();
+  const patch = { 
+    status: newStatus,
+    moderatedAt: Date.now(),
+    moderatedBy: S.me?.name || "Admin Atelier",
+    moderationNote: adminNote || `Status set to ${newStatus}`
+  };
+  return upd("reviews", reviewId, patch);
+}
+
 // Worker & Salary calculations
 const monKey = ts => {
   const d = new Date(ts);
@@ -979,8 +1112,175 @@ function deleteAttendance(wid, date) {
   }
 }
 
+// ------------------------------------------
+// Product Size, Colour & Variant-Level Inventory Engine
+// ------------------------------------------
+function ensureProductVariants(product) {
+  if (!product) return [];
+  if (Array.isArray(product.variants) && product.variants.length > 0) {
+    return product.variants;
+  }
+  if (typeof generateDefaultVariants === "function") {
+    product.variants = generateDefaultVariants(product);
+  } else {
+    product.variants = [{
+      id: `var_${product.id}_def`,
+      sku: `SD-${(product.id || "PRD").toUpperCase()}-STD`,
+      size: "Free Size",
+      color: "Standard",
+      stock: Number(product.stock) || 0,
+      reserved: 0,
+      reorderThreshold: 3,
+      price: product.price || 0
+    }];
+  }
+  return product.variants;
+}
+
+function updateVariantStock(productId, variantId, qtyDelta, isDirectSet = false) {
+  const p = products().find(x => x.id === productId);
+  if (!p) return Promise.resolve();
+  const vars = ensureProductVariants(p);
+  const v = vars.find(x => x.id === variantId);
+  if (v) {
+    v.stock = isDirectSet ? Math.max(0, Number(qtyDelta) || 0) : Math.max(0, (Number(v.stock) || 0) + Number(qtyDelta));
+    p.stock = vars.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0);
+    p.variants = vars;
+    return upd("products", p.id, { stock: p.stock, variants: vars });
+  }
+  return Promise.resolve();
+}
+
+function addVariantToProduct(productId, variantData) {
+  const p = products().find(x => x.id === productId);
+  if (!p) return Promise.resolve();
+  const vars = ensureProductVariants(p);
+  const newVar = {
+    id: `var_${p.id}_${uid()}`,
+    sku: Security.sanitize(variantData.sku || `SD-${p.id.toUpperCase()}-${uid().slice(0, 4)}`),
+    size: Security.sanitize(variantData.size || "Free Size"),
+    color: Security.sanitize(variantData.color || "Standard"),
+    stock: Math.max(0, Number(variantData.stock) || 0),
+    reserved: 0,
+    reorderThreshold: Math.max(0, Number(variantData.reorderThreshold) || 3),
+    price: Number(variantData.price) || p.price || 0
+  };
+  vars.push(newVar);
+  p.stock = vars.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0);
+  p.variants = vars;
+  return upd("products", p.id, { stock: p.stock, variants: vars });
+}
+
+function deleteVariantFromProduct(productId, variantId) {
+  const p = products().find(x => x.id === productId);
+  if (!p) return Promise.resolve();
+  const vars = ensureProductVariants(p).filter(v => v.id !== variantId);
+  p.stock = vars.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0);
+  p.variants = vars;
+  return upd("products", p.id, { stock: p.stock, variants: vars });
+}
+
+function validateAndDeductStock(cartItems) {
+  if (!Array.isArray(cartItems) || !cartItems.length) return { valid: false, message: "Cart is empty" };
+  const allProds = products();
+
+  for (const item of cartItems) {
+    const pr = allProds.find(p => p.id === item.id);
+    if (!pr) {
+      return { valid: false, message: `Product "${item.n}" is no longer in our boutique catalogue.` };
+    }
+    const vars = Array.isArray(pr.variants) && pr.variants.length > 0 ? pr.variants : null;
+    if (vars && item.variantId) {
+      const v = vars.find(x => x.id === item.variantId);
+      if (!v || v.stock < item.q) {
+        return { valid: false, message: `Insufficient stock for "${pr.name}" (${item.size || ''} ${item.color || ''}). Available: ${v ? v.stock : 0}` };
+      }
+    } else if (vars && (item.size || item.color)) {
+      const v = vars.find(x => (!item.size || x.size === item.size) && (!item.color || x.color === item.color));
+      if (v && v.stock < item.q) {
+        return { valid: false, message: `Insufficient stock for "${pr.name}" (${item.size} · ${item.color}). Available: ${v.stock}` };
+      }
+    } else {
+      if ((pr.stock || 0) < item.q) {
+        return { valid: false, message: `Insufficient stock for "${pr.name}". Available: ${pr.stock || 0}` };
+      }
+    }
+  }
+
+  cartItems.forEach(item => {
+    const pr = allProds.find(p => p.id === item.id);
+    if (!pr) return;
+    const vars = Array.isArray(pr.variants) && pr.variants.length > 0 ? pr.variants : null;
+
+    if (vars && item.variantId) {
+      const v = vars.find(x => x.id === item.variantId);
+      if (v) v.stock = Math.max(0, v.stock - item.q);
+    } else if (vars && (item.size || item.color)) {
+      const v = vars.find(x => (!item.size || x.size === item.size) && (!item.color || x.color === item.color));
+      if (v) v.stock = Math.max(0, v.stock - item.q);
+    }
+
+    if (vars) {
+      pr.stock = vars.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0);
+      upd("products", pr.id, { stock: pr.stock, variants: vars });
+    } else {
+      const newStock = Math.max(0, (Number(pr.stock) || 0) - item.q);
+      upd("products", pr.id, { stock: newStock });
+    }
+  });
+
+  return { valid: true };
+}
+
+// ------------------------------------------
+// AI-Assisted UPI Payment Screenshot Verification
+// ------------------------------------------
+function verifyPaymentProof(orderId, isApproved, adminNote = "") {
+  const o = orders().find(x => x.id === orderId);
+  if (!o) return Promise.resolve();
+  const history = o.history || [];
+  const proof = o.paymentProof || {};
+
+  if (isApproved) {
+    proof.status = "Verified";
+    proof.verifiedAt = Date.now();
+    proof.verifiedBy = S.me?.name || "Admin Atelier";
+    proof.adminNote = adminNote || "Payment verified against merchant UPI bank records";
+    history.push({
+      status: o.status,
+      at: Date.now(),
+      note: `Payment proof verified by ${proof.verifiedBy}. Marked as Paid.`
+    });
+    return upd("orders", orderId, {
+      paid: "Paid",
+      paidAt: Date.now(),
+      paymentProof: proof,
+      history
+    }).then(() => {
+      if (typeof toast === "function") toast(`Order #${o.no} confirmed & marked Paid! 💳✅`);
+    });
+  } else {
+    proof.status = "Rejected";
+    proof.rejectedAt = Date.now();
+    proof.rejectedBy = S.me?.name || "Admin Atelier";
+    proof.rejectReason = adminNote || "Transaction reference unverified or amount mismatch";
+    history.push({
+      status: o.status,
+      at: Date.now(),
+      note: `Payment proof rejected: ${proof.rejectReason}`
+    });
+    return upd("orders", orderId, {
+      paid: "Unpaid",
+      paymentProof: proof,
+      history
+    }).then(() => {
+      if (typeof toast === "function") toast(`Payment proof for Order #${o.no} marked as Rejected ⚠️`);
+    });
+  }
+}
+
 // ---------- smart revenue analytics engine ----------
-function getRevenueAnalytics(period = "7days") {
+function getRevenueAnalytics(period = "daily") {
   const os = orders();
   const validOrders = os.filter(x => x.status !== "Cancelled");
   const now = new Date();
@@ -988,12 +1288,12 @@ function getRevenueAnalytics(period = "7days") {
   const curMonthNum = now.getMonth();
   const curYearNum = now.getFullYear();
 
-  // Segregate orders by payment confirmation status (Strict financial separation)
+  // Strict Financial Separation: Confirmed Paid vs Claimed (unverified) vs Unpaid
   const paidOrders = validOrders.filter(x => x.paid === "Paid");
   const claimedOrders = validOrders.filter(x => x.paid === "Claimed");
   const unpaidOrders = validOrders.filter(x => x.paid === "Unpaid" || !x.paid);
 
-  // 1. Confirmed Lifetime Totals: Counted ONLY when payment is confirmed as Paid
+  // 1. Confirmed Lifetime Totals: Counted strictly ONLY when payment is confirmed as Paid
   const lifetimeRev = paidOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
   const totalPaidRev = lifetimeRev;
   const totalClaimedRev = claimedOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
@@ -1048,40 +1348,129 @@ function getRevenueAnalytics(period = "7days") {
     }
   });
 
-  // 6. Chart Series for requested period
+  // 6. Multi-Period Chart Series Aggregator (Daily, Weekly, Monthly, Yearly)
   const series = [];
-  let daysCount = 7;
-  if (period === "30days") daysCount = 30;
-  else if (period === "thisMonth") daysCount = Math.max(7, now.getDate());
+  const normalizedPeriod = (period === "7days" || period === "14days") ? "daily" : period;
 
-  for (let i = daysCount - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    const dtIso = d.toISOString().slice(0, 10);
-    const dayName = d.toLocaleDateString("en-IN", { weekday: "short" });
-    const dayNum = d.getDate();
-    const dayOrders = validOrders.filter(x => new Date(x.ts).toDateString() === d.toDateString());
-    const dayPaidOrders = dayOrders.filter(x => x.paid === "Paid");
-    const dayClaimedOrders = dayOrders.filter(x => x.paid === "Claimed");
-    const dayUnpaidOrders = dayOrders.filter(x => x.paid === "Unpaid" || !x.paid);
+  if (normalizedPeriod === "weekly") {
+    // Last 8 weeks
+    for (let w = 7; w >= 0; w--) {
+      const endMs = now.getTime() - (w * 7 * 86400000);
+      const startMs = endMs - (7 * 86400000);
+      const wStartDate = new Date(startMs);
+      const wEndDate = new Date(endMs);
+      const wOrders = validOrders.filter(x => x.ts >= startMs && x.ts < endMs);
+      const wPaid = wOrders.filter(x => x.paid === "Paid");
+      const wClaimed = wOrders.filter(x => x.paid === "Claimed");
+      const wUnpaid = wOrders.filter(x => x.paid === "Unpaid" || !x.paid);
 
-    const dayPaidRev = dayPaidOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
-    const dayClaimedRev = dayClaimedOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
-    const dayUnpaidRev = dayUnpaidOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
-    const isHighest = highestDay.amount > 0 && dayPaidRev === highestDay.amount;
+      const paidRev = wPaid.reduce((a, x) => a + (Number(x.total) || 0), 0);
+      const claimedRev = wClaimed.reduce((a, x) => a + (Number(x.total) || 0), 0);
+      const unpaidRev = wUnpaid.reduce((a, x) => a + (Number(x.total) || 0), 0);
 
-    series.push({
-      iso: dtIso,
-      label: daysCount <= 7 ? `${dayName} ${dayNum}` : `${dayNum}`,
-      fullDate: d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-      amount: dayPaidRev, // Confirmed paid revenue
-      paidAmount: dayPaidRev,
-      claimedAmount: dayClaimedRev,
-      unpaidAmount: dayUnpaidRev,
-      ordersCount: dayPaidOrders.length,
-      totalOrdersCount: dayOrders.length,
-      isHighest
-    });
+      series.push({
+        iso: `W${w}`,
+        label: w === 0 ? "This Week" : `${w}w ago`,
+        fullDate: `${wStartDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} – ${wEndDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`,
+        amount: paidRev,
+        paidAmount: paidRev,
+        claimedAmount: claimedRev,
+        unpaidAmount: unpaidRev,
+        ordersCount: wPaid.length,
+        totalOrdersCount: wOrders.length,
+        isHighest: false
+      });
+    }
+  } else if (normalizedPeriod === "monthly" || period === "30days") {
+    // Last 12 calendar months
+    for (let m = 11; m >= 0; m--) {
+      const targetMonth = new Date(now.getFullYear(), now.getMonth() - m, 1);
+      const mIdx = targetMonth.getMonth();
+      const yIdx = targetMonth.getFullYear();
+      const mOrders = validOrders.filter(x => {
+        const d = new Date(x.ts);
+        return d.getMonth() === mIdx && d.getFullYear() === yIdx;
+      });
+      const mPaid = mOrders.filter(x => x.paid === "Paid");
+      const mClaimed = mOrders.filter(x => x.paid === "Claimed");
+      const mUnpaid = mOrders.filter(x => x.paid === "Unpaid" || !x.paid);
+
+      const paidRev = mPaid.reduce((a, x) => a + (Number(x.total) || 0), 0);
+      const claimedRev = mClaimed.reduce((a, x) => a + (Number(x.total) || 0), 0);
+      const unpaidRev = mUnpaid.reduce((a, x) => a + (Number(x.total) || 0), 0);
+
+      series.push({
+        iso: `${yIdx}-${String(mIdx + 1).padStart(2, "0")}`,
+        label: targetMonth.toLocaleDateString("en-IN", { month: "short" }),
+        fullDate: targetMonth.toLocaleDateString("en-IN", { month: "long", year: "numeric" }),
+        amount: paidRev,
+        paidAmount: paidRev,
+        claimedAmount: claimedRev,
+        unpaidAmount: unpaidRev,
+        ordersCount: mPaid.length,
+        totalOrdersCount: mOrders.length,
+        isHighest: false
+      });
+    }
+  } else if (normalizedPeriod === "yearly") {
+    // Multi-year comparison (e.g. 2024, 2025, 2026)
+    const baseYear = curYearNum;
+    for (let y = baseYear - 2; y <= baseYear; y++) {
+      const yOrders = validOrders.filter(x => new Date(x.ts).getFullYear() === y);
+      const yPaid = yOrders.filter(x => x.paid === "Paid");
+      const yClaimed = yOrders.filter(x => x.paid === "Claimed");
+      const yUnpaid = yOrders.filter(x => x.paid === "Unpaid" || !x.paid);
+
+      const paidRev = yPaid.reduce((a, x) => a + (Number(x.total) || 0), 0);
+      const claimedRev = yClaimed.reduce((a, x) => a + (Number(x.total) || 0), 0);
+      const unpaidRev = yUnpaid.reduce((a, x) => a + (Number(x.total) || 0), 0);
+
+      series.push({
+        iso: String(y),
+        label: String(y),
+        fullDate: `Year ${y}`,
+        amount: paidRev,
+        paidAmount: paidRev,
+        claimedAmount: claimedRev,
+        unpaidAmount: unpaidRev,
+        ordersCount: yPaid.length,
+        totalOrdersCount: yOrders.length,
+        isHighest: false
+      });
+    }
+  } else {
+    // Default Daily (Last 14 days)
+    const daysCount = 14;
+    for (let i = daysCount - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const dtIso = d.toISOString().slice(0, 10);
+      const dayName = d.toLocaleDateString("en-IN", { weekday: "short" });
+      const dayNum = d.getDate();
+      const dayOrders = validOrders.filter(x => new Date(x.ts).toDateString() === d.toDateString());
+      const dayPaidOrders = dayOrders.filter(x => x.paid === "Paid");
+      const dayClaimedOrders = dayOrders.filter(x => x.paid === "Claimed");
+      const dayUnpaidOrders = dayOrders.filter(x => x.paid === "Unpaid" || !x.paid);
+
+      const dayPaidRev = dayPaidOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
+      const dayClaimedRev = dayClaimedOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
+      const dayUnpaidRev = dayUnpaidOrders.reduce((a, x) => a + (Number(x.total) || 0), 0);
+      const isHighest = highestDay.amount > 0 && dayPaidRev === highestDay.amount;
+
+      series.push({
+        iso: dtIso,
+        label: i < 7 ? `${dayName} ${dayNum}` : `${dayNum}`,
+        fullDate: d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+        amount: dayPaidRev,
+        paidAmount: dayPaidRev,
+        claimedAmount: dayClaimedRev,
+        unpaidAmount: dayUnpaidRev,
+        ordersCount: dayPaidOrders.length,
+        totalOrdersCount: dayOrders.length,
+        isHighest
+      });
+    }
   }
+
   const peakChartAmt = Math.max(1, ...series.map(s => s.amount));
 
   // 7. Confirmed Segment Split: Bespoke Stitching vs Readymade
@@ -1103,12 +1492,21 @@ function getRevenueAnalytics(period = "7days") {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4);
 
+  // 10. Financial Margins & Expense Intelligence
+  const totalWagesPaid = (S.payouts || []).reduce((a, p) => a + (Number(p.amount) || 0), 0);
+  const estimatedTailoringExpenses = totalWagesPaid || Math.round(stitchingRev * 0.35);
+  const estimatedGrossProfit = Math.max(0, lifetimeRev - estimatedTailoringExpenses);
+  const averageOrderValue = paidOrders.length ? Math.round(lifetimeRev / paidOrders.length) : (validOrders.length ? Math.round(totalBilledRev / validOrders.length) : 0);
+
   return {
     lifetimeRev,
     totalPaidRev,
     totalClaimedRev,
     totalUnpaidRev,
     totalBilledRev,
+    estimatedTailoringExpenses,
+    estimatedGrossProfit,
+    averageOrderValue,
     todayRev,
     todayPaidRev,
     todayClaimedRev,
@@ -1128,6 +1526,7 @@ function getRevenueAnalytics(period = "7days") {
     monthOrders: monthPaidOrders.length,
     monthTotalOrders: monthOrders.length,
     highestDay,
+    currentPeriod: normalizedPeriod,
     series,
     peakChartAmt,
     stitchingRev,
@@ -1372,6 +1771,17 @@ function exportReviewsCSV() {
 
 window.reviews = reviews;
 window.getShopRatingStats = getShopRatingStats;
+window.getGenuineCustomerStats = getGenuineCustomerStats;
+window.getEligibleOrdersForReview = getEligibleOrdersForReview;
+window.submitOrderVerifiedReview = submitOrderVerifiedReview;
+window.moderateReview = moderateReview;
+window.verifyPaymentProof = verifyPaymentProof;
+window.ensureProductVariants = ensureProductVariants;
+window.updateVariantStock = updateVariantStock;
+window.addVariantToProduct = addVariantToProduct;
+window.deleteVariantFromProduct = deleteVariantFromProduct;
+window.validateAndDeductStock = validateAndDeductStock;
+window.getRevenueAnalytics = getRevenueAnalytics;
 window.exportReviewsCSV = exportReviewsCSV;
 window.saveCfg = saveCfg;
 window.setShopLiveStatus = setShopLiveStatus;

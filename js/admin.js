@@ -702,30 +702,6 @@ function quickSetShopStatus(mode) {
   if (typeof renderFront === "function") renderFront();
 }
 
-function getLiveShopActivityList() {
-  const os = orders().slice().sort((a,b)=>b.ts-a.ts).slice(0, 5);
-  const wk = (S.work || []).slice().sort((a,b)=>b.ts-a.ts).slice(0, 5);
-  
-  const activities = [];
-  os.forEach(o => {
-    activities.push({
-      icon: o.type === "Stitch" ? "✂️" : "🛍️",
-      text: `Order <b>#${o.no}</b> placed by <b>${Security.escapeHTML(o.customer)}</b> (${R(o.total)} · ${E(o.pay)})`,
-      time: new Date(o.ts).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
-      ts: o.ts
-    });
-  });
-  wk.forEach(w => {
-    activities.push({
-      icon: "🧵",
-      text: `<b>${Security.escapeHTML(w.wn || 'Artisan')}</b> completed <b>${w.qty}</b> pcs of <b>${Security.escapeHTML(w.task)}</b> (+${R(w.qty * (w.rate || 0))})`,
-      time: new Date(w.ts).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
-      ts: w.ts
-    });
-  });
-  activities.sort((a,b)=>b.ts-a.ts);
-  return activities.slice(0, 6);
-}
 
 function renderDash() {
   const period = S.chartPeriod || "7days";
@@ -1249,63 +1225,41 @@ function renderDash() {
       </div>
     </div>
 
-    <!-- Artisan Performance Leaderboard & Live Shop Activity Stream -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 300px), 1fr));gap:18px;margin-bottom:20px">
-      <!-- Artisan Leaderboard Card -->
-      <div class="box" style="margin:0">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div>
-            <b>🧵 Artisan Performance &amp; Wages Leaderboard</b>
-            <p style="font-size:0.78rem;color:var(--mu);margin:2px 0 0">Ranking by completed garments &amp; fair piece-rate earnings (${Security.escapeHTML(curMon)})</p>
-          </div>
-          <button class="btn s" onclick="S.tab='Workers';panel()">Artisans ➔</button>
+    <!-- Artisan Performance Leaderboard -->
+    <div class="box" style="margin-bottom:20px;border-top:3px solid var(--gd)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <div>
+          <b>🧵 Atelier Artisan Performance &amp; Wages Leaderboard</b>
+          <p style="font-size:0.8rem;color:var(--mu);margin:2px 0 0">Live ranking by completed bespoke garments &amp; fair piece-rate earnings (${Security.escapeHTML(curMon)})</p>
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          ${(() => {
-            const rankedWorkers = workers().map(w => {
-              const stats = typeof getWorkerMonthlyStats === "function" ? getWorkerMonthlyStats(w.id, curMon) : { totalPieces: 0, totalEarned: 0 };
-              return { ...w, pieces: stats.totalPieces, earned: stats.totalEarned };
-            }).sort((a, b) => b.pieces - a.pieces);
-
-            return rankedWorkers.map((w, idx) => `
-              <div style="display:flex;justify-content:space-between;align-items:center;background:var(--sf2);padding:8px 12px;border-radius:12px;font-size:0.84rem">
-                <div style="display:flex;align-items:center;gap:10px">
-                  <span style="font-size:1.1rem">${idx === 0 ? '🏆' : (idx === 1 ? '🥈' : '🥉')}</span>
-                  <div>
-                    <b>${Security.escapeHTML(w.name)}</b><br>
-                    <small style="color:var(--mu)">${Security.escapeHTML(w.role)}</small>
-                  </div>
-                </div>
-                <div style="text-align:right">
-                  <b style="color:var(--br)">${w.pieces} pcs</b><br>
-                  <span style="color:var(--ok);font-size:0.78rem;font-weight:600">${R(w.earned)}</span>
-                </div>
-              </div>
-            `).join("") || '<p style="color:var(--mu);text-align:center;padding:12px">No artisan records logged yet.</p>';
-          })()}
+        <div style="display:flex;gap:8px">
+          <button class="btn s" onclick="S.tab='Salary';panel()">Salary &amp; Attendance ➔</button>
+          <button class="btn s p" onclick="S.tab='Workers';panel()">Artisans ➔</button>
         </div>
       </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 260px), 1fr));gap:12px">
+        ${(() => {
+          const rankedWorkers = workers().map(w => {
+            const stats = typeof getWorkerMonthlyStats === "function" ? getWorkerMonthlyStats(w.id, curMon) : { totalPieces: 0, totalEarned: 0 };
+            return { ...w, pieces: stats.totalPieces, earned: stats.totalEarned };
+          }).sort((a, b) => b.pieces - a.pieces);
 
-      <!-- Live Shop Activity Feed -->
-      <div class="box" style="margin:0">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div>
-            <b>⚡ Live Shop Activity &amp; Audit Stream</b>
-            <p style="font-size:0.78rem;color:var(--mu);margin:2px 0 0">Real-time order intakes, artisan submissions &amp; transactions</p>
-          </div>
-          <span class="live" style="font-size:0.75rem">Live Sync</span>
-        </div>
-        <div class="activity-stream">
-          ${getLiveShopActivityList().map(act => `
-            <div class="activity-item">
-              <div class="activity-icon">${act.icon}</div>
-              <div style="flex:1">
-                <div>${act.text}</div>
+          return rankedWorkers.map((w, idx) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;background:var(--sf2);padding:10px 14px;border-radius:12px;font-size:0.85rem;border:1px solid var(--ln)">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="font-size:1.4rem">${idx === 0 ? '🏆' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : '🧵'))}</span>
+                <div>
+                  <b style="font-size:0.92rem">${Security.escapeHTML(w.name)}</b><br>
+                  <small style="color:var(--mu)">${Security.escapeHTML(w.role)} · ID: ${Security.escapeHTML(w.wid || "")}</small>
+                </div>
               </div>
-              <span class="activity-time">${act.time}</span>
+              <div style="text-align:right">
+                <b style="color:var(--br);font-size:0.95rem">${w.pieces} pcs</b><br>
+                <span style="color:var(--ok);font-size:0.82rem;font-weight:700">${R(w.earned)}</span>
+              </div>
             </div>
-          `).join("") || '<p style="color:var(--mu);text-align:center;padding:16px">No recent activity recorded today.</p>'}
-        </div>
+          `).join("") || '<p style="color:var(--mu);text-align:center;padding:16px;grid-column:1/-1">No artisan records logged yet.</p>';
+        })()}
       </div>
     </div>
 
@@ -4728,6 +4682,16 @@ function batchMarkSundaysOff() {
   if (typeof panel === "function") panel();
 }
 
+function batchResetMonthAttendance() {
+  const cur = S.attYearMonth || new Date().toISOString().slice(0, 7);
+  if (!confirm(`Are you sure you want to clear all attendance records for ${cur}? This cannot be undone.`)) return;
+  const monthAtts = (S.attendance || []).filter(a => String(a.date).startsWith(cur));
+  if (!monthAtts.length) return toast(`No attendance records found for ${cur}`);
+  monthAtts.forEach(a => del("attendance", a.id));
+  toast(`Cleared ${monthAtts.length} attendance records for ${cur} 🗑️`);
+  if (typeof panel === "function") panel();
+}
+
 function openEditAttendanceModal(wid, dateStr) {
   const wrks = workers();
   if (!wrks.length) return toast("No registered artisans found");
@@ -4745,7 +4709,7 @@ function openEditAttendanceModal(wid, dateStr) {
       <div>
         <label>Select Artisan *</label>
         <select id="eat_wid" onchange="onAttModalWorkerChange()">
-          ${wrks.map(w => `<option value="${w.id}" ${w.id == targetWid ? "selected" : ""}>${E(w.name)} (${E(w.role)})</option>`).join("")}
+          ${wrks.map(w => `<option value="${w.id}" ${w.id == targetWid ? "selected" : ""}>${E(w.name)} (${E(w.role || "Artisan")})</option>`).join("")}
         </select>
       </div>
       <div>
@@ -4765,20 +4729,20 @@ function openEditAttendanceModal(wid, dateStr) {
         </select>
       </div>
       <div>
-        <label>Overtime (OT Hours)</label>
+        <label>Overtime (OT Extra Hours)</label>
         <select id="eat_ot">
-          <option value="0" ${!existing || !existing.otHours ? 'selected' : ''}>0 Hours (Normal Shift)</option>
-          <option value="1" ${existing && existing.otHours == 1 ? 'selected' : ''}>+1 Hour Overtime</option>
-          <option value="2" ${existing && existing.otHours == 2 ? 'selected' : ''}>+2 Hours Overtime</option>
-          <option value="3" ${existing && existing.otHours == 3 ? 'selected' : ''}>+3 Hours Overtime</option>
-          <option value="4" ${existing && existing.otHours >= 4 ? 'selected' : ''}>+4 Hours Overtime</option>
+          <option value="0" ${!existing || !existing.otHours ? 'selected' : ''}>0 Hours (Standard Shift)</option>
+          <option value="1" ${existing && existing.otHours == 1 ? 'selected' : ''}>+1 Hour Overtime (+₹50)</option>
+          <option value="2" ${existing && existing.otHours == 2 ? 'selected' : ''}>+2 Hours Overtime (+₹100)</option>
+          <option value="3" ${existing && existing.otHours == 3 ? 'selected' : ''}>+3 Hours Overtime (+₹150)</option>
+          <option value="4" ${existing && existing.otHours >= 4 ? 'selected' : ''}>+4 Hours Overtime (+₹200)</option>
         </select>
       </div>
     </div>
 
     <div style="margin-top:10px">
-      <label>Work Log / Special Task Note</label>
-      <input id="eat_note" placeholder="e.g. Worked late on bridal kali cuts, urgent trial fitting..." value="${existing ? Security.escapeHTML(existing.note || '') : ''}">
+      <label>Work Log / Special Task Fitting Note</label>
+      <input id="eat_note" placeholder="e.g. Completed heavy zardozi hand embroidery, urgent trial fitting..." value="${existing ? Security.escapeHTML(existing.note || '') : ''}">
     </div>
 
     <div style="display:flex;gap:8px;margin-top:18px">
@@ -4824,10 +4788,586 @@ function deleteAttendanceRecordFromModal() {
   if (typeof panel === "function") panel();
 }
 
+// ------------------------------------------
+// Piece Rates Manager (S.cfg.pay)
+// ------------------------------------------
+function openPieceRateManagerModal() {
+  if (!S.cfg.pay) S.cfg.pay = {};
+  const rates = S.cfg.pay;
+  const garmentKeys = Object.keys(rates);
+
+  modal(`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+      <h2 style="color:var(--br);margin:0">⚙️ Atelier Craft Piece Wage Rates</h2>
+      <span class="chip on" style="font-size:0.75rem">Live Wage Master</span>
+    </div>
+    <p style="font-size:0.84rem;color:var(--mu);margin-bottom:14px">
+      Configure standard piece-rate wages credited to tailoring artisans upon Master quality verification.
+    </p>
+
+    <div style="max-height:360px;overflow-y:auto;border:1px solid var(--ln);border-radius:10px;padding:8px" id="piece_rates_list_container">
+      <table style="margin:0">
+        <thead>
+          <tr>
+            <th>Garment / Craft Task</th>
+            <th>Piece Wage Rate (₹ / piece)</th>
+            <th style="width:60px">Action</th>
+          </tr>
+        </thead>
+        <tbody id="piece_rates_tbody">
+          ${garmentKeys.map(k => `
+            <tr data-rate-row="${Security.escapeHTML(k)}">
+              <td><b>${Security.escapeHTML(k)}</b></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-weight:700">₹</span>
+                  <input type="number" min="0" step="10" value="${rates[k] || 0}" class="piece-rate-input" data-key="${Security.escapeHTML(k)}" style="width:110px;margin:0;padding:4px 8px;font-weight:700;color:var(--ok)">
+                </div>
+              </td>
+              <td>
+                <button class="btn s d" onclick="removePieceRateRow('${Security.escapeHTML(k)}')">✕</button>
+              </td>
+            </tr>
+          `).join("") || '<tr><td colspan="3" style="text-align:center;padding:12px;color:var(--mu)">No craft piece rates configured yet.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Add New Garment Row -->
+    <div style="background:var(--sf2);border:1px solid var(--ln);border-radius:10px;padding:12px;margin-top:12px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <div style="flex:2;min-width:160px">
+        <label style="font-size:0.78rem">New Garment / Craft Work</label>
+        <input id="new_pr_name" placeholder="e.g. Designer Kaftan, Bridal Blouse" style="margin:0">
+      </div>
+      <div style="flex:1;min-width:110px">
+        <label style="font-size:0.78rem">Rate (₹ / piece)</label>
+        <input id="new_pr_rate" type="number" placeholder="250" style="margin:0">
+      </div>
+      <button class="btn s p" onclick="addNewCraftTaskFromInputs()" style="height:38px">Add Task</button>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:18px">
+      <button class="btn p" style="flex:2" onclick="saveAllPieceRatesFromModal()">💾 Save All Piece Rates</button>
+      <button class="btn" style="flex:1" onclick="closeM()">Cancel</button>
+    </div>
+  `);
+}
+
+function addNewCraftTaskFromInputs() {
+  const name = $("new_pr_name").value.trim();
+  const rate = Number($("new_pr_rate").value) || 0;
+  if (!name) return toast("Enter garment craft task name");
+  if (!S.cfg.pay) S.cfg.pay = {};
+  S.cfg.pay[name] = rate;
+  saveCfg();
+  openPieceRateManagerModal();
+  toast(`Added piece rate for ${name} (₹${rate}) ✅`);
+}
+
+function removePieceRateRow(key) {
+  if (confirm(`Remove piece rate for "${key}"?`)) {
+    if (S.cfg.pay && S.cfg.pay[key] !== undefined) {
+      delete S.cfg.pay[key];
+      saveCfg();
+      openPieceRateManagerModal();
+      toast(`Removed piece rate for ${key} 🗑️`);
+    }
+  }
+}
+
+function saveAllPieceRatesFromModal() {
+  const inputs = document.querySelectorAll(".piece-rate-input");
+  if (!S.cfg.pay) S.cfg.pay = {};
+  inputs.forEach(inp => {
+    const key = inp.dataset.key;
+    const val = Number(inp.value) || 0;
+    if (key) S.cfg.pay[key] = val;
+  });
+  saveCfg();
+  closeM();
+  toast("All craft piece rates saved & synchronized across atelier! ✅");
+  if (typeof panel === "function") panel();
+}
+
+// ------------------------------------------
+// Payouts & Disbursements Engine
+// ------------------------------------------
+function openPayoutModal(targetWid = "", prefillAmt = null) {
+  const wrks = workers();
+  if (!wrks.length) return toast("No registered artisans found");
+  const targetW = (targetWid && wrks.some(w => w.id == targetWid)) ? targetWid : wrks[0].id;
+  const curYm = S.attYearMonth || curMon;
+  const initialStats = getWorkerMonthlyStats(targetW, curYm);
+  const initialBalance = Math.max(0, initialStats.pendingBalance);
+
+  modal(`
+    <h2 style="color:var(--br);margin:0 0 6px">💰 Record Salary / Advance Disbursement</h2>
+    <p style="font-size:0.84rem;color:var(--mu);margin-bottom:14px">
+      Disburse tailored piece wage settlements, material advances, or monthly salaries to artisans.
+    </p>
+
+    <!-- Artisan Balance Summary Card -->
+    <div id="payout_artisan_summary" style="background:var(--sf2);border:1px solid var(--ln);border-radius:12px;padding:12px 14px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          <span style="font-size:0.75rem;color:var(--mu);text-transform:uppercase;font-weight:700">Artisan Outstanding Balance (${curYm})</span>
+          <div style="font-size:1.35rem;font-weight:800;color:${initialBalance > 0 ? 'var(--warn)' : 'var(--ok)'}">
+            ${R(initialBalance)}
+          </div>
+        </div>
+        <div style="text-align:right;font-size:0.8rem;color:var(--mu)">
+          Gross Earned: <b>${R(initialStats.grossEarned)}</b><br>
+          Paid to Date: <b style="color:var(--ok)">${R(initialStats.totalPaid)}</b>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div>
+        <label>Select Artisan *</label>
+        <select id="po_w" onchange="onPayoutModalWorkerChange()">
+          ${wrks.map(w => `<option value="${w.id}" ${w.id == targetW ? "selected" : ""}>${E(w.name)} (${E(w.role || "Artisan")})</option>`).join("")}
+        </select>
+      </div>
+      <div>
+        <label>Amount (₹) *</label>
+        <input id="po_amt" type="number" min="1" step="10" placeholder="e.g. 2500" value="${prefillAmt !== null ? prefillAmt : (initialBalance > 0 ? initialBalance : '')}">
+      </div>
+    </div>
+
+    <!-- Quick Settlement Shortcut Buttons -->
+    <div style="display:flex;gap:8px;margin:8px 0 12px;flex-wrap:wrap">
+      <span style="font-size:0.78rem;color:var(--mu);align-self:center">⚡ Quick Fill:</span>
+      <button type="button" class="btn s" onclick="quickFillPayoutAmount(1.0)" title="Fill 100% of outstanding balance">Full Balance (100%)</button>
+      <button type="button" class="btn s" onclick="quickFillPayoutAmount(0.5)" title="Fill 50% of outstanding balance">50% Advance</button>
+      <button type="button" class="btn s" onclick="$('po_amt').value='1000'">₹1,000</button>
+      <button type="button" class="btn s" onclick="$('po_amt').value='2000'">₹2,000</button>
+      <button type="button" class="btn s" onclick="$('po_amt').value='5000'">₹5,000</button>
+    </div>
+
+    <div class="g2">
+      <div>
+        <label>Disbursement Method *</label>
+        <select id="po_mode">
+          <option value="Cash">💵 Cash</option>
+          <option value="UPI">📱 UPI Transfer</option>
+          <option value="Bank Transfer">🏦 Bank NEFT/IMPS</option>
+          <option value="Cheque">📜 Cheque</option>
+        </select>
+      </div>
+      <div>
+        <label>Disbursement Note / Receipt Reference</label>
+        <input id="po_note" placeholder="e.g. October 2026 Piece Settlement" value="Settlement for ${curYm}">
+      </div>
+    </div>
+
+    <div id="payout_duplicate_alert" style="display:none;margin-top:12px;background:color-mix(in srgb,var(--warn) 12%,var(--sf));border:1px solid var(--warn);padding:10px 14px;border-radius:10px;font-size:0.84rem;color:var(--warn)">
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:18px">
+      <button class="btn p" style="flex:2" onclick="savePayoutWithValidation()">Disburse Payout &amp; Save ✅</button>
+      <button class="btn" style="flex:1" onclick="closeM()">Cancel</button>
+    </div>
+  `);
+}
+
+function openPayoutModalForWorker(wid) {
+  openPayoutModal(wid);
+}
+
+function onPayoutModalWorkerChange() {
+  const wid = $("po_w").value;
+  const curYm = S.attYearMonth || curMon;
+  const stats = getWorkerMonthlyStats(wid, curYm);
+  const bal = Math.max(0, stats.pendingBalance);
+
+  const summary = $("payout_artisan_summary");
+  if (summary) {
+    summary.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          <span style="font-size:0.75rem;color:var(--mu);text-transform:uppercase;font-weight:700">Artisan Outstanding Balance (${curYm})</span>
+          <div style="font-size:1.35rem;font-weight:800;color:${bal > 0 ? 'var(--warn)' : 'var(--ok)'}">
+            ${R(bal)}
+          </div>
+        </div>
+        <div style="text-align:right;font-size:0.8rem;color:var(--mu)">
+          Gross Earned: <b>${R(stats.grossEarned)}</b><br>
+          Paid to Date: <b style="color:var(--ok)">${R(stats.totalPaid)}</b>
+        </div>
+      </div>
+    `;
+  }
+  if ($("po_amt") && bal > 0) {
+    $("po_amt").value = bal;
+  }
+}
+
+function quickFillPayoutAmount(pct) {
+  const wid = $("po_w").value;
+  const curYm = S.attYearMonth || curMon;
+  const stats = getWorkerMonthlyStats(wid, curYm);
+  const bal = Math.max(0, stats.pendingBalance);
+  if ($("po_amt")) {
+    $("po_amt").value = Math.round(bal * pct);
+  }
+}
+
+function savePayoutWithValidation(overrideDuplicate = false) {
+  const wid = $("po_w").value;
+  const amt = Number($("po_amt").value);
+  const mode = $("po_mode").value;
+  const note = $("po_note").value.trim();
+
+  if (!amt || amt <= 0) return toast("Enter valid payout amount greater than ₹0");
+
+  // Duplicate payment prevention check (same worker + same amount in last 10 minutes)
+  const now = Date.now();
+  const tenMinsAgo = now - (10 * 60 * 1000);
+  const duplicate = (S.payouts || []).find(p => p.wid == wid && Number(p.amount) === amt && p.date >= tenMinsAgo);
+
+  if (duplicate && !overrideDuplicate) {
+    const alertBox = $("payout_duplicate_alert");
+    if (alertBox) {
+      const w = workers().find(x => x.id == wid);
+      const wName = w ? w.name : "Artisan";
+      const timeStr = new Date(duplicate.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+      alertBox.style.display = "block";
+      alertBox.innerHTML = `
+        <b>⚠️ Duplicate Payment Alert:</b><br>
+        A payment of <b>₹${amt}</b> was already recorded for <b>${Security.escapeHTML(wName)}</b> at <b>${timeStr}</b> (${duplicate.mode}).
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button class="btn s p" onclick="savePayoutWithValidation(true)">Confirm Duplicate Payment</button>
+          <button class="btn s" onclick="$('payout_duplicate_alert').style.display='none'">Cancel</button>
+        </div>
+      `;
+      return;
+    }
+  }
+
+  recordSalaryPayout(wid, amt, mode, note).then(() => {
+    closeM();
+    toast(`Payout of ${R(amt)} disbursed & logged successfully ✅`);
+    if (typeof panel === "function") panel();
+  });
+}
+
+function savePayout() {
+  savePayoutWithValidation();
+}
+
+function toggleArtisanDrawer(wid) {
+  S.expandedArtisanId = S.expandedArtisanId === wid ? null : wid;
+  if (typeof panel === "function") panel();
+}
+
+// ------------------------------------------
+// SVG Analytics Chart Generators
+// ------------------------------------------
+function renderPayrollComparisonChartSvg(workersList, curYm) {
+  if (!workersList || !workersList.length) {
+    return `<div style="text-align:center;padding:28px 16px;color:var(--mu);font-size:0.86rem">No registered artisans available to chart. Register artisans in Team &amp; HR.</div>`;
+  }
+
+  const data = workersList.slice(0, 7).map(w => {
+    const st = typeof getWorkerMonthlyStats === "function" ? getWorkerMonthlyStats(w.id, curYm) : { grossEarned: 0, totalPaid: 0, pendingBalance: 0 };
+    return {
+      name: w.name || "Artisan",
+      role: w.role || "",
+      gross: Math.max(0, st.grossEarned || 0),
+      paid: Math.max(0, st.totalPaid || 0),
+      pending: Math.max(0, st.pendingBalance || 0)
+    };
+  });
+
+  const maxVal = Math.max(2000, ...data.map(d => Math.max(d.gross, d.paid, d.pending)));
+  const rowHeight = 44;
+  const svgHeight = data.length * rowHeight + 35;
+  const labelWidth = 110;
+  const chartWidth = 340;
+
+  let svg = `
+    <div style="overflow-x:auto">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;font-size:0.75rem;color:var(--mu);flex-wrap:wrap">
+        <span style="display:inline-flex;align-items:center;gap:5px">
+          <span style="width:10px;height:10px;background:var(--gd);border-radius:2px"></span> Gross Earned
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:5px">
+          <span style="width:10px;height:10px;background:var(--ok);border-radius:2px"></span> Disbursed (Paid)
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:5px">
+          <span style="width:10px;height:10px;background:var(--warn);border-radius:2px"></span> Pending Balance
+        </span>
+      </div>
+      <svg viewBox="0 0 520 ${svgHeight}" style="width:100%;max-width:650px;display:block" aria-label="Payroll velocity comparison bar chart">
+  `;
+
+  data.forEach((d, i) => {
+    const y = i * rowHeight + 10;
+    const grossW = Math.max(2, Math.round((d.gross / maxVal) * chartWidth));
+    const paidW = Math.max(2, Math.round((d.paid / maxVal) * chartWidth));
+    const pendingW = Math.max(2, Math.round((d.pending / maxVal) * chartWidth));
+    const truncatedName = d.name.length > 13 ? d.name.slice(0, 11) + "…" : d.name;
+
+    svg += `
+      <g>
+        <text x="0" y="${y + 13}" fill="var(--tx)" font-size="11" font-weight="700">${Security.escapeHTML(truncatedName)}</text>
+        <text x="0" y="${y + 25}" fill="var(--mu)" font-size="9">${Security.escapeHTML(d.role ? (d.role.length > 15 ? d.role.slice(0, 13) + '…' : d.role) : '')}</text>
+        
+        <!-- Track Backgrounds -->
+        <rect x="${labelWidth}" y="${y}" width="${chartWidth}" height="8" rx="4" fill="var(--sf2)" />
+        <rect x="${labelWidth}" y="${y + 11}" width="${chartWidth}" height="8" rx="4" fill="var(--sf2)" />
+        <rect x="${labelWidth}" y="${y + 22}" width="${chartWidth}" height="8" rx="4" fill="var(--sf2)" />
+
+        <!-- Progress Bars -->
+        <rect x="${labelWidth}" y="${y}" width="${grossW}" height="8" rx="4" fill="var(--gd)" />
+        <rect x="${labelWidth}" y="${y + 11}" width="${paidW}" height="8" rx="4" fill="var(--ok)" />
+        <rect x="${labelWidth}" y="${y + 22}" width="${pendingW}" height="8" rx="4" fill="var(--warn)" />
+
+        <!-- Figure Labels -->
+        <text x="${labelWidth + grossW + 6}" y="${y + 7}" fill="var(--gd)" font-size="9" font-weight="700">₹${d.gross.toLocaleString('en-IN')}</text>
+        <text x="${labelWidth + paidW + 6}" y="${y + 18}" fill="var(--ok)" font-size="9" font-weight="700">₹${d.paid.toLocaleString('en-IN')}</text>
+        <text x="${labelWidth + pendingW + 6}" y="${y + 29}" fill="var(--warn)" font-size="9" font-weight="700">₹${d.pending.toLocaleString('en-IN')}</text>
+      </g>
+    `;
+  });
+
+  svg += `</svg></div>`;
+  return svg;
+}
+
+function renderAttendanceHealthChartSvg(curYm, totalP, totalH, totalL, totalOff, totalOt) {
+  const totalShifts = totalP + totalH + totalL + totalOff;
+  if (!totalShifts) {
+    return `<div style="text-align:center;padding:28px 16px;color:var(--mu);font-size:0.86rem">No attendance shifts recorded for ${curYm} yet.<br>Use <b>Batch Actions</b> or click dates on the calendar to record daily shifts.</div>`;
+  }
+
+  const pPct = Math.round((totalP / totalShifts) * 100);
+  const hPct = Math.round((totalH / totalShifts) * 100);
+  const lPct = Math.round((totalL / totalShifts) * 100);
+  const offPct = Math.max(0, 100 - (pPct + hPct + lPct));
+
+  return `
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:0.82rem;font-weight:700">Atelier Presence Consistency: <b style="color:var(--ok)">${pPct + Math.round(hPct * 0.5)}%</b></span>
+        <span style="font-size:0.75rem;color:var(--mu)">${totalShifts} Total Logged Shifts</span>
+      </div>
+
+      <!-- Segmented Stacked Progress Bar -->
+      <div style="height:16px;border-radius:8px;overflow:hidden;display:flex;background:var(--sf2);border:1px solid var(--ln);margin-bottom:12px">
+        ${pPct > 0 ? `<div style="width:${pPct}%;background:var(--ok);height:100%" title="Present: ${pPct}% (${totalP} shifts)"></div>` : ''}
+        ${hPct > 0 ? `<div style="width:${hPct}%;background:var(--warn);height:100%" title="Half-Day: ${hPct}% (${totalH} shifts)"></div>` : ''}
+        ${lPct > 0 ? `<div style="width:${lPct}%;background:var(--bad);height:100%" title="Leave: ${lPct}% (${totalL} shifts)"></div>` : ''}
+        ${offPct > 0 ? `<div style="width:${offPct}%;background:var(--sf2);border-left:1px solid var(--ln);height:100%" title="Weekly Off: ${offPct}% (${totalOff} shifts)"></div>` : ''}
+      </div>
+
+      <!-- Metric Cards Grid -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(95px, 1fr));gap:8px">
+        <div style="background:color-mix(in srgb, var(--ok) 10%, var(--sf));border:1px solid var(--ok);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:0.68rem;color:var(--ok);font-weight:700">🟢 PRESENT</div>
+          <b style="font-size:1.05rem;color:var(--ok)">${totalP}</b>
+          <small style="display:block;font-size:0.66rem;color:var(--mu)">${pPct}%</small>
+        </div>
+        <div style="background:color-mix(in srgb, var(--warn) 10%, var(--sf));border:1px solid var(--warn);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:0.68rem;color:var(--warn);font-weight:700">🟡 HALF-DAY</div>
+          <b style="font-size:1.05rem;color:var(--warn)">${totalH}</b>
+          <small style="display:block;font-size:0.66rem;color:var(--mu)">${hPct}%</small>
+        </div>
+        <div style="background:color-mix(in srgb, var(--bad) 10%, var(--sf));border:1px solid var(--bad);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:0.68rem;color:var(--bad);font-weight:700">🔴 LEAVE</div>
+          <b style="font-size:1.05rem;color:var(--bad)">${totalL}</b>
+          <small style="display:block;font-size:0.66rem;color:var(--mu)">${lPct}%</small>
+        </div>
+        <div style="background:color-mix(in srgb, #8b5cf6 10%, var(--sf));border:1px solid #8b5cf6;border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:0.68rem;color:#8b5cf6;font-weight:700">🟣 OVERTIME</div>
+          <b style="font-size:1.05rem;color:#8b5cf6">${totalOt}h</b>
+          <small style="display:block;font-size:0.66rem;color:var(--mu)">Extra Hours</small>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ------------------------------------------
+// Printable Luxury Salary & Settlement Slip
+// ------------------------------------------
+function printSalarySlip(wid) {
+  const w = workers().find(x => x.id == wid);
+  if (!w) return toast("Worker record not found");
+  const curYm = S.attYearMonth || curMon;
+  const stats = getWorkerMonthlyStats(wid, curYm);
+  const cfg = S.cfg || (typeof DEF !== "undefined" ? DEF : {});
+  const [y, m] = curYm.split("-").map(Number);
+  const monthName = new Date(y, m - 1, 1).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+
+  // Group verified piece logs by garment task
+  const pieceSummary = {};
+  (stats.verifiedPiecesLog || []).forEach(pk => {
+    const taskName = pk.task || "Custom Stitching";
+    if (!pieceSummary[taskName]) {
+      pieceSummary[taskName] = { count: 0, rate: pk.rate || 0, total: 0 };
+    }
+    pieceSummary[taskName].count += (Number(pk.qty) || 1);
+    pieceSummary[taskName].total += (Number(pk.qty) || 1) * (Number(pk.rate) || 0);
+  });
+
+  const pieceRows = Object.keys(pieceSummary);
+
+  modal(`
+    <div class="slip-paper" id="invoice-print-area">
+      <!-- Boutique Letterhead -->
+      <div style="border-bottom:2px solid var(--br);padding-bottom:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:1.6rem;font-weight:900;color:var(--br);letter-spacing:-0.02em">SAIFA DESIGNS</div>
+          <div style="font-size:0.8rem;color:#4b5563;margin-top:2px">Ladies Tailor, Boutique &amp; Fabric Studio</div>
+          <div style="font-size:0.75rem;color:#6b7280">${Security.escapeHTML(cfg.address || "Main Market, Atelier Workshop")} · ${Security.escapeHTML(cfg.phone || "")}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="background:#f3f4f6;padding:4px 10px;border-radius:6px;font-size:0.78rem;font-weight:700;color:#374151;display:inline-block">
+            OFFICIAL SALARY &amp; SETTLEMENT SLIP
+          </div>
+          <div style="font-size:0.85rem;font-weight:800;color:#111827;margin-top:4px">Month: ${monthName}</div>
+          <div style="font-size:0.75rem;color:#6b7280">Date: ${new Date().toLocaleDateString("en-IN")}</div>
+        </div>
+      </div>
+
+      <!-- Artisan Profile Snapshot -->
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:0.85rem">
+        <div>
+          <span style="color:#6b7280;font-size:0.75rem;text-transform:uppercase;font-weight:600">Artisan Name:</span><br>
+          <b style="font-size:1rem;color:#111827">${Security.escapeHTML(w.name)}</b>
+        </div>
+        <div>
+          <span style="color:#6b7280;font-size:0.75rem;text-transform:uppercase;font-weight:600">Worker ID:</span><br>
+          <b>${Security.escapeHTML(w.wid || w.id)}</b>
+        </div>
+        <div>
+          <span style="color:#6b7280;font-size:0.75rem;text-transform:uppercase;font-weight:600">Craft Role:</span><br>
+          <b>${Security.escapeHTML(w.role || "Artisan Tailor")}</b>
+        </div>
+        <div>
+          <span style="color:#6b7280;font-size:0.75rem;text-transform:uppercase;font-weight:600">Contact:</span><br>
+          <b>${Security.escapeHTML(w.phone || "-")}</b>
+        </div>
+      </div>
+
+      <!-- Itemized Garments Completed Table -->
+      <h4 style="margin:12px 0 6px;color:#111827;font-size:0.9rem">1. Itemized Pieces &amp; Craft Work Done (${stats.totalPieces} pcs)</h4>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:0.82rem">
+        <thead>
+          <tr style="background:#f3f4f6;border-bottom:1px solid #d1d5db;text-align:left">
+            <th style="padding:6px 8px">Garment / Craft Work</th>
+            <th style="padding:6px 8px;text-align:center">Pieces</th>
+            <th style="padding:6px 8px;text-align:right">Piece Rate</th>
+            <th style="padding:6px 8px;text-align:right">Wage Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pieceRows.map(k => `
+            <tr style="border-bottom:1px solid #e5e7eb">
+              <td style="padding:6px 8px"><b>${Security.escapeHTML(k)}</b></td>
+              <td style="padding:6px 8px;text-align:center">${pieceSummary[k].count}</td>
+              <td style="padding:6px 8px;text-align:right">₹${pieceSummary[k].rate}</td>
+              <td style="padding:6px 8px;text-align:right;font-weight:700">₹${pieceSummary[k].total.toLocaleString('en-IN')}</td>
+            </tr>
+          `).join("") || '<tr><td colspan="4" style="text-align:center;padding:8px;color:#6b7280">No verified piece logs logged this month.</td></tr>'}
+          <tr style="background:#f9fafb;font-weight:700;border-top:1px solid #9ca3af">
+            <td style="padding:6px 8px" colspan="3">Subtotal Piece-Rate Earnings</td>
+            <td style="padding:6px 8px;text-align:right;color:#059669">₹${stats.totalEarned.toLocaleString('en-IN')}</td>
+          </tr>
+          ${stats.totalOtHours > 0 ? `
+            <tr style="border-bottom:1px solid #e5e7eb">
+              <td style="padding:6px 8px" colspan="2">Overtime Shift Allowance (${stats.totalOtHours} hours @ ₹50/hr)</td>
+              <td style="padding:6px 8px;text-align:center">₹50/h</td>
+              <td style="padding:6px 8px;text-align:right;font-weight:700;color:#059669">+₹${stats.otEarnings.toLocaleString('en-IN')}</td>
+            </tr>
+          ` : ''}
+          <tr style="background:#f3f4f6;font-weight:800;border-top:2px solid #9ca3af;font-size:0.88rem">
+            <td style="padding:8px" colspan="3">Total Gross Earnings (${monthName})</td>
+            <td style="padding:8px;text-align:right;color:#111827">₹${stats.grossEarned.toLocaleString('en-IN')}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Attendance Summary Snapshot -->
+      <div style="background:#f3f4f6;border-radius:6px;padding:8px 12px;margin-bottom:14px;font-size:0.8rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span><b>Attendance Days:</b> ${stats.daysPresent} Full Days</span>
+        <span><b>Half-Days:</b> ${stats.daysHalf}</span>
+        <span><b>Leaves:</b> ${stats.daysLeave}</span>
+        <span><b>Weekly Offs:</b> ${stats.daysWeeklyOff || 0}</span>
+        <span><b>Overtime:</b> ${stats.totalOtHours || 0} hrs</span>
+      </div>
+
+      <!-- Advances & Settlements Paid -->
+      <h4 style="margin:12px 0 6px;color:#111827;font-size:0.9rem">2. Disbursements &amp; Advances Received</h4>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:0.82rem">
+        <thead>
+          <tr style="background:#f3f4f6;border-bottom:1px solid #d1d5db;text-align:left">
+            <th style="padding:6px 8px">Date</th>
+            <th style="padding:6px 8px">Payment Method</th>
+            <th style="padding:6px 8px">Disbursement Note</th>
+            <th style="padding:6px 8px;text-align:right">Amount Paid</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${(stats.payoutLog || []).map(p => `
+            <tr style="border-bottom:1px solid #e5e7eb">
+              <td style="padding:6px 8px">${new Date(p.date).toLocaleDateString("en-IN")}</td>
+              <td style="padding:6px 8px">${Security.escapeHTML(p.mode || "Cash")}</td>
+              <td style="padding:6px 8px;color:#4b5563">${Security.escapeHTML(p.note || "-")}</td>
+              <td style="padding:6px 8px;text-align:right;font-weight:700;color:#059669">-₹${Number(p.amount || 0).toLocaleString('en-IN')}</td>
+            </tr>
+          `).join("") || '<tr><td colspan="4" style="text-align:center;padding:8px;color:#6b7280">No disbursements recorded yet this month.</td></tr>'}
+          <tr style="background:#f9fafb;font-weight:800;border-top:1px solid #9ca3af">
+            <td style="padding:6px 8px" colspan="3">Total Disbursed to Date</td>
+            <td style="padding:6px 8px;text-align:right;color:#dc2626">-₹${stats.totalPaid.toLocaleString('en-IN')}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Final Net Balance Settlement Box -->
+      <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:12px 16px;margin:16px 0;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span style="font-size:0.75rem;color:#92400e;text-transform:uppercase;font-weight:800">Net Outstanding Balance (${monthName}):</span>
+          <div style="font-size:1.4rem;font-weight:900;color:#78350f">${R(stats.pendingBalance)}</div>
+        </div>
+        <div style="text-align:right;font-size:0.8rem;color:#92400e">
+          Status: <b>${stats.pendingBalance > 0 ? 'Awaiting Final Settlement' : 'Settled in Full ✅'}</b>
+        </div>
+      </div>
+
+      <!-- Signature Blocks -->
+      <div style="margin-top:36px;display:flex;justify-content:space-between;padding-top:18px;border-top:1px dashed #d1d5db;font-size:0.8rem;color:#4b5563">
+        <div style="text-align:center">
+          <div style="width:140px;border-top:1px solid #9ca3af;margin:0 auto 4px"></div>
+          <b>Artisan Signature</b>
+        </div>
+        <div style="text-align:center">
+          <div style="width:140px;border-top:1px solid #9ca3af;margin:0 auto 4px"></div>
+          <b>Master Quality Checker</b>
+        </div>
+        <div style="text-align:center">
+          <div style="width:140px;border-top:1px solid #9ca3af;margin:0 auto 4px"></div>
+          <b>Boutique Administrator</b>
+        </div>
+      </div>
+
+      <!-- Print & Close Action Buttons -->
+      <div class="no-print" style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #e5e7eb">
+        <button class="btn s" onclick="closeM()">Close</button>
+        <button class="btn s p" onclick="window.print()" style="background:#111827;color:#fff;font-weight:700">🖨️ Print Slip</button>
+      </div>
+    </div>
+  `);
+}
+
+// ------------------------------------------
+// Upgraded Salary, Attendance & Atelier Workforce Suite
+// ------------------------------------------
 function renderSalaryTab() {
   const selW = S.selectedWorkerSalary || "all";
   const wrks = workers();
-  const filteredWorkers = selW === "all" ? wrks : wrks.filter(w => w.id == selW);
   const curYm = S.attYearMonth || new Date().toISOString().slice(0, 7);
   const [calYear, calMonth] = curYm.split("-").map(Number);
   const calMonthIdx = calMonth - 1;
@@ -4836,15 +5376,165 @@ function renderSalaryTab() {
   const monthTitle = monthObj.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
   const calDays = getMonthCalendarDays(calYear, calMonthIdx);
 
+  // Filter and Search workers
+  const salarySearch = (S.salarySearch || "").trim().toLowerCase();
+  const salaryFilter = S.salaryFilter || "all";
+
+  let displayWorkers = selW === "all" ? wrks : wrks.filter(w => w.id == selW);
+  if (salarySearch) {
+    displayWorkers = displayWorkers.filter(w => 
+      (w.name && w.name.toLowerCase().includes(salarySearch)) ||
+      (w.wid && String(w.wid).toLowerCase().includes(salarySearch)) ||
+      (w.role && w.role.toLowerCase().includes(salarySearch)) ||
+      (w.phone && String(w.phone).includes(salarySearch))
+    );
+  }
+
+  // Pre-calculate aggregate metrics across all workers for curYm
+  let totalGrossAll = 0;
+  let totalPaidAll = 0;
+  let totalPendingAll = 0;
+  let totalPiecesAll = 0;
+  const workerStatsMap = {};
+
+  wrks.forEach(w => {
+    const st = getWorkerMonthlyStats(w.id, curYm);
+    workerStatsMap[w.id] = st;
+    totalGrossAll += st.grossEarned;
+    totalPaidAll += st.totalPaid;
+    totalPendingAll += Math.max(0, st.pendingBalance);
+    totalPiecesAll += st.totalPieces;
+  });
+
+  if (salaryFilter === "pending") {
+    displayWorkers = displayWorkers.filter(w => (workerStatsMap[w.id]?.pendingBalance || 0) > 0);
+  } else if (salaryFilter === "settled") {
+    displayWorkers = displayWorkers.filter(w => (workerStatsMap[w.id]?.pendingBalance || 0) <= 0);
+  }
+
+  // Attendance aggregates for curYm
+  const monthAtts = (S.attendance || []).filter(a => String(a.date).startsWith(curYm));
+  const totalP = monthAtts.filter(a => a.status === "Present").length;
+  const totalH = monthAtts.filter(a => a.status === "Half-Day").length;
+  const totalL = monthAtts.filter(a => a.status === "Leave" || a.status === "Absent").length;
+  const totalOff = monthAtts.filter(a => a.status === "Weekly Off").length;
+  const totalOt = monthAtts.reduce((a, b) => a + (Number(b.otHours) || 0), 0);
+
+  // Pending piece logs awaiting Master verification
+  const pendingWorkLogs = (S.work || []).filter(w => w.verified === false);
+  const pendingLogsTotalWage = pendingWorkLogs.reduce((a, w) => a + (Number(w.qty) || 1) * (Number(w.rate) || 0), 0);
+
   // AI Analytics & Productivity
   const ai = getArtisanProductivityAI();
   const topArtisan = ai.topArtisan;
   const fastestWorker = ai.fastestWorker;
   const mostReliable = ai.mostReliable;
 
+  // Active stitching orders for workload deadlines
+  const stitchOrders = orders().filter(o => o.type === "Stitch" && !["Delivered", "Cancelled"].includes(o.status));
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const urgentOrders = stitchOrders.filter(o => o.trialDate && o.trialDate <= todayStr);
+
   return `
+    <!-- Top Header & Monthly Controls Bar -->
+    <div class="box" style="margin-bottom:14px;border-top:3px solid var(--br)">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <b style="font-size:1.15rem">💰 Artisan Payroll, Attendance &amp; Piece-Rate Settlement</b>
+            <span class="chip on" style="font-size:0.75rem;padding:2px 8px">Enterprise Suite</span>
+          </div>
+          <p style="font-size:0.8rem;color:var(--mu);margin:3px 0 0">
+            Real-time workshop workforce intelligence: fair piece wages, attendance logs, overtime allowance, and instant payouts.
+          </p>
+        </div>
+
+        <!-- Month Navigation & Action Buttons -->
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;background:var(--sf2);padding:3px 6px;border-radius:10px;border:1px solid var(--ln)">
+            <button class="btn s" onclick="changeAttMonth(-1)" title="Previous Month" style="padding:4px 8px">◀</button>
+            <span style="font-weight:800;font-size:0.88rem;padding:0 10px;color:var(--br)">📅 ${monthTitle}</span>
+            <button class="btn s" onclick="changeAttMonth(1)" title="Next Month" style="padding:4px 8px">▶</button>
+            <button class="btn s" onclick="changeAttMonth(0)" title="Jump to Current Month (October 2026)" style="padding:4px 8px;margin-left:4px">Today</button>
+          </div>
+
+          <button class="btn s" onclick="openPieceRateManagerModal()" title="View and edit craft piece wage rates">
+            ⚙️ Piece Wage Rates
+          </button>
+          <button class="btn s" onclick="exportPayrollCSV('${curYm}')" title="Download complete itemized payroll CSV">
+            📄 Export Payroll CSV
+          </button>
+          <button class="btn s p" onclick="openPayoutModal()" title="Record a new advance or settlement disbursement">
+            + Record Payout
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Atelier Financial & Workforce Summary KPI Bar -->
+    <div class="salary-kpi-grid">
+      <div class="salary-kpi-card gold">
+        <div class="salary-kpi-label"><span>💰</span> Gross Verified Wages</div>
+        <div class="salary-kpi-val" style="color:var(--br)">${R(totalGrossAll)}</div>
+        <div class="salary-kpi-sub">${totalPiecesAll} pieces stitched in ${monthTitle}</div>
+      </div>
+      <div class="salary-kpi-card green">
+        <div class="salary-kpi-label"><span>💵</span> Disbursed to Date</div>
+        <div class="salary-kpi-val" style="color:var(--ok)">${R(totalPaidAll)}</div>
+        <div class="salary-kpi-sub">Total cash, UPI &amp; bank payouts</div>
+      </div>
+      <div class="salary-kpi-card amber">
+        <div class="salary-kpi-label"><span>⚖️</span> Pending Settlement</div>
+        <div class="salary-kpi-val" style="color:${totalPendingAll > 0 ? 'var(--warn)' : 'var(--ok)'}">
+          ${R(totalPendingAll)}
+        </div>
+        <div class="salary-kpi-sub">${totalPendingAll > 0 ? 'Awaiting disbursement' : 'All accounts settled ✅'}</div>
+      </div>
+      <div class="salary-kpi-card purple">
+        <div class="salary-kpi-label"><span>⏳</span> Awaiting Master Check</div>
+        <div class="salary-kpi-val" style="color:#8b5cf6">${R(pendingLogsTotalWage)}</div>
+        <div class="salary-kpi-sub">${pendingWorkLogs.length} pieces in verification queue</div>
+      </div>
+      <div class="salary-kpi-card blue">
+        <div class="salary-kpi-label"><span>📊</span> Attendance Rate</div>
+        <div class="salary-kpi-val" style="color:#06b6d4">
+          ${totalP + totalH + totalL > 0 ? Math.round(((totalP + totalH * 0.5) / (totalP + totalH + totalL)) * 100) : 100}%
+        </div>
+        <div class="salary-kpi-sub">${totalP} full-day shifts · ${totalOt}h overtime</div>
+      </div>
+    </div>
+
+    <!-- Interactive Visual Analytics & Charts Section -->
+    <div class="salary-chart-grid">
+      <!-- Chart 1: Artisan Payroll Velocity & Settlement Comparison -->
+      <div class="salary-chart-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div>
+            <b>📊 Artisan Payroll &amp; Settlement Comparison</b>
+            <p style="font-size:0.75rem;color:var(--mu);margin:2px 0 0">Gross piece wages vs amount paid vs outstanding balance (${monthTitle})</p>
+          </div>
+          <span class="live" style="font-size:0.7rem">Real-time</span>
+        </div>
+        ${renderPayrollComparisonChartSvg(wrks, curYm)}
+      </div>
+
+      <!-- Chart 2: Attendance Health & Shift Breakdown -->
+      <div class="salary-chart-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div>
+            <b>📈 Monthly Attendance Health &amp; Shifts</b>
+            <p style="font-size:0.75rem;color:var(--mu);margin:2px 0 0">Full-day, half-day, leave, and overtime allocation (${monthTitle})</p>
+          </div>
+          <button class="btn s" onclick="openEditAttendanceModal('', new Date().toISOString().slice(0, 10))" style="font-size:0.72rem;padding:3px 8px">
+            + Quick Log
+          </button>
+        </div>
+        ${renderAttendanceHealthChartSvg(curYm, totalP, totalH, totalL, totalOff, totalOt)}
+      </div>
+    </div>
+
     <!-- 1. AI Artisan Productivity & Speed Leaderboard -->
-    <div class="box" style="border-left: 4px solid var(--br)">
+    <div class="box" style="border-left: 4px solid var(--br);margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
         <div>
           <b>🧠 AI Atelier Intelligence &amp; Artisan Leaderboard (${monthTitle})</b>
@@ -4863,9 +5553,9 @@ function renderSalaryTab() {
           <div style="font-size:2.2rem;margin-right:14px">🏆</div>
           <div>
             <div style="font-size:0.75rem;text-transform:uppercase;color:var(--gd);font-weight:800;letter-spacing:0.06em">Top Artisan of the Month</div>
-            <b style="font-size:1.15rem;display:block;margin:2px 0">${topArtisan ? E(topArtisan.worker.name) : 'No data yet'}</b>
+            <b style="font-size:1.15rem;display:block;margin:2px 0">${topArtisan && topArtisan.worker ? E(topArtisan.worker.name) : 'No data yet'}</b>
             <small style="color:var(--mu)">
-              ${topArtisan ? `${topArtisan.completedCount} garments · ${topArtisan.presentDays} days active` : 'Register workers'}
+              ${topArtisan ? `${topArtisan.completedCount} garments · ${topArtisan.presentDays} days active` : 'Register artisans in Team'}
             </small>
             <div style="margin-top:4px">
               <span class="pill ok" style="font-size:0.7rem;font-weight:700">Score: ${topArtisan ? topArtisan.productivityScore : 0}/100</span>
@@ -4878,9 +5568,9 @@ function renderSalaryTab() {
           <div style="font-size:2.2rem;margin-right:14px">⚡</div>
           <div>
             <div style="font-size:0.75rem;text-transform:uppercase;color:#06b6d4;font-weight:800;letter-spacing:0.06em">Speed Master (Turnaround)</div>
-            <b style="font-size:1.15rem;display:block;margin:2px 0">${fastestWorker ? E(fastestWorker.worker.name) : 'No data yet'}</b>
+            <b style="font-size:1.15rem;display:block;margin:2px 0">${fastestWorker && fastestWorker.worker ? E(fastestWorker.worker.name) : 'No data yet'}</b>
             <small style="color:var(--mu)">
-              ${fastestWorker ? `Avg Turnaround: <b>${fastestWorker.avgTurnaroundDays} days</b>` : 'Turnaround tracking'}
+              ${fastestWorker && fastestWorker.completedCount > 0 ? `Avg Turnaround: <b>${fastestWorker.avgTurnaroundDays} days</b>` : 'Turnaround tracked upon order completion'}
             </small>
             <div style="margin-top:4px">
               <span class="pill" style="font-size:0.7rem;font-weight:700;color:#06b6d4;border-color:#06b6d4">⚡ Fastest Completion</span>
@@ -4892,10 +5582,10 @@ function renderSalaryTab() {
         <div class="leaderboard-card" style="border:1.5px solid #10b981">
           <div style="font-size:2.2rem;margin-right:14px">💎</div>
           <div>
-            <div style="font-size:0.75rem;text-transform:uppercase;color:#10b981;font-weight:800;letter-spacing:0.06em">Reliability & Attendance Star</div>
-            <b style="font-size:1.15rem;display:block;margin:2px 0">${mostReliable ? E(mostReliable.worker.name) : 'No data yet'}</b>
+            <div style="font-size:0.75rem;text-transform:uppercase;color:#10b981;font-weight:800;letter-spacing:0.06em">Reliability &amp; Attendance Star</div>
+            <b style="font-size:1.15rem;display:block;margin:2px 0">${mostReliable && mostReliable.worker ? E(mostReliable.worker.name) : 'No data yet'}</b>
             <small style="color:var(--mu)">
-              ${mostReliable ? `Attendance Consistency: <b>${mostReliable.attendancePct}%</b>` : 'Consistent presence'}
+              ${mostReliable && mostReliable.presentDays > 0 ? `Attendance Consistency: <b>${mostReliable.attendancePct}%</b>` : 'Consistent presence tracked via calendar'}
             </small>
             <div style="margin-top:4px">
               <span class="pill ok" style="font-size:0.7rem;font-weight:700">💎 Perfect Attendance</span>
@@ -4904,34 +5594,38 @@ function renderSalaryTab() {
         </div>
       </div>
 
-      <!-- AI Workload Recommendation Box -->
-      <div style="background:color-mix(in srgb, var(--br) 6%, var(--sf));border:1px solid color-mix(in srgb, var(--br) 20%, var(--ln));border-radius:12px;padding:12px 16px;margin-top:10px;font-size:0.86rem;line-height:1.5">
-        ${ai.workloadRecommendation}
+      <!-- AI Workload Recommendation Box & Deadline Alerts -->
+      <div style="background:color-mix(in srgb, var(--br) 6%, var(--sf));border:1px solid color-mix(in srgb, var(--br) 20%, var(--ln));border-radius:12px;padding:12px 16px;margin-top:12px;font-size:0.86rem;line-height:1.5">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <span style="font-size:1.2rem">🤖</span>
+          <div style="flex:1">
+            ${ai.workloadRecommendation}
+            ${urgentOrders.length > 0 ? `
+              <div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--ln);font-size:0.82rem;color:var(--warn)">
+                ⚠️ <b>Urgent Stitching Deadlines Today (${urgentOrders.length} orders):</b>
+                ${urgentOrders.map(o => `<b>#${o.no}</b> (${Security.escapeHTML(o.garment)} for ${Security.escapeHTML(o.customer)})`).join(", ")}
+              </div>
+            ` : ''}
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- 2. Interactive Visual Attendance Calendar -->
-    <div class="box">
+    <div class="box" style="margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
         <div>
-          <b>📅 Interactive Artisan Attendance Calendar</b>
+          <b>📅 Interactive Artisan Attendance Calendar (${monthTitle})</b>
           <p style="font-size:0.8rem;color:var(--mu);margin:2px 0 0">
-            Click any date cell to record attendance, overtime hours, or edit task logs.
+            Click any date cell to record daily attendance, overtime hours, or tailoring fitting notes.
           </p>
         </div>
 
         <!-- Month Navigation & Artisan Filter -->
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <div style="display:flex;align-items:center;background:var(--sf2);padding:2px 6px;border-radius:10px;border:1px solid var(--ln)">
-            <button class="btn s" onclick="changeAttMonth(-1)" title="Previous Month" style="padding:4px 8px">◀</button>
-            <span style="font-weight:700;font-size:0.88rem;padding:0 8px">${monthTitle}</span>
-            <button class="btn s" onclick="changeAttMonth(1)" title="Next Month" style="padding:4px 8px">▶</button>
-            <button class="btn s" onclick="changeAttMonth(0)" title="Jump to Current Month" style="padding:4px 8px;margin-left:4px">Today</button>
-          </div>
-
           <select style="margin:0;width:auto;font-size:0.84rem;padding:6px 10px" onchange="S.selectedWorkerSalary=this.value;panel()">
             <option value="all" ${selW === 'all' ? 'selected' : ''}>All Artisans Calendar</option>
-            ${wrks.map(w => `<option value="${w.id}" ${selW == w.id ? 'selected' : ''}>${E(w.name)} (${E(w.role)})</option>`).join("")}
+            ${wrks.map(w => `<option value="${w.id}" ${selW == w.id ? 'selected' : ''}>${E(w.name)} (${E(w.role || "Artisan")})</option>`).join("")}
           </select>
 
           <button class="btn s p" onclick="openEditAttendanceModal('${selW === 'all' ? '' : selW}', new Date().toISOString().slice(0, 10))">
@@ -4943,10 +5637,11 @@ function renderSalaryTab() {
       <!-- Quick Batch Actions Toolbar -->
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0 10px;padding:8px 12px;background:var(--sf2);border-radius:10px;font-size:0.82rem">
         <span style="color:var(--mu);font-weight:600">⚡ Batch Actions:</span>
-        <button class="btn s" onclick="batchMarkAllPresentToday()" title="Mark all workers present today">✨ Mark All Present Today</button>
+        <button class="btn s" onclick="batchMarkAllPresentToday()" title="Mark all registered artisans present today">✨ Mark All Present Today</button>
         <button class="btn s" onclick="batchMarkSundaysOff()" title="Auto-mark all Sundays as Weekly Off">✨ Mark Sundays Off</button>
+        <button class="btn s d" onclick="batchResetMonthAttendance()" title="Clear attendance records for this month">🔄 Reset Month</button>
         <span style="margin-left:auto;color:var(--mu);font-size:0.78rem">
-          Legend: <span class="pill ok" style="padding:1px 6px">P: Present</span> <span class="pill w" style="padding:1px 6px">H: Half</span> <span class="pill bad" style="padding:1px 6px">L: Leave</span> <span class="pill" style="padding:1px 6px;color:#8b5cf6;border-color:#8b5cf6">OT: Overtime</span>
+          Legend: <span class="pill ok" style="padding:1px 6px">P: Present</span> <span class="pill w" style="padding:1px 6px">H: Half</span> <span class="pill bad" style="padding:1px 6px">L: Leave</span> <span class="pill" style="padding:1px 6px;color:#8b5cf6;border-color:#8b5cf6">OT: Overtime</span> <span class="pill" style="padding:1px 6px;background:var(--sf2)">Off: Weekly Off</span>
         </span>
       </div>
 
@@ -4977,13 +5672,13 @@ function renderSalaryTab() {
             }
 
             return `
-              <div class="att-cal-day ${day.isToday ? 'today' : ''}" onclick="openEditAttendanceModal('${selW}','${day.iso}')">
+              <div class="att-cal-day ${day.isToday ? 'today' : ''} ${day.isSunday ? 'sunday' : ''}" onclick="openEditAttendanceModal('${selW}','${day.iso}')">
                 <div class="att-day-num">
                   <span>${day.dayNum}</span>
-                  ${day.isToday ? '<span style="font-size:0.65rem;color:var(--br)">TODAY</span>' : ''}
+                  ${day.isToday ? '<span style="font-size:0.65rem;color:var(--br);font-weight:800">TODAY</span>' : ''}
                 </div>
                 <div>${pillHtml}</div>
-                ${note ? `<div class="att-day-note" title="${Security.escapeHTML(note)}">📝 ${Security.escapeHTML(note)}</div>` : ''}
+                ${note ? `<div class="att-day-note" title="${Security.escapeHTML(note)}" style="font-size:0.68rem;color:var(--mu);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${Security.escapeHTML(note)}</div>` : ''}
               </div>
             `;
           } else {
@@ -4993,17 +5688,19 @@ function renderSalaryTab() {
             const hCount = dayAtts.filter(a => a.status === "Half-Day").length;
             const lCount = dayAtts.filter(a => a.status === "Leave" || a.status === "Absent").length;
             const offCount = dayAtts.filter(a => a.status === "Weekly Off").length;
+            const otCount = dayAtts.filter(a => a.otHours > 0).length;
 
             return `
-              <div class="att-cal-day ${day.isToday ? 'today' : ''}" onclick="openEditAttendanceModal('','${day.iso}')">
+              <div class="att-cal-day ${day.isToday ? 'today' : ''} ${day.isSunday ? 'sunday' : ''}" onclick="openEditAttendanceModal('','${day.iso}')">
                 <div class="att-day-num">
                   <span>${day.dayNum}</span>
-                  ${day.isToday ? '<span style="font-size:0.65rem;color:var(--br)">TODAY</span>' : ''}
+                  ${day.isToday ? '<span style="font-size:0.65rem;color:var(--br);font-weight:800">TODAY</span>' : ''}
                 </div>
                 <div style="font-size:0.72rem;margin-top:2px">
                   ${pCount > 0 ? `<span class="att-pill p" style="display:inline-block;padding:1px 5px;margin:1px 0">P: ${pCount}</span>` : ''}
                   ${hCount > 0 ? `<span class="att-pill h" style="display:inline-block;padding:1px 5px;margin:1px 0">H: ${hCount}</span>` : ''}
                   ${lCount > 0 ? `<span class="att-pill l" style="display:inline-block;padding:1px 5px;margin:1px 0">L: ${lCount}</span>` : ''}
+                  ${otCount > 0 ? `<span class="att-pill ot" style="display:inline-block;padding:1px 5px;margin:1px 0">OT: ${otCount}</span>` : ''}
                   ${offCount > 0 ? `<span class="att-pill off" style="display:inline-block;padding:1px 5px;margin:1px 0">Off: ${offCount}</span>` : ''}
                   ${dayAtts.length === 0 ? `<span style="font-size:0.68rem;color:var(--mu);display:block;text-align:center">+ Mark</span>` : ''}
                 </div>
@@ -5016,10 +5713,9 @@ function renderSalaryTab() {
 
     <!-- 2.5 Pending Artisan Piece Logs Verification Queue -->
     ${(() => {
-      const pendingWorkLogs = (S.work || []).filter(w => w.verified === false);
       if (!pendingWorkLogs.length) return "";
       return `
-        <div class="box" style="border-left:4px solid var(--warn);background:color-mix(in srgb, var(--warn) 5%, var(--sf))">
+        <div class="box" style="border-left:4px solid var(--warn);background:color-mix(in srgb, var(--warn) 5%, var(--sf));margin-bottom:16px">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
             <div>
               <b style="color:var(--warn);font-size:1.05rem">⏳ Artisan Piece Logs Awaiting Master Verification (${pendingWorkLogs.length})</b>
@@ -5028,7 +5724,7 @@ function renderSalaryTab() {
               </p>
             </div>
             <button class="btn s p" style="background:var(--ok);color:#fff;font-weight:700" onclick="AdminPortal.approveAllPendingWorkLogs()">
-              ⚡ Verify &amp; Credit All (${pendingWorkLogs.length})
+              ⚡ Verify &amp; Credit All (${pendingWorkLogs.length} logs · ${R(pendingLogsTotalWage)})
             </button>
           </div>
 
@@ -5076,181 +5772,223 @@ function renderSalaryTab() {
       `;
     })()}
 
-    <!-- 3. Monthly Artisan Payroll & Settlement Statement -->
-    <div class="box">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <!-- 3. Monthly Artisan Payroll & Settlement Statement Table -->
+    <div class="box" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
         <div>
           <b>💰 Artisan Payroll &amp; Piece-Rate Settlement (${monthTitle})</b>
           <p style="font-size:0.8rem;color:var(--mu);margin:2px 0 0">
-            Total piece earnings, disbursements, pending balances, and printable settlement slips.
+            Total piece earnings, advance disbursements, pending balances, and printable settlement slips.
           </p>
         </div>
-        <button class="btn s p" onclick="openPayoutModal()">+ Record Payout</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn s" onclick="openPieceRateManagerModal()">⚙️ Manage Piece Rates</button>
+          <button class="btn s p" onclick="openPayoutModal()">+ Record Payout</button>
+        </div>
       </div>
 
-      <table style="margin-top:14px">
-        <thead>
-          <tr>
-            <th>Artisan</th>
-            <th>Pieces Stitched</th>
-            <th>Gross Earned</th>
-            <th>Amount Paid</th>
-            <th>Pending Balance</th>
-            <th>Attendance (${monthTitle})</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${filteredWorkers.map(w => {
-            const stats = getWorkerMonthlyStats(w.id, curYm);
-            return `
+      <!-- Live Search & Status Filters Bar -->
+      <div class="salary-filter-toolbar">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn s ${salaryFilter === 'all' ? 'p' : ''}" onclick="S.salaryFilter='all';panel()">
+            All Artisans (${wrks.length})
+          </button>
+          <button class="btn s ${salaryFilter === 'pending' ? 'p' : ''}" onclick="S.salaryFilter='pending';panel()">
+            Pending Balance (${wrks.filter(w => (workerStatsMap[w.id]?.pendingBalance || 0) > 0).length})
+          </button>
+          <button class="btn s ${salaryFilter === 'settled' ? 'p' : ''}" onclick="S.salaryFilter='settled';panel()">
+            Fully Settled (${wrks.filter(w => (workerStatsMap[w.id]?.pendingBalance || 0) <= 0).length})
+          </button>
+        </div>
+        <div>
+          <input class="salary-search-input" value="${Security.escapeHTML(S.salarySearch || '')}" placeholder="Search artisan by name, role or ID…" oninput="S.salarySearch=this.value;panel()">
+        </div>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Artisan</th>
+              <th>Active Workload</th>
+              <th>Pieces Stitched</th>
+              <th>Gross Earned</th>
+              <th>Amount Paid</th>
+              <th>Pending Balance</th>
+              <th>Attendance (${monthTitle})</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${displayWorkers.map(w => {
+              const stats = workerStatsMap[w.id] || getWorkerMonthlyStats(w.id, curYm);
+              const assignedCustomOrders = stitchOrders.filter(o => o.worker == w.id);
+              const isExpanded = S.expandedArtisanId === w.id;
+              const hasPending = stats.pendingBalance > 0;
+
+              return `
+                <tr style="${hasPending ? 'background:color-mix(in srgb, var(--warn) 3%, transparent)' : ''}">
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;background:#eee;border:1px solid var(--ln);flex-shrink:0;display:grid;place-items:center">
+                        ${w.img ? `<img src="${Security.escapeHTML(w.img)}" style="width:100%;height:100%;object-fit:cover">` : '<span style="font-size:1.3rem">🧵</span>'}
+                      </div>
+                      <div>
+                        <b>${E(w.name)}</b><br>
+                        <small style="color:var(--mu)">${E(w.role || "Artisan")} · ID: <b>${E(w.wid || w.id)}</b></small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    ${assignedCustomOrders.length > 0 ? `
+                      <span class="pill" style="font-size:0.75rem;font-weight:700">
+                        ${assignedCustomOrders.length} in production
+                      </span>
+                      ${assignedCustomOrders.some(o => o.trialDate && o.trialDate <= todayStr) ? '<br><small style="color:var(--bad);font-weight:700">⚠️ Due Today</small>' : ''}
+                    ` : '<span style="color:var(--mu);font-size:0.75rem">No active queue</span>'}
+                  </td>
+                  <td>
+                    <b>${stats.totalPieces}</b> verified pieces
+                    ${stats.pendingPieces > 0 ? `<br><small style="color:var(--warn);font-weight:600">(+${stats.pendingPieces} awaiting check)</small>` : ''}
+                  </td>
+                  <td>
+                    <b style="color:var(--br);font-size:0.95rem">${R(stats.grossEarned)}</b>
+                    ${stats.otEarnings > 0 ? `<br><small style="color:#8b5cf6">(incl. ${R(stats.otEarnings)} OT)</small>` : ''}
+                  </td>
+                  <td><b style="color:var(--ok);font-size:0.95rem">${R(stats.totalPaid)}</b></td>
+                  <td>
+                    <b style="color:${hasPending ? 'var(--warn)' : 'var(--ok)'};font-size:1rem">
+                      ${R(stats.pendingBalance)}
+                    </b>
+                    <br>
+                    <span class="pill ${hasPending ? 'w' : 'ok'}" style="font-size:0.7rem;padding:1px 6px">
+                      ${hasPending ? 'Pending' : 'Settled ✅'}
+                    </span>
+                  </td>
+                  <td>
+                    <div style="display:flex;gap:3px;flex-wrap:wrap">
+                      <span class="pill ok" style="padding:1px 5px;font-size:0.7rem">P: ${stats.daysPresent}</span>
+                      <span class="pill w" style="padding:1px 5px;font-size:0.7rem">H: ${stats.daysHalf}</span>
+                      <span class="pill bad" style="padding:1px 5px;font-size:0.7rem">L: ${stats.daysLeave}</span>
+                      ${stats.totalOtHours > 0 ? `<span class="pill" style="padding:1px 5px;font-size:0.7rem;color:#8b5cf6;border-color:#8b5cf6">OT: ${stats.totalOtHours}h</span>` : ''}
+                    </div>
+                  </td>
+                  <td>
+                    <div style="display:flex;gap:4px;flex-wrap:wrap">
+                      <button class="btn s p" onclick="openPayoutModal('${w.id}')" title="Disburse salary settlement or advance">+ Pay</button>
+                      <button class="btn s" onclick="printSalarySlip('${w.id}')" title="Print itemized salary statement slip">🧾 Slip</button>
+                      <button class="btn s" onclick="toggleArtisanDrawer('${w.id}')" title="Expand itemized work logs and payment history">
+                        ${isExpanded ? '▲ Hide' : '▼ Details'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Expandable In-Table Itemized Drawer -->
+                ${isExpanded ? `
+                  <tr>
+                    <td colspan="8" style="padding:0;background:var(--sf2)">
+                      <div class="artisan-drawer-container">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                          <b style="color:var(--br)">📋 Itemized Work Logs &amp; Payment History for ${Security.escapeHTML(w.name)} (${monthTitle})</b>
+                          <button class="btn s" onclick="toggleArtisanDrawer('${w.id}')">✕ Close Drawer</button>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:14px">
+                          <!-- Pieces Log Column -->
+                          <div style="background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:10px 12px">
+                            <b style="font-size:0.82rem;color:var(--tx)">🧵 Verified Garment Piece Logs (${stats.verifiedPiecesLog.length})</b>
+                            <div style="max-height:180px;overflow-y:auto;margin-top:6px;font-size:0.8rem">
+                              ${stats.verifiedPiecesLog.map(pk => `
+                                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--ln)">
+                                  <div>
+                                    <b>${Security.escapeHTML(pk.task)}</b> (${pk.qty} pc @ ₹${pk.rate})<br>
+                                    <small style="color:var(--mu)">${new Date(pk.ts).toLocaleDateString("en-IN")}</small>
+                                  </div>
+                                  <b style="color:var(--ok)">+${R((pk.qty || 1) * (pk.rate || 0))}</b>
+                                </div>
+                              `).join("") || '<p style="color:var(--mu);padding:8px 0;text-align:center">No verified pieces logged this month.</p>'}
+                            </div>
+                          </div>
+
+                          <!-- Payouts Log Column -->
+                          <div style="background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:10px 12px">
+                            <b style="font-size:0.82rem;color:var(--tx)">💵 Disbursements Received (${stats.payoutLog.length})</b>
+                            <div style="max-height:180px;overflow-y:auto;margin-top:6px;font-size:0.8rem">
+                              ${stats.payoutLog.map(p => `
+                                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--ln)">
+                                  <div>
+                                    <b>${Security.escapeHTML(p.mode)}</b> · ${new Date(p.date).toLocaleDateString("en-IN")}<br>
+                                    <small style="color:var(--mu)">${Security.escapeHTML(p.note || "-")}</small>
+                                  </div>
+                                  <b style="color:var(--bad)">-${R(p.amount)}</b>
+                                </div>
+                              `).join("") || '<p style="color:var(--mu);padding:8px 0;text-align:center">No payouts disbursed yet this month.</p>'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ` : ''}
+              `;
+            }).join("") || `
               <tr>
-                <td>
-                  <div style="display:flex;align-items:center;gap:10px">
-                    <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;background:#eee;flex-shrink:0">
-                      ${w.img ? `<img src="${Security.escapeHTML(w.img)}" style="width:100%;height:100%;object-fit:cover">` : "🧵"}
-                    </div>
-                    <div>
-                      <b>${E(w.name)}</b><br>
-                      <small style="color:var(--mu)">${E(w.role)} · ID: <b>${E(w.wid)}</b></small>
-                    </div>
-                  </div>
-                </td>
-                <td><b>${stats.totalPieces}</b> pieces</td>
-                <td>
-                  <b style="color:var(--br)">${R(stats.totalEarned)}</b>
-                  ${stats.pendingEarned > 0 ? `<br><small style="color:var(--warn);font-weight:600">(+${R(stats.pendingEarned)} pending)</small>` : ''}
-                </td>
-                <td><b style="color:var(--ok)">${R(stats.totalPaid)}</b></td>
-                <td><b style="color:${stats.pendingBalance > 0 ? 'var(--warn)' : 'var(--ok)'}">${R(stats.pendingBalance)}</b></td>
-                <td>
-                  <span class="pill ok">P: ${stats.daysPresent}</span>
-                  <span class="pill w">H: ${stats.daysHalf}</span>
-                  <span class="pill bad">L: ${stats.daysLeave}</span>
-                </td>
-                <td>
-                  <div style="display:flex;gap:4px">
-                    <button class="btn s p" onclick="openPayoutModalForWorker('${w.id}')" title="Disburse Salary / Advance">+ Pay</button>
-                    <button class="btn s" onclick="printSalarySlip('${w.id}')" title="Print Salary Slip">🧾 Slip</button>
-                  </div>
+                <td colspan="8" style="text-align:center;padding:24px;color:var(--mu)">
+                  ${salarySearch ? `No artisans found matching "${Security.escapeHTML(salarySearch)}".` : 'No registered artisans found in atelier. Register artisans in Team &amp; HR.'}
                 </td>
               </tr>
-            `;
-          }).join("") || "<tr><td colspan='7'>No artisans registered.</td></tr>"}
-        </tbody>
-      </table>
+            `}
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- 4. Payouts Log -->
     <div class="box">
-      <b>💵 Payment Disbursement History</b>
-      <table style="margin-top:10px">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Artisan</th>
-            <th>Amount Paid</th>
-            <th>Payment Mode</th>
-            <th>Note</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${(S.payouts || []).slice().sort((a,b)=>b.date-a.date).map(p => `
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+        <div>
+          <b>💵 Payment Disbursement History (${(S.payouts || []).length} total records)</b>
+          <p style="font-size:0.8rem;color:var(--mu);margin:2px 0 0">
+            Chronological audit log of all cash, UPI, bank, and advance settlements disbursed to workshop artisans.
+          </p>
+        </div>
+        <button class="btn s p" onclick="openPayoutModal()">+ Record New Disbursement</button>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
             <tr>
-              <td>${new Date(p.date).toLocaleDateString("en-IN")}</td>
-              <td><b>${E(p.workerName || "Artisan")}</b></td>
-              <td><b style="color:var(--ok)">${R(p.amount)}</b></td>
-              <td><span class="pill">${E(p.mode)}</span></td>
-              <td>${E(p.note || "-")}</td>
-              <td><button class="btn s d" onclick="requestDelete('payouts','${p.id}')">✕</button></td>
+              <th>Date &amp; Time</th>
+              <th>Artisan</th>
+              <th>Amount Paid</th>
+              <th>Payment Mode</th>
+              <th>Disbursement Note</th>
+              <th>Actions</th>
             </tr>
-          `).join("") || "<tr><td colspan='6'>No payout disbursements recorded yet.</td></tr>"}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${(S.payouts || []).slice().sort((a,b)=>b.date-a.date).map(p => `
+              <tr>
+                <td>
+                  ${new Date(p.date).toLocaleDateString("en-IN")}<br>
+                  <small style="color:var(--mu)">${new Date(p.date).toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit' })}</small>
+                </td>
+                <td><b>${E(p.workerName || "Artisan")}</b></td>
+                <td><b style="color:var(--ok);font-size:1rem">${R(p.amount)}</b></td>
+                <td><span class="pill" style="font-weight:700">${E(p.mode)}</span></td>
+                <td>${E(p.note || "-")}</td>
+                <td>
+                  <button class="btn s d" onclick="requestDelete('payouts','${p.id}')" title="Delete payout record">✕</button>
+                </td>
+              </tr>
+            `).join("") || "<tr><td colspan='6' style='text-align:center;padding:16px;color:var(--mu)'>No payout disbursements recorded yet.</td></tr>"}
+          </tbody>
+        </table>
+      </div>
     </div>
   `;
-}
-
-function openPayoutModal(targetWid = "") {
-  modal(`
-    <h2 style="color:var(--br)">Record Salary / Advance Payout</h2>
-    <div class="g2" style="margin-top:10px">
-      <div>
-        <label>Select Artisan</label>
-        <select id="po_w">
-          ${workers().map(w => `<option value="${w.id}" ${w.id == targetWid ? "selected" : ""}>${E(w.name)} (${E(w.role)})</option>`).join("")}
-        </select>
-      </div>
-      <div>
-        <label>Amount (₹)</label>
-        <input id="po_amt" type="number" placeholder="e.g. 2000">
-      </div>
-    </div>
-    <div class="g2">
-      <div>
-        <label>Payment Method</label>
-        <select id="po_mode">
-          <option>Cash</option>
-          <option>UPI</option>
-          <option>Bank Transfer</option>
-        </select>
-      </div>
-      <div>
-        <label>Disbursement Note</label>
-        <input id="po_note" placeholder="Advance / Monthly settlement">
-      </div>
-    </div>
-    <button class="btn p" style="width:100%;margin-top:8px" onclick="savePayout()">Disburse Payout ✅</button>
-  `);
-}
-
-function openPayoutModalForWorker(wid) {
-  openPayoutModal(wid);
-}
-
-function savePayout() {
-  const wid = $("po_w").value;
-  const amt = Number($("po_amt").value);
-  if (!amt || amt <= 0) return toast("Enter valid payout amount");
-
-  recordSalaryPayout(wid, amt, $("po_mode").value, $("po_note").value.trim());
-  closeM();
-  toast(`Payout of ${R(amt)} recorded ✅`);
-}
-
-function printSalarySlip(wid) {
-  const w = workers().find(x => x.id == wid);
-  if (!w) return;
-  const stats = getWorkerMonthlyStats(wid, curMon);
-  modal(`
-    <div class="invoice-sheet" id="invoice-print-area">
-      <div style="border-bottom:2px solid var(--br);padding-bottom:10px;display:flex;justify-content:space-between">
-        <div>
-          <h2 style="color:var(--br);margin:0">SAIFA DESIGNS</h2>
-          <small>Artisan Salary & Settlement Statement</small>
-        </div>
-        <div style="text-align:right">
-          <b>Month: ${curMon}</b><br>
-          Date: ${new Date().toLocaleDateString("en-IN")}
-        </div>
-      </div>
-      <p style="margin:12px 0"><b>Artisan:</b> ${E(w.name)} (${E(w.role)}) · Worker ID: <b>${E(w.wid)}</b></p>
-      
-      <table>
-        <tr><th>Total Pieces Completed</th><td><b>${stats.totalPieces} pcs</b></td></tr>
-        <tr><th>Gross Piece-Rate Earnings</th><td><b>${R(stats.totalEarned)}</b></td></tr>
-        <tr><th>Amount Paid (Cash/UPI)</th><td><b style="color:var(--ok)">-${R(stats.totalPaid)}</b></td></tr>
-        <tr><th>Net Outstanding Balance</th><td><b style="color:var(--br);font-size:1.1rem">${R(stats.pendingBalance)}</b></td></tr>
-        <tr><th>Attendance Summary</th><td>${stats.daysPresent} Days Present, ${stats.daysHalf} Half-Days</td></tr>
-      </table>
-
-      <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center">
-        <small>Generated automatically by SAIFA Management System</small>
-        <button class="btn s p" onclick="window.print()">🖨️ Print Slip</button>
-      </div>
-    </div>
-  `);
 }
 
 // ------------------------------------------

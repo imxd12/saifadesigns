@@ -403,27 +403,45 @@ function getWorkerMonthlyStats(wid, monthKey = curMon) {
   const payoutLog = (S.payouts || []).filter(p => p.wid == wid && monKey(p.date) == monthKey);
   const totalPaid = payoutLog.reduce((a, p) => a + (Number(p.amount) || 0), 0);
 
-  const pendingBalance = totalEarned - totalPaid;
-
   const attLog = (S.attendance || []).filter(at => at.wid == wid && String(at.date).startsWith(monthKey));
   const daysPresent = attLog.filter(at => at.status == "Present").length;
   const daysHalf = attLog.filter(at => at.status == "Half-Day").length;
   const daysLeave = attLog.filter(at => at.status == "Leave" || at.status == "Absent").length;
+  const daysWeeklyOff = attLog.filter(at => at.status == "Weekly Off").length;
+  const totalOtHours = attLog.reduce((a, at) => a + (Number(at.otHours) || 0), 0);
+  const otEarnings = totalOtHours * 50; // Standard boutique overtime allowance ₹50/hr
+
+  const grossEarned = totalEarned + otEarnings;
+  const pendingBalance = grossEarned - totalPaid;
+
+  const allPayouts = (S.payouts || []).filter(p => p.wid == wid);
+  const allTimePaid = allPayouts.reduce((a, p) => a + (Number(p.amount) || 0), 0);
+  const allVerifiedWork = (S.work || []).filter(w => w.wk == wid && w.verified !== false);
+  const allTimeEarned = allVerifiedWork.reduce((a, w) => a + (Number(w.qty) || 0) * (Number(w.rate) || 0), 0);
+  const allTimePendingBalance = allTimeEarned - allTimePaid;
 
   return {
     totalPieces,
     totalEarned,
+    otEarnings,
+    grossEarned,
+    totalOtHours,
     pendingPieces,
     pendingEarned,
     totalPaid,
     pendingBalance,
+    allTimeEarned,
+    allTimePaid,
+    allTimePendingBalance,
     daysPresent,
     daysHalf,
     daysLeave,
+    daysWeeklyOff,
     payoutLog,
     piecesLog,
     verifiedPiecesLog,
-    pendingPiecesLog
+    pendingPiecesLog,
+    attLog
   };
 }
 
@@ -2040,6 +2058,41 @@ function exportReviewsCSV() {
   a.remove();
 }
 
+function exportPayrollCSV(monthKey) {
+  const mKey = monthKey || (S.attYearMonth || curMon);
+  const wrks = workers();
+  const headers = ["Worker ID", "Artisan Name", "Role", "Phone", "Month", "Verified Pieces", "Pending Pieces", "Piece Wage (INR)", "Overtime Hours", "OT Allowance (INR)", "Gross Earned (INR)", "Amount Paid (INR)", "Pending Balance (INR)", "Days Present", "Days Half", "Days Leave"];
+  const rows = wrks.map(w => {
+    const stats = getWorkerMonthlyStats(w.id, mKey);
+    return [
+      w.wid || w.id,
+      `"${(w.name || "").replace(/"/g, '""')}"`,
+      `"${(w.role || "").replace(/"/g, '""')}"`,
+      w.phone || "",
+      mKey,
+      stats.totalPieces,
+      stats.pendingPieces,
+      stats.totalEarned,
+      stats.totalOtHours,
+      stats.otEarnings,
+      stats.grossEarned,
+      stats.totalPaid,
+      stats.pendingBalance,
+      stats.daysPresent,
+      stats.daysHalf,
+      stats.daysLeave
+    ];
+  });
+  const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+  const a = document.createElement("a");
+  a.setAttribute("href", encodeURI(csvContent));
+  a.setAttribute("download", `saifa_artisan_payroll_${mKey}.csv`);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  toast(`Exported payroll CSV for ${mKey} 📄✅`);
+}
+
 window.reviews = reviews;
 window.getShopRatingStats = getShopRatingStats;
 window.getGenuineCustomerStats = getGenuineCustomerStats;
@@ -2054,9 +2107,12 @@ window.deleteVariantFromProduct = deleteVariantFromProduct;
 window.validateAndDeductStock = validateAndDeductStock;
 window.getRevenueAnalytics = getRevenueAnalytics;
 window.exportReviewsCSV = exportReviewsCSV;
+window.exportPayrollCSV = exportPayrollCSV;
 window.getProductSizeStock = getProductSizeStock;
 window.restoreOrderStock = restoreOrderStock;
 window.reDeductOrderStock = reDeductOrderStock;
 window.saveCfg = saveCfg;
 window.setShopLiveStatus = setShopLiveStatus;
+window.getWorkerMonthlyStats = getWorkerMonthlyStats;
+window.getArtisanProductivityAI = getArtisanProductivityAI;
 

@@ -2364,3 +2364,166 @@ label {
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   transform: translateY(-1px);
 }
+
+/* ==========================================================================
+   25. Premium Salary, Attendance & Atelier Workforce Styles
+   ========================================================================== */
+.salary-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 12px;
+  margin: 14px 0 18px;
+}
+
+.salary-kpi-card {
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: var(--adm-radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--adm-transition-fast);
+  box-shadow: var(--adm-shadow-xs);
+}
+
+.salary-kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--br);
+  box-shadow: var(--adm-shadow-sm);
+}
+
+.salary-kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--ln);
+}
+
+.salary-kpi-card.gold::before { background: linear-gradient(90deg, var(--gd), var(--br)); }
+.salary-kpi-card.green::before { background: linear-gradient(90deg, var(--ok), #059669); }
+.salary-kpi-card.amber::before { background: linear-gradient(90deg, var(--warn), #d97706); }
+.salary-kpi-card.purple::before { background: linear-gradient(90deg, #8b5cf6, #a855f7); }
+.salary-kpi-card.blue::before { background: linear-gradient(90deg, #06b6d4, #0284c7); }
+
+.salary-kpi-label {
+  font-size: 0.76rem;
+  color: var(--mu);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.salary-kpi-val {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--tx);
+  margin: 6px 0 2px;
+  letter-spacing: -0.02em;
+}
+
+.salary-kpi-sub {
+  font-size: 0.74rem;
+  color: var(--mu);
+}
+
+.salary-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+  margin: 14px 0 20px;
+}
+
+.salary-chart-card {
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: var(--adm-radius-lg);
+  padding: 16px;
+  box-shadow: var(--adm-shadow-xs);
+}
+
+.salary-filter-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--sf2);
+  border: 1px solid var(--ln);
+  padding: 10px 14px;
+  border-radius: var(--adm-radius-md);
+  margin-bottom: 14px;
+}
+
+.salary-search-input {
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: var(--adm-radius-sm);
+  padding: 6px 12px;
+  font-size: 0.84rem;
+  color: var(--tx);
+  min-width: 240px;
+  outline: none;
+  transition: all var(--adm-transition-fast);
+}
+
+.salary-search-input:focus {
+  border-color: var(--br);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--br) 20%, transparent);
+}
+
+.artisan-drawer-container {
+  background: color-mix(in srgb, var(--sf2) 80%, var(--sf));
+  border: 1px solid var(--ln);
+  border-radius: var(--adm-radius-md);
+  padding: 14px 16px;
+  margin: 6px 0 12px;
+  animation: slideDownFade 0.25s ease-out;
+}
+
+@keyframes slideDownFade {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slip-paper {
+  background: #fff;
+  color: #111827;
+  padding: 28px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  font-family: 'Inter', -apple-system, sans-serif;
+  max-width: 640px;
+  margin: 0 auto;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #invoice-print-area, #invoice-print-area * {
+    visibility: visible;
+  }
+  #invoice-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    box-shadow: none;
+    border: none;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

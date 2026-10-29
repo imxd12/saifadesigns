@@ -18,6 +18,64 @@
 <body>
 
   <!-- ==========================================
+       TAILORING-THEMED INTRODUCTORY SPLASH SCREEN
+       ========================================== -->
+  <div class="atelier-splash-screen" id="atelierSplashScreen" role="dialog" aria-modal="true"
+    aria-label="Welcome to SAIFA DESIGNS Atelier" style="display:none">
+    <div class="splash-backdrop"></div>
+    <div class="splash-card">
+      <div class="splash-stitch-frame">
+        <!-- Needle and Thread Tailoring Animation (Pure SVG/CSS) -->
+        <div class="splash-needle-art">
+          <svg class="splash-tailor-svg" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <!-- Wavy Fabric / Thread Path -->
+            <path class="splash-thread-path" d="M 15 70 Q 55 15, 95 65 T 185 55" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-dasharray="6,4" />
+            <!-- Golden Tailoring Needle -->
+            <g class="splash-needle-group">
+              <path class="splash-needle" d="M 140 25 L 180 52 L 185 55 L 178 50 Z" fill="#d4af37" />
+              <ellipse cx="145" cy="28" rx="2" ry="1.2" transform="rotate(34 145 28)" fill="#8e1647" />
+              <line x1="140" y1="25" x2="185" y2="55" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" />
+            </g>
+            <!-- Golden Spool Silhouette -->
+            <path class="splash-spool" d="M 20 62 L 20 78 Q 28 82, 36 78 L 36 62 Q 28 58, 20 62 Z" fill="#d4af37"
+              opacity="0.85" />
+          </svg>
+        </div>
+
+        <!-- Luxury Brand Monogram Emblem -->
+        <div class="splash-brand-emblem">
+          <div class="splash-logo-crest">
+            <span class="splash-crest-letter">S</span>
+          </div>
+        </div>
+
+        <!-- Typography -->
+        <div class="splash-brand-heading">
+          <span class="splash-eyebrow">Haute Couture · Bespoke Atelier</span>
+          <h1 class="splash-brand-title">SAIFA DESIGN'S</h1>
+          <div class="splash-divider-stitch">
+            <span class="stitch-line"></span>
+            <span class="stitch-diamond">✦</span>
+            <span class="stitch-line"></span>
+          </div>
+          <p class="splash-tagline">Crafted with Care, Tailored for You.</p>
+        </div>
+
+        <!-- Progress Indicator Bar -->
+        <div class="splash-loader-track" aria-hidden="true">
+          <div class="splash-loader-bar" id="splashLoaderBar"></div>
+        </div>
+
+        <!-- Discreet Skip Button -->
+        <button class="splash-skip-btn" id="splashSkipBtn" onclick="Customer.dismissSplashScreen()" type="button">
+          <span>Enter Boutique</span> ➔
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
        ELEVATED BOUTIQUE HEADER & SMART TIMINGS BAR
        ========================================== -->
   <header class="site-header" id="siteHeader">
@@ -39,10 +97,12 @@
 
       <!-- Desktop Navigation Links -->
       <div class="nav-links" id="navLinks">
-        <a class="lk" href="#shop">Shop</a>
-        <a class="lk" href="#stitch" onclick="Customer.openStitchingForm()">Stitching</a>
+        <a class="lk" href="readymade.html">👗 Readymade</a>
+        <a class="lk" href="product.html">🧵 Fabrics</a>
+        <a class="lk" href="#stitch" onclick="Customer.openStitchingForm()">✂️ Stitching</a>
         <a class="lk" href="#team">Our Team</a>
-        <a class="lk" href="#about">About</a>
+        <a class="lk" href="#about">Why Saifa</a>
+        <a class="lk" href="#how-it-works">How It Works</a>
         <a class="lk" href="#faq">FAQ</a>
         <a class="lk" href="#track">Track Order</a>
         <a class="lk" href="#reviews">Ratings</a>
@@ -59,10 +119,17 @@
 
         <a class="btn s" id="inst" style="display:none;cursor:pointer">⬇ Install App</a>
 
-        <!-- Modern Staff & Artisan Login Icon Button -->
+        <!-- Modern Staff & Artisan Login Icon Button (Desktop Discreet) -->
         <a class="btn s login-icon-btn" id="lg" style="cursor:pointer" onclick="openLogin()"
           title="Staff &amp; Artisan Portal Login">
           <span class="login-icon">🔑</span> <span class="login-label">Staff Login</span>
+        </a>
+
+        <!-- Modern Wishlist Icon Button -->
+        <a class="btn s wishlist-btn" id="wb" style="cursor:pointer" onclick="Customer.openWishlist(true)"
+          title="View Saved Wishlist">
+          <span class="wishlist-icon">💖</span> <span class="wishlist-label">Wishlist</span> <span class="cnt"
+            id="wc">0</span>
         </a>
 
         <!-- Modern Cart Icon Button -->
@@ -80,56 +147,110 @@
       </div>
     </nav>
 
-    <!-- Smart Boutique Operating Hours & Shop Status Sub-Bar (Organized Smartly Under Nav & Controls) -->
-    <div class="header-timings-bar" id="headerTimingsBar">
-      <div class="timings-bar-inner">
-        <!-- Live Shop Status Interactive Pill -->
-        <div class="shop-live-status-pill open" id="shopStatusPill" onclick="Customer.showShopScheduleModal()"
-          title="Click to view full weekly hours & boutique schedule">
-          <span class="status-dot"></span>
-          <span class="status-pill-badge" id="shopStatusBadge">Atelier Open</span>
-          <span class="status-text" id="shopStatusText">Open · 10:30 AM–9:00 PM</span>
-          <span class="status-chevron">▾</span>
-        </div>
-
-        <!-- Operating Hours & Schedule Summary Info -->
-        <div class="timings-schedule-info" onclick="Customer.showShopScheduleModal()" style="cursor:pointer"
-          title="Click to view detailed boutique schedule">
-          <span class="timings-hours-chip">
-            <span class="timings-icon">🕒</span> <span>Hours: <b id="hdrHoursText">10:30 AM – 9:00 PM</b></span>
-          </span>
-          <span class="timings-divider">·</span>
-          <span class="timings-closed-chip">
-            <span class="timings-icon">📅</span> <span id="hdrMondayText"><b>Mon Closed</b> (Atelier Rest Day)</span>
-          </span>
-          <span class="timings-divider">·</span>
-          <span class="timings-service-chip">
-            <span class="timings-icon">✂️</span> <span>Walk-ins &amp; Bespoke Fitting Welcome</span>
-          </span>
-        </div>
-
-        <!-- Weekly Schedule Trigger Button -->
-        <button class="timings-modal-btn" onclick="Customer.showShopScheduleModal()" title="View Boutique Schedule">
-          <span>Weekly Schedule</span> <b style="font-size:0.85rem">📅</b>
-        </button>
-      </div>
-    </div>
-
     <!-- Mobile Slide-Down Navigation Menu -->
     <div class="mobile-nav-drawer" id="mobileNavDrawer">
       <div class="mobile-nav-links">
-        <a class="mob-lk" href="#shop" onclick="Customer.closeMobileNav()">👗 Shop Catalogue</a>
+        <a class="mob-lk mob-lk-featured" href="readymade.html" onclick="Customer.closeMobileNav()">👗 Readymade
+          Ensembles</a>
+        <a class="mob-lk mob-lk-featured" href="product.html" onclick="Customer.closeMobileNav()">🧵 Materials &amp;
+          Fabrics Studio</a>
+        <a class="mob-lk" href="javascript:void(0)" onclick="Customer.closeMobileNav(); Customer.openWishlist(true)">💖
+          Saved Wishlist (<b id="mobWc">0</b>)</a>
         <a class="mob-lk" href="#stitch" onclick="Customer.closeMobileNav(); Customer.openStitchingForm()">✂️ Bespoke
           Stitching &amp; Fit</a>
         <a class="mob-lk" href="#team" onclick="Customer.closeMobileNav()">🧑‍💼 Our Master Team</a>
-        <a class="mob-lk" href="#about" onclick="Customer.closeMobileNav()">🏛️ About Our Boutique</a>
+        <a class="mob-lk" href="#about" onclick="Customer.closeMobileNav()">🏛️ Why SAIFA DESIGN'S</a>
+        <a class="mob-lk" href="#how-it-works" onclick="Customer.closeMobileNav()">✨ How It Works</a>
         <a class="mob-lk" href="#faq" onclick="Customer.closeMobileNav()">❓ FAQ &amp; Guides</a>
         <a class="mob-lk" href="#track" onclick="Customer.closeMobileNav()">📦 Track My Order</a>
         <a class="mob-lk" href="#reviews" onclick="Customer.closeMobileNav()">⭐ Client Ratings</a>
         <a class="mob-lk" href="#contact" onclick="Customer.closeMobileNav()">🏛️ Visit Boutique</a>
       </div>
+      <!-- Mobile Navigation Drawer Footer with Dedicated Login / My Account -->
+      <div class="mobile-nav-footer">
+        <a class="mob-account-btn" href="javascript:void(0)" onclick="Customer.closeMobileNav(); openLogin()">
+          <span class="mob-acc-icon">👤</span>
+          <div class="mob-acc-text">
+            <strong>Login / My Account</strong>
+            <small>Staff, Artisan &amp; Client Portal</small>
+          </div>
+          <span class="mob-acc-arrow">➔</span>
+        </a>
+      </div>
     </div>
   </header>
+
+  <!-- ==========================================
+       HANGING ATELIER STATUS TAG (Suspended by two fine stitching threads)
+       ========================================== -->
+  <div class="hanging-tag-wrapper" id="hangingTagWrapper">
+    <div class="hanging-tag-container" id="hangingTagContainer" 
+      role="button" 
+      tabindex="0" 
+      aria-haspopup="dialog" 
+      aria-expanded="false" 
+      aria-controls="hangingTagPopover"
+      onclick="Customer.toggleHangingTagDropdown(event)"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); Customer.toggleHangingTagDropdown(event);}"
+      title="Click to view boutique atelier hours & schedule"
+      aria-live="polite">
+      <div class="stitching-thread thread-left"></div>
+      <div class="stitching-thread thread-right"></div>
+      <div class="boutique-garment-tag" id="boutiqueGarmentTag">
+        <div class="tag-eyelet eyelet-left"></div>
+        <div class="tag-eyelet eyelet-right"></div>
+        <div class="tag-stitch-border">
+          <span class="tag-status-dot open" id="hangingTagDot"></span>
+          <span class="tag-status-text" id="hangingTagStatus">🟢 Atelier Open</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Polished Boutique Popover for Atelier Operating Hours -->
+    <div class="hanging-tag-popover" id="hangingTagPopover" role="dialog" aria-modal="false" aria-label="Atelier Operating Hours & Schedule" style="display:none">
+      <div class="tag-popover-arrow" aria-hidden="true"></div>
+      <div class="tag-popover-header">
+        <div class="tag-popover-title-row">
+          <span class="tag-popover-eyebrow">SAIFA ATELIER</span>
+          <button class="tag-popover-close" type="button" onclick="Customer.closeHangingTagDropdown(event)" aria-label="Close schedule">&times;</button>
+        </div>
+        <div class="tag-popover-badge open" id="hangingPopBadge">🟢 Atelier Open Now</div>
+      </div>
+      <div class="tag-popover-body">
+        <div class="tag-popover-row">
+          <span class="tag-popover-icon">🕒</span>
+          <div class="tag-popover-text">
+            <div class="tag-popover-label">Opening &amp; Closing Hours</div>
+            <div class="tag-popover-val" id="hangingPopHours">10:30 AM – 9:00 PM (Tue–Sun)</div>
+          </div>
+        </div>
+        <div class="tag-popover-row">
+          <span class="tag-popover-icon">🟡</span>
+          <div class="tag-popover-text">
+            <div class="tag-popover-label">Weekly Rest Day</div>
+            <div class="tag-popover-val" id="hangingPopMonday">Monday Closed (Atelier Rest Day)</div>
+          </div>
+        </div>
+        <div class="tag-popover-row" id="hangingPopNextRow">
+          <span class="tag-popover-icon">⏱️</span>
+          <div class="tag-popover-text">
+            <div class="tag-popover-label">Next Opening Time</div>
+            <div class="tag-popover-val" id="hangingPopNext">Open today · Walk-ins &amp; bespoke consultations welcome</div>
+          </div>
+        </div>
+        <div class="tag-popover-row" id="hangingPopLocalTimeRow">
+          <span class="tag-popover-icon">📍</span>
+          <div class="tag-popover-text">
+            <div class="tag-popover-label">Current Local Time</div>
+            <div class="tag-popover-val" id="hangingPopLocalTime">Local Time: 10:30 AM</div>
+          </div>
+        </div>
+      </div>
+      <div class="tag-popover-footer">
+        <span class="tag-popover-note">🧵 Handcrafted bespoke fittings · Online orders 24/7</span>
+      </div>
+    </div>
+  </div>
 
   <header class="hero">
     <div>
@@ -138,7 +259,8 @@
       <p class="lead">Dress materials, readymade suits &amp; sarees, and personalised bespoke stitching — every
         measurement saved to your profile so your next order fits perfectly.</p>
       <div class="acts">
-        <a class="btn p" href="#shop"><span class="btn-icon">👗</span> <span>Shop Catalogue</span></a>
+        <a class="btn p" href="readymade.html"><span class="btn-icon">👗</span> <span>Readymade Ensembles</span></a>
+        <a class="btn" href="product.html"><span class="btn-icon">🧵</span> <span>Materials &amp; Fabrics</span></a>
         <a class="btn" href="#stitch" onclick="Customer.openStitchingForm()"><span class="btn-icon">✂️</span> <span>Book
             Stitching</span></a>
         <a class="btn" href="#track"><span class="btn-icon">📦</span> <span>Track My Order</span></a>
@@ -148,13 +270,47 @@
   </header>
 
   <div class="stats">
-    <div class="stat"><span class="stat-emoji">✂️</span><b>Custom</b><span>Made-to-measure fits</span></div>
-    <div class="stat"><span class="stat-emoji">👗</span><b>Ready</b><span>Readymade in all sizes</span></div>
-    <div class="stat"><span class="stat-emoji">🧵</span><b>Fabrics</b><span>Silk, georgette &amp; linen</span></div>
-    <div class="stat"><span class="stat-emoji">👥</span><b id="heroCustStat">48+</b><span>Boutique Clients</span></div>
-    <div class="stat" style="cursor:pointer" onclick="const r=$('reviews');if(r)r.scrollIntoView({behavior:'smooth'})"
-      title="Click to view verified boutique client ratings"><span class="stat-emoji">⭐</span><b id="heroRatingStat">5.0
-        ★</b><span id="heroRatingCount">Verified Ratings</span></div>
+    <div class="stat">
+      <div class="stat-icon-wrap"><span class="stat-emoji">✂️</span></div>
+      <div class="stat-info">
+        <b class="stat-value">Custom</b>
+        <span class="stat-label">Made-to-measure fits</span>
+      </div>
+    </div>
+    <div class="stat">
+      <div class="stat-icon-wrap"><span class="stat-emoji">👗</span></div>
+      <div class="stat-info">
+        <b class="stat-value">Ready</b>
+        <span class="stat-label">Readymade in all sizes</span>
+      </div>
+    </div>
+    <div class="stat">
+      <div class="stat-icon-wrap"><span class="stat-emoji">🧵</span></div>
+      <div class="stat-info">
+        <b class="stat-value">Fabrics</b>
+        <span class="stat-label">Silk, georgette &amp; linen</span>
+      </div>
+    </div>
+    <div class="stat">
+      <div class="stat-icon-wrap"><span class="stat-emoji">👥</span></div>
+      <div class="stat-info">
+        <b class="stat-value" id="heroCustStat">0+</b>
+        <span class="stat-label">Boutique Clients</span>
+      </div>
+    </div>
+    <div class="stat stat-ratings-card" 
+      role="button" 
+      tabindex="0" 
+      onclick="const r=$('reviews');if(r)r.scrollIntoView({behavior:'smooth'})"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();const r=$('reviews');if(r)r.scrollIntoView({behavior:'smooth'});}"
+      title="Click to view verified boutique client ratings"
+      aria-label="View verified boutique client ratings">
+      <div class="stat-icon-wrap star-gold"><span class="stat-emoji">⭐</span></div>
+      <div class="stat-info">
+        <b class="stat-value" id="heroRatingStat">5.0 ★</b>
+        <span class="stat-label" id="heroRatingCount">Verified Ratings</span>
+      </div>
+    </div>
   </div>
 
   <!-- New Arrivals Section (Handcrafted & added within last 7 days) -->
@@ -165,19 +321,14 @@
       <p>Handcrafted luxury fabrics and ready-to-wear ensembles added this week.</p>
     </div>
     <div class="grid" id="newArrivalsGrid"></div>
-  </section>
-
-  <section id="shop">
-    <div class="sh">
-      <span class="eyebrow">Boutique Catalogue</span>
-      <h2>Materials &amp; Readymade Wear</h2>
-      <p>Browse curated fabrics and ready-to-wear ensembles. <span class="live" id="lv">Online · Realtime Sync
-          Active</span></p>
+    <div class="new-arrivals-cta-wrap">
+      <a href="product.html" class="btn p new-arrivals-explore-btn">
+        <span>🧵 Discover Fabric Materials</span> ➔
+      </a>
+      <a href="readymade.html" class="btn new-arrivals-explore-btn readymade-link">
+        <span>👗 Discover Readymade Pieces</span> ➔
+      </a>
     </div>
-    <div class="tabs" id="chips"></div>
-    <div class="subcat-tabs" id="subcatChips"></div>
-    <div class="search"><input id="q" placeholder="Search kurti, silk, lehenga, saree…" oninput="shop()"></div>
-    <div class="grid" id="pg"></div>
   </section>
 
   <section id="stitch">
@@ -213,9 +364,9 @@
 
   <section id="team">
     <div class="sh">
-      <span class="eyebrow">Our Team</span>
+      <span class="eyebrow">Our Master Team</span>
       <h2>The Masterminds Behind Your Fit</h2>
-      <p>From our creative founder to our master cutting and pattern masters.</p>
+      <p>From our creative founder to our master cutting and pattern craftsmen.</p>
     </div>
     <div class="team" id="tmg"></div>
   </section>
@@ -223,66 +374,138 @@
   <section id="about">
     <div class="sh">
       <span class="eyebrow">Why SAIFA DESIGN'S</span>
-      <h2>Crafted with care, delivered with trust</h2>
+      <h2>Crafted with Precision, Delivered with Trust</h2>
+      <p style="color:var(--mu);max-width:580px;margin:auto">Every ensemble is shaped with authentic tailoring
+        traditions, pure textiles, and a personal fit commitment.</p>
     </div>
-    <div class="feat">
-      <div class="fi">
-        <div class="ic">📏</div>
-        <h3>Measurements on file</h3>
-        <p>Save your fit once and reorder any time by Client ID or mobile number.</p>
+    <div class="feat interactive-feat-grid">
+      <div class="fi interactive-feat-card" 
+        role="button" 
+        tabindex="0" 
+        aria-label="View details: Permanent Fit Profile"
+        onclick="Customer.openFeatureModal('fit_profile')"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); Customer.openFeatureModal('fit_profile');}">
+        <div class="ic feat-icon">📏</div>
+        <h3 class="feat-title">Permanent Fit Profile</h3>
+        <span class="feat-cue">Tap for details ➔</span>
       </div>
-      <div class="fi">
-        <div class="ic">🧵</div>
-        <h3>Neat finishing</h3>
-        <p>Lining, hemming, potli latkans, and embroidery checked before delivery.</p>
+      <div class="fi interactive-feat-card" 
+        role="button" 
+        tabindex="0" 
+        aria-label="View details: Artisanal Handcrafting & Finishing"
+        onclick="Customer.openFeatureModal('handcrafting')"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); Customer.openFeatureModal('handcrafting');}">
+        <div class="ic feat-icon">🪡</div>
+        <h3 class="feat-title">Artisanal Handcrafting &amp; Finishing</h3>
+        <span class="feat-cue">Tap for details ➔</span>
       </div>
-      <div class="fi">
-        <div class="ic">💳</div>
-        <h3>Pay your way</h3>
-        <p>Download boutique UPI QR, pay via any UPI app, COD, or at the counter.</p>
+      <div class="fi interactive-feat-card" 
+        role="button" 
+        tabindex="0" 
+        aria-label="View details: Pure Certified Textiles"
+        onclick="Customer.openFeatureModal('textiles')"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); Customer.openFeatureModal('textiles');}">
+        <div class="ic feat-icon">🧵</div>
+        <h3 class="feat-title">Pure Certified Textiles</h3>
+        <span class="feat-cue">Tap for details ➔</span>
       </div>
-      <div class="fi">
-        <div class="ic">🚚</div>
-        <h3>Track every order</h3>
-        <p>Follow your garment from Confirmed to Cutting, Stitching, Ready and Delivered.</p>
+      <div class="fi interactive-feat-card" 
+        role="button" 
+        tabindex="0" 
+        aria-label="View details: Zero-Friction UPI & COD"
+        onclick="Customer.openFeatureModal('payments')"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); Customer.openFeatureModal('payments');}">
+        <div class="ic feat-icon">💳</div>
+        <h3 class="feat-title">Zero-Friction UPI &amp; COD</h3>
+        <span class="feat-cue">Tap for details ➔</span>
       </div>
-      <div class="fi">
-        <div class="ic">🎀</div>
-        <h3>Bridal &amp; festive</h3>
-        <p>Complete custom bridal lehengas for weddings, Eid, Diwali and family receptions.</p>
+      <div class="fi interactive-feat-card" 
+        role="button" 
+        tabindex="0" 
+        aria-label="View details: Live Milestone Order Tracker"
+        onclick="Customer.openFeatureModal('tracker')"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); Customer.openFeatureModal('tracker');}">
+        <div class="ic feat-icon">📦</div>
+        <h3 class="feat-title">Live Milestone Order Tracker</h3>
+        <span class="feat-cue">Tap for details ➔</span>
       </div>
-      <div class="fi">
-        <div class="ic">♻️</div>
-        <h3>Alterations</h3>
-        <p>Free minor adjustments on readymade and stitched outfits.</p>
+      <div class="fi interactive-feat-card" 
+        role="button" 
+        tabindex="0" 
+        aria-label="View details: Complimentary Alteration Guarantee"
+        onclick="Customer.openFeatureModal('alterations')"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); Customer.openFeatureModal('alterations');}">
+        <div class="ic feat-icon">✂️</div>
+        <h3 class="feat-title">Complimentary Alteration Guarantee</h3>
+        <span class="feat-cue">Tap for details ➔</span>
       </div>
     </div>
   </section>
 
-  <section>
-    <div class="sh"><span class="eyebrow">How It Works</span>
-      <h2>Five simple steps to the perfect fit</h2>
+  <section id="how-it-works">
+    <div class="sh"><span class="eyebrow">The Atelier Journey</span>
+      <h2>Five Simple Steps to Your Perfect Fit</h2>
+      <p style="color:var(--mu);max-width:580px;margin:auto">From selecting your dream fabric to final hand-finished
+        delivery, our process is transparent and effortless.</p>
     </div>
-    <div class="steps">
-      <div class="step">
-        <h3>Choose</h3>
-        <p>Pick a readymade piece or bring your fabric.</p>
-      </div>
-      <div class="step">
-        <h3>Measure</h3>
-        <p>Enter measurements online or visit our boutique.</p>
-      </div>
-      <div class="step">
-        <h3>Stitch</h3>
-        <p>Our master tailors draft, cut, stitch &amp; finish.</p>
-      </div>
-      <div class="step">
-        <h3>Trial</h3>
-        <p>Trial fitting and free minor adjustments.</p>
-      </div>
-      <div class="step">
-        <h3>Deliver</h3>
-        <p>Collect at the boutique.</p>
+    <div class="timeline-container">
+      <div class="timeline-line" aria-hidden="true"></div>
+      <div class="steps interactive-steps-grid">
+        <div class="step interactive-step-card" 
+          role="button" 
+          tabindex="0" 
+          aria-label="View details for Step 1: Discover Collections"
+          onclick="Customer.openJourneyStepModal(1)"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); Customer.openJourneyStepModal(1);}">
+          <span class="step-num-badge">01</span>
+          <span class="step-icon-emoji">👗</span>
+          <h3 class="step-title">Discover Collections</h3>
+          <span class="step-cue"><span class="cue-long">Tap for details</span><span class="cue-short">Details</span> ▾</span>
+        </div>
+        <div class="step interactive-step-card" 
+          role="button" 
+          tabindex="0" 
+          aria-label="View details for Step 2: Specify Your Fit"
+          onclick="Customer.openJourneyStepModal(2)"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); Customer.openJourneyStepModal(2);}">
+          <span class="step-num-badge">02</span>
+          <span class="step-icon-emoji">📐</span>
+          <h3 class="step-title">Specify Your Fit</h3>
+          <span class="step-cue"><span class="cue-long">Tap for details</span><span class="cue-short">Details</span> ▾</span>
+        </div>
+        <div class="step interactive-step-card" 
+          role="button" 
+          tabindex="0" 
+          aria-label="View details for Step 3: Seamless Checkout"
+          onclick="Customer.openJourneyStepModal(3)"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); Customer.openJourneyStepModal(3);}">
+          <span class="step-num-badge">03</span>
+          <span class="step-icon-emoji">💳</span>
+          <h3 class="step-title">Seamless Checkout</h3>
+          <span class="step-cue"><span class="cue-long">Tap for details</span><span class="cue-short">Details</span> ▾</span>
+        </div>
+        <div class="step interactive-step-card" 
+          role="button" 
+          tabindex="0" 
+          aria-label="View details for Step 4: Atelier Crafting & Tracking"
+          onclick="Customer.openJourneyStepModal(4)"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); Customer.openJourneyStepModal(4);}">
+          <span class="step-num-badge">04</span>
+          <span class="step-icon-emoji">🪡</span>
+          <h3 class="step-title">Atelier Crafting &amp; Tracking</h3>
+          <span class="step-cue"><span class="cue-long">Tap for details</span><span class="cue-short">Details</span> ▾</span>
+        </div>
+        <div class="step interactive-step-card" 
+          role="button" 
+          tabindex="0" 
+          aria-label="View details for Step 5: Trial & Delivery"
+          onclick="Customer.openJourneyStepModal(5)"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); Customer.openJourneyStepModal(5);}">
+          <span class="step-num-badge">05</span>
+          <span class="step-icon-emoji">🎉</span>
+          <h3 class="step-title">Trial &amp; Delivery</h3>
+          <span class="step-cue"><span class="cue-long">Tap for details</span><span class="cue-short">Details</span> ▾</span>
+        </div>
       </div>
     </div>
   </section>
@@ -483,13 +706,131 @@
     </div>
   </section>
 
-  <footer id="foot">© 2026 SAIFA DESIGNS · Ladies Tailor &amp; Boutique</footer>
+  <!-- ==========================================
+       ELEVATED HAUTE-COUTURE BOUTIQUE FOOTER
+       ========================================== -->
+  <footer class="site-footer" id="siteFooter">
+    <div class="footer-top-wrap">
+      <!-- Brand Pillar Column -->
+      <div class="footer-brand-col">
+        <div class="footer-logo">
+          <i>S</i>
+          <div class="footer-logo-text">
+            <span>SAIFA DESIGNS</span>
+            <small>Haute Couture &amp; Atelier Studio</small>
+          </div>
+        </div>
+        <p class="footer-brand-desc">
+          Bespoke ladies tailoring, bridal lehengas, made-to-measure designer suits, and handpicked luxury fabrics.
+          Every client measurement is safely preserved for effortless bespoke re-ordering.
+        </p>
+        <div class="footer-trust-chips">
+          <span class="f-chip">✂️ Master Tailoring</span>
+          <span class="f-chip">📏 Measurements on File</span>
+          <span class="f-chip">🛡️ 100% Quality Fit</span>
+        </div>
+      </div>
+
+      <!-- Quick Navigation Column -->
+      <div class="footer-col">
+        <h4 class="footer-col-title">Atelier Boutique</h4>
+        <ul class="footer-nav-list">
+          <li><a href="readymade.html">👗 Readymade Ensembles</a></li>
+          <li><a href="product.html">🧵 Fabrics &amp; Materials</a></li>
+          <li><a href="#stitch" onclick="Customer.openStitchingForm()">✂️ Bespoke Stitching</a></li>
+          <li><a href="#new-arrivals">✨ Fresh New Arrivals</a></li>
+          <li><a href="javascript:void(0)" onclick="Customer.openWishlist(true)">💖 Saved Wishlist</a></li>
+          <li><a href="javascript:void(0)" onclick="Customer.openCart(true)">🛒 Shopping Bag</a></li>
+        </ul>
+      </div>
+
+      <!-- Client Services Column -->
+      <div class="footer-col">
+        <h4 class="footer-col-title">Client Services</h4>
+        <ul class="footer-nav-list">
+          <li><a href="#track">📦 Live Order Tracking</a></li>
+          <li><a href="#reviews">⭐ Verified Client Ratings</a></li>
+          <li><a href="#about">🏛️ About Our Atelier</a></li>
+          <li><a href="#faq">❓ Fitting &amp; Delivery FAQ</a></li>
+          <li><a href="javascript:void(0)" onclick="openLogin()">🔑 Staff &amp; Artisan Portal</a></li>
+        </ul>
+      </div>
+
+      <!-- Visit & Hours Column -->
+      <div class="footer-col">
+        <h4 class="footer-col-title">Visit Our Boutique</h4>
+        <div class="footer-contact-info">
+          <p class="footer-info-row">
+            <span class="f-icon">📍</span>
+            <span id="footerAddressText">Shop No. 12, Gulshan Market, Main Road, New Delhi 110025</span>
+          </p>
+          <p class="footer-info-row">
+            <span class="f-icon">🕒</span>
+            <span id="footerHoursText">Tue–Sun: 10:30 AM – 9:00 PM</span>
+          </p>
+          <p class="footer-info-row">
+            <span class="f-icon">📅</span>
+            <span>Monday Atelier Rest Day (Online Open 24/7)</span>
+          </p>
+          <p class="footer-info-row">
+            <span class="f-icon">💬</span>
+            <a id="footerWaLink" target="_blank" rel="noopener" style="color:var(--ok);font-weight:700">Official
+              WhatsApp Chat</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trust Feature Badges Bar -->
+    <div class="footer-features-bar">
+      <div class="ff-item">
+        <span class="ff-icon">🪡</span>
+        <div>
+          <b>Artisan Crafted</b>
+          <small>Precision drafted &amp; hand finished</small>
+        </div>
+      </div>
+      <div class="ff-item">
+        <span class="ff-icon">📏</span>
+        <div>
+          <b>Perfect Fit Guarantee</b>
+          <small>Free trial &amp; complimentary alterations</small>
+        </div>
+      </div>
+      <div class="ff-item">
+        <span class="ff-icon">📱</span>
+        <div>
+          <b>Instant UPI &amp; COD</b>
+          <small>GPay, PhonePe, Paytm, or at boutique</small>
+        </div>
+      </div>
+      <div class="ff-item">
+        <span class="ff-icon">🚀</span>
+        <div>
+          <b>Real-Time Tracking</b>
+          <small>Live atelier milestones by phone number</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Copyright & Safe Strip -->
+    <div class="footer-bottom-bar" id="foot">
+      <div class="footer-bottom-inner">
+        <span id="footCopy">© 2026 SAIFA DESIGNS · Ladies Tailor, Boutique &amp; Fabric Studio · All Rights
+          Reserved</span>
+        <button class="footer-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to Top">
+          <span>Back to Top</span> <b>↑</b>
+        </button>
+      </div>
+    </div>
+  </footer>
 
   <div class="fab">
     <a class="btn" id="fmap" target="_blank" rel="noopener">📍</a>
     <a class="btn wa" id="fwa" target="_blank" rel="noopener">💬</a>
   </div>
   <div class="drawer" id="dr"></div>
+  <div class="drawer wishlist-drawer" id="wdr"></div>
   <div class="ov" id="ov">
     <div class="md" id="md"></div>
   </div>

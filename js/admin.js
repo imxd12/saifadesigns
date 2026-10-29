@@ -3305,6 +3305,27 @@ function quickAdjustStock(id, delta) {
     toast(`Stock updated: "${p.name}" now has ${newStock} unit(s) 📦`);
     if (typeof panel === "function") panel();
     if (typeof renderFront === "function") renderFront();
+    if (typeof Realtime !== "undefined" && Realtime.broadcast) {
+      Realtime.broadcast("PRODUCT_UPDATED", { id, stock: newStock });
+    }
+  });
+}
+
+function toggleProductPublishStatus(id) {
+  const p = products().find(x => x.id == id);
+  if (!p) return;
+  const willBePublished = (p.published === false || p.status === "Draft");
+  const newStatus = willBePublished ? "Published" : "Draft";
+  upd("products", id, { published: willBePublished, status: newStatus }).then(() => {
+    toast(`Product "${p.name}" is now ${newStatus}!`);
+    if (typeof panel === "function") panel();
+    if (typeof renderFront === "function") renderFront();
+    if (typeof Customer !== "undefined" && typeof Customer.renderCatalogue === "function" && $("catalogueGrid")) {
+      Customer.renderCatalogue();
+    }
+    if (typeof Realtime !== "undefined" && Realtime.broadcast) {
+      Realtime.broadcast("PRODUCT_UPDATED", { id, published: willBePublished, status: newStatus });
+    }
   });
 }
 
@@ -3432,9 +3453,17 @@ function openEditProductModal(id) {
         <input id="ep_hx" type="color" value="${p.hx || '#8e1647'}">
       </div>
       <div>
-        <label>Photo URL</label>
-        <input id="ep_img" value="${Security.escapeHTML(p.img || '')}" placeholder="https://..." oninput="const prv = $('ep_img_prev'); if (prv) prv.src = this.value;">
+        <label>Catalogue Visibility / Status</label>
+        <select id="ep_status">
+          <option value="Published" ${(p.published !== false && p.status !== "Draft") ? "selected" : ""}>🟢 Published (Live in Storefront &amp; Catalogue)</option>
+          <option value="Draft" ${(p.published === false || p.status === "Draft") ? "selected" : ""}>🔴 Draft / Hidden (Hidden from Customers)</option>
+        </select>
       </div>
+    </div>
+
+    <div style="margin-top:8px">
+      <label>Photo URL</label>
+      <input id="ep_img" value="${Security.escapeHTML(p.img || '')}" placeholder="https://..." oninput="const prv = $('ep_img_prev'); if (prv) prv.src = this.value;">
     </div>
 
     <div style="margin-top:10px;text-align:center">
@@ -3640,6 +3669,9 @@ function saveEditedProduct(id) {
   const hx = $("ep_hx") ? $("ep_hx").value : (p.hx || "#8e1647");
   const img = $("ep_img") ? $("ep_img").value.trim() : (p.img || "");
   const desc = $("ep_desc") ? $("ep_desc").value.trim() : (p.desc || "");
+  const statusEl = $("ep_status");
+  const statusVal = statusEl ? statusEl.value : ((p.published !== false && p.status !== "Draft") ? "Published" : "Draft");
+  const isPublished = statusVal === "Published";
 
   let stock = $("ep_stock") ? Math.max(0, Number($("ep_stock").value) || 0) : p.stock;
   let sizes = $("ep_sizes") ? $("ep_sizes").value.trim() : (p.sizes || "");
@@ -3726,12 +3758,20 @@ function saveEditedProduct(id) {
     hx,
     img,
     desc,
+    published: isPublished,
+    status: statusVal,
     variants
   }).then(() => {
     closeM();
     toast(`Product "${n}" updated successfully! ✅`);
     if (typeof panel === "function") panel();
     if (typeof renderFront === "function") renderFront();
+    if (typeof Customer !== "undefined" && typeof Customer.renderCatalogue === "function" && $("catalogueGrid")) {
+      Customer.renderCatalogue();
+    }
+    if (typeof Realtime !== "undefined" && Realtime.broadcast) {
+      Realtime.broadcast("PRODUCT_UPDATED", { id, published: isPublished, status: statusVal });
+    }
   });
 }
 
@@ -4002,7 +4042,7 @@ function renderProductsTab() {
               <th>Classification</th>
               <th style="width:130px">Selling Price</th>
               <th style="width:180px">Stock Management</th>
-              <th style="text-align:right;width:140px">Actions</th>
+              <th style="text-align:right;width:175px">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -4010,6 +4050,7 @@ function renderProductsTab() {
               const currentStock = Number(p.stock) || 0;
               const isOutOfStock = currentStock <= 0;
               const isLowStock = currentStock > 0 && currentStock < 5;
+              const isPub = (p.published !== false && p.status !== "Draft");
               const stockStatusPill = isOutOfStock 
                 ? `<span class="pill bad" style="font-size:0.72rem;font-weight:700">🔴 Out of Stock</span>`
                 : isLowStock
@@ -4068,9 +4109,12 @@ function renderProductsTab() {
                     </div>
                   </td>
                   <td style="text-align:right">
-                    <div style="display:inline-flex;gap:6px">
+                    <div style="display:inline-flex;gap:5px;align-items:center">
+                      <button class="btn s ${isPub ? 'ok' : 'w'}" style="font-size:0.72rem;padding:3px 7px" onclick="toggleProductPublishStatus('${p.id}')" title="Click to toggle customer catalogue visibility">
+                        ${isPub ? '🟢 Live' : '🔴 Draft'}
+                      </button>
                       <button class="btn s" onclick="openEditProductModal('${p.id}')" title="Edit full product details">
-                        ✏️ Edit
+                        ✏️
                       </button>
                       <button class="btn s d" onclick="requestDelete('products','${p.id}')" title="Delete product permanently">
                         ✕
@@ -4265,6 +4309,8 @@ function addProd() {
     img: img,
     desc: desc,
     created: Date.now(),
+    published: true,
+    status: "Published",
     variants: variants
   }).then(id => {
     if (id) {
@@ -4272,6 +4318,12 @@ function addProd() {
       toast(`Product "${n}" added to ${subcat}! ✅`);
       if (typeof panel === "function") panel();
       if (typeof renderFront === "function") renderFront();
+      if (typeof Customer !== "undefined" && typeof Customer.renderCatalogue === "function" && $("catalogueGrid")) {
+        Customer.renderCatalogue();
+      }
+      if (typeof Realtime !== "undefined" && Realtime.broadcast) {
+        Realtime.broadcast("PRODUCT_UPDATED", { id, published: true, status: "Published" });
+      }
     }
   });
 }

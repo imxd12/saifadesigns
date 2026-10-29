@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#8e1647">
+  <title>Materials &amp; Fabrics Studio – SAIFA DESIGNS Ladies Tailor &amp; Atelier</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/login.css">
+  <script>(function () { try { var t = localStorage.getItem("saifa_theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); document.documentElement.setAttribute("data-theme", t); } catch (e) { } })();</script>
+</head>
+
+<body>
+
+  <!-- ==========================================
+       ELEVATED BOUTIQUE HEADER
+       ========================================== -->
+  <header class="site-header" id="siteHeader">
+    <!-- Top Announcement & Offer Bar -->
+    <div class="offer" id="offer">✨ Bespoke Ladies Tailoring, Designer Suits &amp; Luxury Fabrics · Welcome to Saifa Designs!</div>
+
+    <!-- Main Navigation Bar -->
+    <nav class="main-nav">
+      <!-- Luxury Brand Logo -->
+      <a class="logo" href="index.html" style="text-decoration:none" title="SAIFA DESIGNS – Return to Home">
+        <i>S</i>
+        <div class="logo-text">
+          <span>SAIFA DESIGNS</span>
+          <small>Haute Couture &amp; Atelier</small>
+        </div>
+      </a>
+
+      <!-- Desktop Navigation Links -->
+      <div class="nav-links" id="navLinks">
+        <a class="lk" href="readymade.html">👗 Readymade</a>
+        <a class="lk active" href="product.html" style="color:var(--br);font-weight:700">🧵 Fabrics</a>
+        <a class="lk" href="index.html#stitch" onclick="Customer.openStitchingForm()">✂️ Stitching</a>
+        <a class="lk" href="index.html#team">Our Team</a>
+        <a class="lk" href="index.html#about">Why Saifa</a>
+        <a class="lk" href="index.html#how-it-works">How It Works</a>
+        <a class="lk" href="index.html#faq">FAQ</a>
+        <a class="lk" href="index.html#track">Track Order</a>
+        <a class="lk" href="index.html#reviews">Ratings</a>
+        <a class="lk" href="index.html#contact">Visit Us</a>
+      </div>
+
+      <!-- Right Header Actions Cluster -->
+      <div class="header-actions">
+        <!-- Modern Theme Toggle Icon Button -->
+        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Dark/Light Mode" aria-label="Toggle Theme">
+          <span class="theme-icon">🌙</span> <span class="theme-label">Theme</span>
+        </button>
+
+        <a class="btn s" id="inst" style="display:none;cursor:pointer">⬇ Install App</a>
+
+        <!-- Modern Staff & Artisan Login Icon Button (Desktop Discreet) -->
+        <a class="btn s login-icon-btn" id="lg" style="cursor:pointer" onclick="openLogin()" title="Staff &amp; Artisan Portal Login">
+          <span class="login-icon">🔑</span> <span class="login-label">Staff Login</span>
+        </a>
+
+        <!-- Modern Wishlist Icon Button -->
+        <a class="btn s wishlist-btn" id="wb" style="cursor:pointer" onclick="Customer.openWishlist(true)" title="View Saved Wishlist">
+          <span class="wishlist-icon">💖</span> <span class="wishlist-label">Wishlist</span> <span class="cnt" id="wc">0</span>
+        </a>
+
+        <!-- Modern Cart Icon Button -->
+        <a class="btn s p cartbtn" style="cursor:pointer" onclick="cart(1)" title="View Cart">
+          <span class="cart-icon">🛒</span> <span class="cart-label">Cart</span> <span class="cnt" id="cc">0</span>
+        </a>
+
+        <!-- Mobile Navigation Menu Toggle Button -->
+        <button class="mobile-nav-toggle" id="mobileNavToggle" onclick="Customer.toggleMobileNav()" aria-label="Toggle Navigation Menu" title="Menu">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Mobile Slide-Down Navigation Menu -->
+    <div class="mobile-nav-drawer" id="mobileNavDrawer">
+      <div class="mobile-nav-links">
+        <a class="mob-lk mob-lk-featured" href="readymade.html" onclick="Customer.closeMobileNav()">👗 Readymade Ensembles</a>
+        <a class="mob-lk mob-lk-featured active" href="product.html" onclick="Customer.closeMobileNav()">🧵 Materials &amp; Fabrics Studio</a>
+        <a class="mob-lk" href="javascript:void(0)" onclick="Customer.closeMobileNav(); Customer.openWishlist(true)">💖 Saved Wishlist (<b id="mobWc">0</b>)</a>
+        <a class="mob-lk" href="index.html#stitch" onclick="Customer.closeMobileNav(); Customer.openStitchingForm()">✂️ Bespoke Stitching &amp; Fit</a>
+        <a class="mob-lk" href="index.html#team" onclick="Customer.closeMobileNav()">🧑‍💼 Our Master Team</a>
+        <a class="mob-lk" href="index.html#about" onclick="Customer.closeMobileNav()">🏛️ Why SAIFA DESIGN'S</a>
+        <a class="mob-lk" href="index.html#how-it-works" onclick="Customer.closeMobileNav()">✨ How It Works</a>
+        <a class="mob-lk" href="index.html#faq" onclick="Customer.closeMobileNav()">❓ FAQ &amp; Guides</a>
+        <a class="mob-lk" href="index.html#track" onclick="Customer.closeMobileNav()">📦 Track My Order</a>
+        <a class="mob-lk" href="index.html#reviews" onclick="Customer.closeMobileNav()">⭐ Client Ratings</a>
+        <a class="mob-lk" href="index.html#contact" onclick="Customer.closeMobileNav()">🏛️ Visit Boutique</a>
+      </div>
+      <!-- Mobile Navigation Drawer Footer with Dedicated Login / My Account -->
+      <div class="mobile-nav-footer">
+        <a class="mob-account-btn" href="javascript:void(0)" onclick="Customer.closeMobileNav(); openLogin()">
+          <span class="mob-acc-icon">👤</span>
+          <div class="mob-acc-text">
+            <strong>Login / My Account</strong>
+            <small>Staff, Artisan &amp; Client Portal</small>
+          </div>
+          <span class="mob-acc-arrow">➔</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       CATALOGUE HERO & BREADCRUMBS
+       ========================================== -->
+  <section class="catalogue-hero">
+    <div class="catalogue-hero-inner">
+      <nav class="catalogue-breadcrumbs">
+        <a href="index.html">Home</a>
+        <span>/</span>
+        <span class="cur">Materials &amp; Fabrics Studio</span>
+      </nav>
+      <span class="eyebrow">Haute Couture &amp; Atelier Textiles</span>
+      <h1>Materials &amp; Luxury Fabrics Studio</h1>
+      <p class="catalogue-lead">
+        Handpicked pure Chanderi silks, modal satins, organza, georgette, and pure mulmul cotton fabrics curated for bespoke ladies tailoring, custom lehengas, and elegant festive suits.
+      </p>
+      <div style="margin-top:14px">
+        <a href="readymade.html" class="btn s" style="background:var(--sf);border:1.5px solid var(--br);color:var(--br);font-weight:600">
+          👗 Looking for ready-to-wear? Explore Readymade Ensembles ➔
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       MAIN PRODUCT CATALOGUE WORKSPACE
+       ========================================== -->
+  <main class="catalogue-main-container">
+    <!-- Search & Quick Category Filter Deck -->
+    <div class="catalogue-toolbar-box">
+      <!-- Search Bar -->
+      <div class="catalogue-search-row">
+        <div class="catalogue-search-wrap">
+          <span class="search-icon">🔍</span>
+          <input id="catalogueSearchInput" type="text" placeholder="Search by fabric type, silk, cotton, georgette, zari, color or keyword…" oninput="Customer.setCatalogueSearch(this.value)">
+          <button class="search-clear-btn" type="button" onclick="Customer.setCatalogueSearch('')" title="Clear Search">✕</button>
+        </div>
+
+        <!-- Sorting Dropdown -->
+        <div class="catalogue-sort-wrap">
+          <label for="catalogueSortSelect" class="sort-lbl">Sort By:</label>
+          <select id="catalogueSortSelect" onchange="Customer.setCatalogueSort(this.value)">
+            <option value="newest">✨ New Arrivals First</option>
+            <option value="price_asc">🏷️ Price: Low to High</option>
+            <option value="price_desc">💎 Price: High to Low</option>
+            <option value="stock_desc">📦 Highest In Stock</option>
+            <option value="name_asc">🔤 Name: A to Z</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Main Category Filter Pills -->
+      <div class="catalogue-cat-pills" id="catalogueCatPills">
+        <!-- Rendered dynamically by Customer.renderCatalogueFiltersUI -->
+      </div>
+
+      <!-- Dynamic Subcategory Chips -->
+      <div class="catalogue-subcat-chips-row" id="catalogueSubcatChips">
+        <!-- Rendered dynamically based on Category -->
+      </div>
+
+      <!-- Advanced Filter Expandable Accordion/Tray -->
+      <details class="catalogue-advanced-tray" open>
+        <summary class="advanced-tray-summary">
+          <span>⚙️ Filter by Price, Sizes, Colors &amp; Stock</span>
+          <span class="summary-arrow">▾</span>
+        </summary>
+
+        <div class="advanced-tray-body">
+          <!-- Price Range Filter -->
+          <div class="filter-group">
+            <span class="filter-group-title">Price Range (₹)</span>
+            <div class="price-inputs-row">
+              <input type="number" id="catalogueMinPrice" placeholder="Min ₹" min="0" oninput="Customer.setCataloguePriceRange(this.value, $('catalogueMaxPrice').value)">
+              <span class="price-dash">–</span>
+              <input type="number" id="catalogueMaxPrice" placeholder="Max ₹" min="0" oninput="Customer.setCataloguePriceRange($('catalogueMinPrice').value, this.value)">
+              <button class="btn s" type="button" onclick="$('catalogueMinPrice').value='';$('catalogueMaxPrice').value='';Customer.setCataloguePriceRange(null,null)">Reset</button>
+            </div>
+          </div>
+
+          <!-- Stock Availability -->
+          <div class="filter-group">
+            <span class="filter-group-title">Availability</span>
+            <div class="stock-filter-options">
+              <button class="facet-chip active" id="stockF_all" type="button" onclick="Customer.setCatalogueStockFilter('all')">All</button>
+              <button class="facet-chip" id="stockF_in" type="button" onclick="Customer.setCatalogueStockFilter('in_stock')">🟢 In Stock</button>
+              <button class="facet-chip" id="stockF_low" type="button" onclick="Customer.setCatalogueStockFilter('low_stock')">🟠 Low Stock (&lt;5)</button>
+            </div>
+          </div>
+
+          <!-- Size Filter Chips -->
+          <div class="filter-group filter-group-wide">
+            <span class="filter-group-title">Available Sizes</span>
+            <div class="facet-chips-grid" id="catalogueSizeChips">
+              <!-- Rendered dynamically from real products -->
+            </div>
+          </div>
+
+          <!-- Color Filter Chips -->
+          <div class="filter-group filter-group-wide">
+            <span class="filter-group-title">Colours &amp; Palettes</span>
+            <div class="facet-chips-grid" id="catalogueColorChips">
+              <!-- Rendered dynamically from real products -->
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- Active Filters Summary Strip -->
+    <div class="catalogue-active-status-bar">
+      <div class="catalogue-count-badge" id="catalogueCountSummary">
+        Showing pieces…
+      </div>
+      <div class="catalogue-active-filters-bar" id="catalogueActiveFiltersBar" style="display:none">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div class="grid catalogue-grid" id="catalogueGrid">
+      <!-- Rendered dynamically by Customer.renderCatalogue -->
+    </div>
+
+    <!-- Load More Pagination Control -->
+    <div class="catalogue-load-more-wrap" id="catalogueLoadMoreWrap" style="display:none">
+      <button class="btn p catalogue-load-more-btn" id="catalogueLoadMoreBtn" onclick="Customer.loadMoreCatalogue()">
+        <span>✨</span> <span id="catalogueLoadMoreText">Load More Pieces</span> <span>▾</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- ==========================================
+       LUXURY MULTI-COLUMN FOOTER
+       ========================================== -->
+  <footer class="site-footer" id="siteFooter">
+    <div class="footer-top-grid">
+      <div class="footer-col footer-col-brand">
+        <div class="footer-brand-logo">
+          <i>S</i>
+          <div class="brand-text">
+            <span>SAIFA DESIGNS</span>
+            <small>Haute Couture &amp; Atelier</small>
+          </div>
+        </div>
+        <p class="footer-tagline">
+          Crafting bespoke silhouettes, royal bridal ensembles, and luxury handloom fabrics tailored perfectly to your individual posture and comfort.
+        </p>
+        <div class="footer-trust-pill">
+          <span class="trust-icon">⭐</span>
+          <span><b>5.0 ★</b> Top Rated Ladies Tailor &amp; Atelier</span>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-col-title">Boutique Catalogue</h4>
+        <ul class="footer-nav-list">
+          <li><a href="product.html">Silk &amp; Chiffon Fabrics</a></li>
+          <li><a href="readymade.html">Readymade Festive Suits</a></li>
+          <li><a href="readymade.html?subcat=Lehenga">Bridal &amp; Party Lehengas</a></li>
+          <li><a href="readymade.html?subcat=Anarkali">Anarkali &amp; Gowns</a></li>
+          <li><a href="index.html#stitch" onclick="Customer.openStitchingForm()">Custom Tailoring &amp; Fitting</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-col-title">Client Services</h4>
+        <ul class="footer-nav-list">
+          <li><a href="index.html#track">Track Order Status</a></li>
+          <li><a href="javascript:void(0)" onclick="Customer.openWishlist(true)">Saved Wishlist</a></li>
+          <li><a href="javascript:void(0)" onclick="cart(1)">Shopping Bag</a></li>
+          <li><a href="index.html#reviews">Client Ratings &amp; Reviews</a></li>
+          <li><a href="index.html#faq">Fitting &amp; Measurement Guide</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-contact">
+        <h4 class="footer-col-title">Atelier &amp; Studio</h4>
+        <div class="footer-contact-item">
+          <span class="fc-icon">📍</span>
+          <div>
+            <b>Boutique Address</b>
+            <address>Shop No. 4, Ground Floor, Near Jama Masjid, Main Market, Mumbai, Maharashtra 400001</address>
+          </div>
+        </div>
+        <div class="footer-contact-item">
+          <span class="fc-icon">🕒</span>
+          <div>
+            <b>Visiting Hours</b>
+            <span>Tue – Sun: 10:30 AM – 9:00 PM<br><small style="color:var(--gd)">Mon: Closed (Artisan Rest Day)</small></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-features-strip">
+      <div class="ff-item">
+        <span class="ff-icon">✂️</span>
+        <div><b>Perfect Fit Guarantee</b><small>Free alterations on all bespoke stitching</small></div>
+      </div>
+      <div class="ff-item">
+        <span class="ff-icon">🧵</span>
+        <div><b>100% Genuine Fabrics</b><small>Handpicked Chanderi, Georgette &amp; Cotton</small></div>
+      </div>
+      <div class="ff-item">
+        <span class="ff-icon">📱</span>
+        <div><b>Instant UPI &amp; COD</b><small>GPay, PhonePe, Paytm, or at boutique</small></div>
+      </div>
+      <div class="ff-item">
+        <span class="ff-icon">🚀</span>
+        <div><b>Real-Time Tracking</b><small>Live atelier milestones by phone number</small></div>
+      </div>
+    </div>
+
+    <div class="footer-bottom-bar" id="foot">
+      <div class="footer-bottom-inner">
+        <span id="footCopy">© 2026 SAIFA DESIGNS · Ladies Tailor, Boutique &amp; Fabric Studio · All Rights Reserved</span>
+        <button class="footer-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to Top">
+          <span>Back to Top</span> <b>↑</b>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Drawers & Modals (Reused from Core Architecture) -->
+  <div class="drawer" id="dr"></div>
+  <div class="drawer wishlist-drawer" id="wdr"></div>
+  <div class="ov" id="ov">
+    <div class="md" id="md"></div>
+  </div>
+  <div id="pn"></div>
+  <div class="toast" id="tt"></div>
+
+  <!-- Libraries with Local Fallbacks -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>window.THREE || document.write('<script src="js/three.min.js"><\/script>')</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <!-- Firebase Realtime Cloud Sync (Cross-Device 10km+ Sync) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+
+  <!-- Modular Application Architecture -->
+  <script src="js/data.js"></script>
+  <script src="js/security.js"></script>
+  <script src="js/realtime.js"></script>
+  <script src="js/backend.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/customer.js"></script>
+  <script src="js/worker.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>

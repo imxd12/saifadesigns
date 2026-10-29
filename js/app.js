@@ -56,6 +56,27 @@ const App = {
       document.body.classList.remove("admin-open");
     }
 
+    // Global keyboard accessibility listener (Escape dismisses active modals & drawers)
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        const ov = $("ov");
+        if (ov && ov.classList.contains("on")) {
+          closeM();
+        }
+        const dr = $("dr");
+        if (dr && dr.classList.contains("on")) {
+          dr.classList.remove("on");
+        }
+        const wdr = $("wdr");
+        if (wdr && wdr.classList.contains("on")) {
+          wdr.classList.remove("on");
+        }
+        if (window.Customer && typeof Customer.closeHangingTagDropdown === "function") {
+          Customer.closeHangingTagDropdown();
+        }
+      }
+    });
+
     console.log("✨ SAIFA DESIGNS Enterprise Suite Initialized [Online Realtime Sync Active]");
   },
 
@@ -635,6 +656,9 @@ function closeM() {
       ov.innerHTML = '<div class="md" id="md"></div>';
     }
   }
+  if (document.body) {
+    document.body.classList.remove("modal-open");
+  }
   App.stopCameraStream();
 }
 
@@ -648,6 +672,17 @@ function modal(html) {
   }
   md.innerHTML = `<button class="x" onclick="closeM()">&times;</button>${html}`;
   ov.classList.add("on");
+  if (!ov._backdropAttached) {
+    ov._backdropAttached = true;
+    ov.addEventListener("click", (e) => {
+      if (e.target === ov) {
+        closeM();
+      }
+    });
+  }
+  if (document.body) {
+    document.body.classList.add("modal-open");
+  }
 }
 
 let toastTimer = null;

@@ -4,10 +4,17 @@
 
 const Customer = {
   init() {
+    this.initSplashScreen();
+    this.saveWishlist();
     this.renderFront();
+    this.startShopStatusAutoUpdater();
     this.checkUrlForTracking();
     this.checkUrlForStitching();
+    if (typeof this.initCatalogue === "function" && $("catalogueGrid")) {
+      this.initCatalogue();
+    }
     this.initThreeHero();
+    this.initCompactStatusClickOutside();
 
     window.addEventListener("hashchange", () => {
       this.checkUrlForTracking();
@@ -373,6 +380,7 @@ const Customer = {
     const curSub = S.subcat || "All";
 
     const allFiltered = products().filter(p => {
+      if (p.published === false || p.status === "Draft") return false;
       const matchCat = (S.cat === "All" || p.cat === S.cat);
       const matchSub = (curSub === "All" || p.subcat === curSub);
       const matchSearch = (p.name + p.desc + p.fabric + (p.subcat || "")).toLowerCase().includes(q);
@@ -400,6 +408,14 @@ const Customer = {
       <div class="card ${!shouldShowAll ? 'spotlight-card' : ''}">
         <div class="pic" style="background:linear-gradient(135deg,${E(p.hx)}22,${E(p.hx)}88)" onclick="Customer.openDetail('${p.id}')">
           ${!shouldShowAll ? `<span class="ribbon" style="background:linear-gradient(90deg,var(--br),var(--gd));left:12px;right:auto">🌟 Featured Collection Spotlight</span>` : (p.stock < 5 && p.stock > 0 ? `<span class="ribbon">Only ${p.stock} left</span>` : "")}
+          <button class="card-wishlist-btn ${Customer.isInWishlist(p.id) ? 'active' : ''}" 
+            data-id="${p.id}" 
+            type="button"
+            onclick="event.stopPropagation(); Customer.toggleWishlist('${p.id}', event)" 
+            title="${Customer.isInWishlist(p.id) ? 'Remove from Wishlist' : 'Save to Wishlist'}" 
+            aria-label="Wishlist">
+            <span class="heart-icon">${Customer.isInWishlist(p.id) ? '💖' : '🤍'}</span>
+          </button>
           ${p.img ? `<img src="${p.img}" alt="${E(p.name)}" loading="lazy">` : p.em || "👗"}
           <div class="zoom-overlay"><span>🔍 View Full</span></div>
         </div>
@@ -455,7 +471,7 @@ const Customer = {
     const grid = $("newArrivalsGrid");
     if (!grid) return;
 
-    const allProds = products();
+    const allProds = products().filter(p => p.published !== false && p.status !== "Draft");
     const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 
     // Filter products added within the last 7 days
@@ -474,7 +490,13 @@ const Customer = {
     }
 
     if (!newItems.length) {
-      grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--mu);padding:24px 0">New bespoke creations arriving this week at our atelier.</p>`;
+      grid.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:36px 16px;background:var(--sf);border-radius:18px;border:1px dashed var(--ln)">
+          <div style="font-size:2.4rem;margin-bottom:8px">🧵</div>
+          <h3 style="font-family:'Playfair Display',serif;color:var(--br);margin:0 0 6px">Atelier Creations in Crafting</h3>
+          <p style="color:var(--mu);margin:0 0 14px;font-size:0.9rem">Our master artisans are finishing fresh pieces. Explore our full catalogues below.</p>
+        </div>
+      `;
       return;
     }
 
@@ -482,47 +504,222 @@ const Customer = {
       const vars = Array.isArray(p.variants) && p.variants.length > 0 ? p.variants : null;
       const totalStock = vars ? vars.reduce((acc, v) => acc + (Number(v.stock) || 0), 0) : (Number(p.stock) || 0);
       const isOut = totalStock <= 0;
-
-      const availSizes = vars 
-        ? [...new Set(vars.filter(v => v.stock > 0).map(v => v.size))].join(", ")
-        : (p.sizes || "Standard");
-
-      const availColors = vars 
-        ? [...new Set(vars.filter(v => v.stock > 0).map(v => v.color))].join(", ")
-        : (p.colors || "");
+      const inWishlist = Customer.isInWishlist(p.id);
 
       return `
-        <div class="card new-arrival-card">
-          <div class="pic" style="background:linear-gradient(135deg,${E(p.hx)}22,${E(p.hx)}88)" onclick="Customer.openDetail('${p.id}')">
-            <span class="ribbon" style="background:linear-gradient(90deg,#9c27b0,#e91e63);left:12px;right:auto">✨ Just In · New Arrival</span>
-            ${p.img ? `<img src="${p.img}" alt="${E(p.name)}" loading="lazy">` : p.em || "👗"}
-            <div class="zoom-overlay"><span>🔍 View Ensembles</span></div>
+        <div class="card new-arrival-card ${isOut ? 'out-of-stock-card' : ''}" 
+          role="button" 
+          tabindex="0" 
+          aria-label="View details for ${Security.escapeHTML(p.name)}" 
+          onclick="Customer.openDetail('${p.id}')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();Customer.openDetail('${p.id}')}">
+          <div class="pic" style="background:linear-gradient(135deg,${E(p.hx || '#8e1647')}22,${E(p.hx || '#8e1647')}88)">
+            <span class="ribbon ribbon-new">✨ Just In · Added This Week</span>
+            <button class="card-wishlist-btn ${inWishlist ? 'active' : ''}" 
+              data-id="${p.id}" 
+              type="button"
+              onclick="event.stopPropagation(); Customer.toggleWishlist('${p.id}', event)" 
+              title="${inWishlist ? 'Remove from Wishlist' : 'Save to Wishlist'}" 
+              aria-label="Wishlist">
+              <span class="heart-icon">${inWishlist ? '💖' : '🤍'}</span>
+            </button>
+            ${p.img ? `<img src="${Security.escapeHTML(p.img)}" alt="${Security.escapeHTML(p.name)}" loading="lazy">` : `<span style="font-size:3rem">${p.em || "👗"}</span>`}
+            <div class="zoom-overlay"><span>🔍 View Details</span></div>
           </div>
           <div class="cb">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
-              <span class="tag">${E(p.cat)}</span>
-              ${p.subcat ? `<span class="pill" style="font-size:0.68rem;padding:2px 8px;background:var(--sf2);color:var(--mu)">${E(p.subcat)}</span>` : ''}
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px">
+              <span class="tag ${p.cat === 'Readymade' ? 'tag-readymade' : 'tag-material'}">${Security.escapeHTML(p.cat)}</span>
+              ${p.subcat ? `<span class="pill subcat-badge">${Security.escapeHTML(p.subcat)}</span>` : ''}
             </div>
-            <h3>${E(p.name)}</h3>
-            <small style="color:var(--mu)">${E(p.fabric || 'Pure Fabric')}</small>
-            
-            <div style="margin:6px 0 4px;font-size:0.75rem;color:var(--mu)">
-              ${availSizes ? `<span>📏 Sizes: <b style="color:var(--tx)">${availSizes}</b></span><br>` : ''}
-              ${availColors ? `<span>🎨 Shades: <b style="color:var(--tx)">${availColors}</b></span>` : ''}
-            </div>
-
+            <h3 class="prod-title">${Security.escapeHTML(p.name)}</h3>
             <div class="pr">
               ${R(p.price)}
-              ${isOut ? ` <span style="color:var(--bad);font-size:0.85rem">· Sold out</span>` : totalStock <= 3 ? ` <span style="color:var(--warn);font-size:0.8rem">· Only ${totalStock} left</span>` : ` <span style="color:var(--ok);font-size:0.8rem">· In Stock</span>`}
+              ${isOut ? ` <span class="stock-badge stock-badge-out">· Sold out</span>` : (totalStock < 5 ? ` <span class="stock-badge stock-badge-low">· Only ${totalStock} left</span>` : '')}
             </div>
-            <div class="row2">
-              <button class="btn s p" ${isOut ? "disabled style='opacity:0.5;cursor:not-allowed'" : ""} onclick="Customer.handleQuickAddToCart('${p.id}')">Add to Cart</button>
-              <button class="btn s" onclick="Customer.openDetail('${p.id}')">Details</button>
-            </div>
+            <button class="btn s p view-details-btn" type="button" style="width:100%;margin-top:10px" onclick="event.stopPropagation(); Customer.openDetail('${p.id}')">
+              <span>🔍 View Details</span>
+            </button>
           </div>
         </div>
       `;
     }).join("");
+  },
+
+  // ------------------------------------------
+  // Interactive Why Saifa Designs Feature Modals
+  // ------------------------------------------
+  openFeatureModal(key) {
+    const features = {
+      fit_profile: {
+        icon: "📏",
+        title: "Permanent Fit Profile",
+        subtitle: "Archived Tailoring Metrics for Instant Bespoke Orders",
+        desc: "When you get measured at Saifa Designs or submit your custom profile online, our master cutters calibrate a comprehensive fit specification (bust, waist, hip, shoulder-to-apex, armhole, posture slope, and preferred drape allowance). This blueprint is securely linked to your unique Client ID.",
+        whyItMatters: "You only measure once. Whether ordering bridal trousseau sets, seasonal kurtis, or everyday silk blouses months or years later, our atelier pulls your exact pattern profile.",
+        policy: "100% stored securely, updated anytime you request adjustments, and accessible on your customer dashboard.",
+        actionBtn: `<button class="btn p" onclick="closeM(); const s=$('stitch'); if(s)s.scrollIntoView({behavior:'smooth'}); if(Customer.toggleStitchingDropdown)Customer.toggleStitchingDropdown(true);">✨ Open Measurement Intake</button>`
+      },
+      handcrafting: {
+        icon: "🪡",
+        title: "Artisanal Handcrafting & Finishing",
+        subtitle: "Couture Techniques, French Seams & Intricate Detailing",
+        desc: "Every garment at Saifa Designs undergoes hand-basting, pattern alignment matching, reinforced inner overlocking, clean French seams, and hand-tacked hems. We finish ensembles with handmade potli buttons, artisanal latkans, and reinforced pocket anchors.",
+        whyItMatters: "Fast-fashion machine stitching unravels and causes itchy, abrasive inner seams. Our slow-crafted artisanal construction delivers smooth interior comfort against your skin and maintains structural drape through years of wear.",
+        policy: "Three-stage quality inspection by our Master Craftsman before any garment is ironed, packaged, and stamped with our atelier seal.",
+        actionBtn: `<button class="btn p" onclick="closeM(); const t=$('team'); if(t)t.scrollIntoView({behavior:'smooth'});">🧵 Meet Our Master Craftsmen</button>`
+      },
+      textiles: {
+        icon: "🧵",
+        title: "Pure Certified Textiles",
+        subtitle: "Authentic Handloom Weaves & Verified Natural Fibres",
+        desc: "We source our materials directly from traditional weaving clusters—authentic Chanderi silk-cotton, Varanasi gold zari brocades, breathable Maheshwari handlooms, pure modal mulmul, and high-thread-count organic linens.",
+        whyItMatters: "Pure natural fibres breathe with your body, drape naturally without synthetic stiffness, and retain their luminous luster and dye depth wash after wash.",
+        policy: "Zero synthetic blends sold as pure. Every fabric bolt is tested for colorfastness, shrinkage tolerance, and warp/weft density before being offered to our patrons.",
+        actionBtn: `<a href="product.html" class="btn p" onclick="closeM()">🧶 Explore Fabrics Catalogue</a>`
+      },
+      payments: {
+        icon: "💳",
+        title: "Zero-Friction UPI & COD",
+        subtitle: "Instant One-Tap UPI, Boutique Dynamic QR & Flexible Cash Payment",
+        desc: "We support one-tap native UPI intent links across GPay, PhonePe, Paytm, and BHIM, dynamic on-screen boutique QR codes with pre-filled amounts, standard Cash on Delivery (COD), and direct counter payment at our boutique.",
+        whyItMatters: "No clunky payment gateway redirects or hidden convenience fees. Your transaction is directly verified against your order number in real time.",
+        policy: "Fully transparent receipts with itemized order breakdowns, automatic order confirmation, and zero markup on any payment mode.",
+        actionBtn: `<button class="btn p" onclick="closeM(); Customer.openCart(true);">🛒 View Cart & Payment Modes</button>`
+      },
+      tracker: {
+        icon: "📦",
+        title: "Live Milestone Order Tracker",
+        subtitle: "Real-Time Atelier Transparency from Cutting to Delivery",
+        desc: "Follow your order through 5 clear artisan stages: (1) Order Confirmed & Fabric Intake, (2) Pattern Drafting & Precision Cutting, (3) Artisan Hand-Stitching & Embroidery, (4) Trial Fitting & Ironing Ready, and (5) Dispatched / Delivered.",
+        whyItMatters: "You never have to wonder about the status of your bridal lehenga, festive suit, or bespoke blouse. Real-time updates keep you informed every step of the way.",
+        policy: "Live timestamped status updates visible with your Order ID and phone number anytime on our website or at the counter.",
+        actionBtn: `<button class="btn p" onclick="closeM(); const tr=$('track'); if(tr)tr.scrollIntoView({behavior:'smooth'}); const tk=$('tk'); if(tk)tk.focus();">🔍 Track Your Existing Order</button>`
+      },
+      alterations: {
+        icon: "✂️",
+        title: "Complimentary Alteration Guarantee",
+        subtitle: "Generous 2-3 Inch In-Seam Margins & Free Lifetime Fitting Adjustments",
+        desc: "All Saifa Designs readymade garments and custom-stitched pieces are constructed with generous internal side seam allowances (typically 2 to 3 inches). If your weight fluctuates or you prefer a closer waist or relaxed chest drape, we adjust it with pleasure.",
+        whyItMatters: "Bodies change, and heirloom ethnic garments should fit comfortably throughout your life. You never have to discard a cherished Saifa ensemble because of minor sizing shifts.",
+        policy: "100% complimentary fitting tweaks within 30 days of purchase or trial, and nominal support thereafter at our boutique.",
+        actionBtn: `<button class="btn p" onclick="closeM(); const c=$('contact'); if(c)c.scrollIntoView({behavior:'smooth'});">📍 Visit Atelier for Fitting</button>`
+      }
+    };
+
+    const f = features[key];
+    if (!f) return;
+
+    modal(`
+      <div class="feature-modal-wrap" style="text-align:left;padding:4px 0">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div style="font-size:2.4rem;line-height:1;width:54px;height:54px;display:grid;place-items:center;background:var(--sf2);border-radius:14px;border:1px solid var(--ln);flex-shrink:0">
+            ${f.icon}
+          </div>
+          <div>
+            <span class="eyebrow" style="font-size:0.68rem;padding:3px 9px;margin:0 0 4px">SAIFA PROMISE</span>
+            <h2 style="font-family:'Playfair Display',serif;color:var(--br);margin:0;font-size:1.35rem">${Security.escapeHTML(f.title)}</h2>
+          </div>
+        </div>
+        <p style="font-weight:600;color:var(--gd);margin:0 0 12px;font-size:0.92rem">${Security.escapeHTML(f.subtitle)}</p>
+        <div style="background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:14px;margin-bottom:14px">
+          <p style="color:var(--tx);margin:0 0 10px;line-height:1.6;font-size:0.88rem">${Security.escapeHTML(f.desc)}</p>
+          <div style="margin-top:10px;border-top:1px dashed var(--ln);padding-top:10px">
+            <b style="color:var(--br);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.04em">Why It Matters:</b>
+            <p style="color:var(--mu);margin:4px 0 0;font-size:0.84rem;line-height:1.5">${Security.escapeHTML(f.whyItMatters)}</p>
+          </div>
+          <div style="margin-top:10px;border-top:1px dashed var(--ln);padding-top:10px">
+            <b style="color:var(--br);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.04em">Our Atelier Policy:</b>
+            <p style="color:var(--mu);margin:4px 0 0;font-size:0.84rem;line-height:1.5">${Security.escapeHTML(f.policy)}</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px">
+          <button class="btn s" onclick="closeM()">Close</button>
+          ${f.actionBtn || ''}
+        </div>
+      </div>
+    `);
+  },
+
+  // ------------------------------------------
+  // Interactive Atelier Journey Step Modals
+  // ------------------------------------------
+  openJourneyStepModal(stepNumber) {
+    const steps = {
+      1: {
+        num: "01",
+        icon: "👗",
+        title: "Discover Collections",
+        subtitle: "Explore Luxury Fabrics & Designer Readymade Ensembles",
+        desc: "Browse our curated catalogues of pure unstitched fabrics (silks, linens, georgettes) on our Materials page or explore ready-to-wear boutique ensembles with complete size options on our Readymade page. Filter by palette, fabric, category, and price.",
+        details: "Every item in our catalogue is updated in real time with authentic atelier stock. You can examine high-resolution photographs, fabric descriptions, and available cuts before making your choice.",
+        action: `<div style="display:flex;gap:8px;flex-wrap:wrap"><a href="product.html" class="btn p" onclick="closeM()">🧵 View Fabrics</a><a href="readymade.html" class="btn" onclick="closeM()">👗 View Readymade</a></div>`
+      },
+      2: {
+        num: "02",
+        icon: "📐",
+        title: "Specify Your Fit",
+        subtitle: "Personalized Measurements Saved to Permanent Client Profile",
+        desc: "For custom stitching, share your measurements using our interactive online intake form, pick a standard sizing benchmark, or visit our atelier for an in-person measurement session. Your specifications are permanently archived under your unique Client ID.",
+        details: "Once saved, you never have to re-enter your measurements again. Re-ordering festive kurtis, blouses, or salwar suits is as simple as a single tap.",
+        action: `<button class="btn p" onclick="closeM(); const s=$('stitch'); if(s)s.scrollIntoView({behavior:'smooth'}); if(Customer.toggleStitchingDropdown)Customer.toggleStitchingDropdown(true);">✂️ Open Stitching Form</button>`
+      },
+      3: {
+        num: "03",
+        icon: "💳",
+        title: "Seamless Checkout",
+        subtitle: "Transparent Pricing with One-Click UPI & Cash On Delivery",
+        desc: "Review your shopping cart with re-priced catalogue validation, apply valid festive discount coupons, and confirm with instant UPI one-click payment, custom boutique QR code, or Cash on Delivery. Receive an instant booking confirmation and unique Order ID.",
+        details: "All prices are validated directly against our central catalogue to protect you from checkout discrepancies. Zero extra transaction fees are added.",
+        action: `<button class="btn p" onclick="closeM(); Customer.openCart(true);">🛒 View Cart & Checkout</button>`
+      },
+      4: {
+        num: "04",
+        icon: "🪡",
+        title: "Atelier Crafting & Tracking",
+        subtitle: "Pattern Drafting, Precision Cutting & Live Milestone Tracking",
+        desc: "Our master artisans translate your specifications onto fabric, carefully hand-cutting patterns, sewing reinforced seams, and finishing trims. You can monitor your garment's live crafting status online through every milestone stage from fabric intake to trial ready.",
+        details: "Our atelier milestone system tracks 5 precise stages: Order Confirmed, Cutting & Drafting, Artisan Stitching, Trial Ready, and Delivered.",
+        action: `<button class="btn p" onclick="closeM(); const tr=$('track'); if(tr)tr.scrollIntoView({behavior:'smooth'}); const tk=$('tk'); if(tk)tk.focus();">📦 Track Your Order Live</button>`
+      },
+      5: {
+        num: "05",
+        icon: "🎉",
+        title: "Trial & Delivery",
+        subtitle: "Complimentary Trial Fitting, Perfect Adjustments & Safe Delivery",
+        desc: "Once your ensemble is finished, visit our studio for a trial fitting session or enjoy safe doorstep delivery. Every garment features built-in expansion margins and our 100% complimentary alteration guarantee so your fit is always impeccable.",
+        details: "We provide 2 to 3 inches of inner margin on side seams. If you need any adjustment, our in-house master tailors complete it with pleasure.",
+        action: `<button class="btn p" onclick="closeM(); const c=$('contact'); if(c)c.scrollIntoView({behavior:'smooth'});">📍 Atelier Location & Hours</button>`
+      }
+    };
+
+    const s = steps[stepNumber];
+    if (!s) return;
+
+    modal(`
+      <div class="journey-modal-wrap" style="text-align:left;padding:4px 0">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div style="font-size:1.8rem;font-weight:800;color:var(--gd);background:var(--sf2);border:1px solid var(--ln);width:54px;height:54px;border-radius:14px;display:grid;place-items:center;flex-shrink:0">
+            ${s.num}
+          </div>
+          <div>
+            <span class="eyebrow" style="font-size:0.68rem;padding:3px 9px;margin:0 0 4px">ATELIER STEP ${s.num}</span>
+            <h2 style="font-family:'Playfair Display',serif;color:var(--br);margin:0;font-size:1.35rem">${s.icon} ${Security.escapeHTML(s.title)}</h2>
+          </div>
+        </div>
+        <p style="font-weight:600;color:var(--gd);margin:0 0 12px;font-size:0.92rem">${Security.escapeHTML(s.subtitle)}</p>
+        <div style="background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:14px;margin-bottom:14px">
+          <p style="color:var(--tx);margin:0 0 10px;line-height:1.6;font-size:0.88rem">${Security.escapeHTML(s.desc)}</p>
+          <div style="margin-top:10px;border-top:1px dashed var(--ln);padding-top:10px">
+            <b style="color:var(--br);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.04em">What to Expect:</b>
+            <p style="color:var(--mu);margin:4px 0 0;font-size:0.84rem;line-height:1.5">${Security.escapeHTML(s.details)}</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px">
+          <button class="btn s" onclick="closeM()">Close</button>
+          ${s.action || ''}
+        </div>
+      </div>
+    `);
   },
 
   // ------------------------------------------
@@ -710,40 +907,716 @@ const Customer = {
     if (toggle) toggle.classList.remove("active");
   },
 
+  // ------------------------------------------
+  // Compact Atelier Open / Closed Status Popover Controller
+  // ------------------------------------------
+  toggleShopStatusDropdown(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const pop = $("shopStatusPopover");
+    const btn = $("compactShopStatusBtn");
+    if (!pop) return;
+    const isShowing = pop.style.display === "block";
+    if (isShowing) {
+      pop.style.display = "none";
+      if (btn) {
+        btn.setAttribute("aria-expanded", "false");
+        btn.classList.remove("active");
+      }
+    } else {
+      this.renderCompactShopStatus();
+      pop.style.display = "block";
+      if (btn) {
+        btn.setAttribute("aria-expanded", "true");
+        btn.classList.add("active");
+      }
+    }
+  },
+
+  closeShopStatusDropdown(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const pop = $("shopStatusPopover");
+    const btn = $("compactShopStatusBtn");
+    if (pop) pop.style.display = "none";
+    if (btn) {
+      btn.setAttribute("aria-expanded", "false");
+      btn.classList.remove("active");
+    }
+  },
+
+  renderCompactShopStatus() {
+    const liveStatus = typeof getShopLiveStatus === "function" ? getShopLiveStatus() : { isOpen: true, label: "Open · 10:30 AM–9:00 PM", badgeClass: "open", message: "Boutique Open" };
+    const cfg = S.cfg || (typeof DEF !== "undefined" ? DEF : {});
+
+    // Update compact status trigger button
+    const btn = $("compactShopStatusBtn");
+    const dot = $("compactStatusDot");
+    const label = $("compactStatusText");
+    if (btn) {
+      btn.className = `compact-shop-status-btn ${liveStatus.isOpen ? 'open' : 'closed'}`;
+    }
+    if (dot) {
+      dot.className = `status-indicator-dot ${liveStatus.isOpen ? 'open' : 'closed'}`;
+    }
+    if (label) {
+      label.textContent = liveStatus.compactStatusText || (liveStatus.isOpen ? "🟢 Atelier Open" : (liveStatus.isMondayClosed ? "🔴 Monday Closed" : "🔴 Atelier Closed"));
+    }
+
+    // Update popover elements
+    const popBadge = $("popoverBadge");
+    if (popBadge) {
+      popBadge.className = `popover-status-badge ${liveStatus.isOpen ? 'open' : 'closed'}`;
+      popBadge.textContent = liveStatus.isOpen ? "🟢 Atelier Open Now" : (liveStatus.isMondayClosed ? "🔴 Monday Rest Day" : "🔴 Atelier Closed");
+    }
+
+    const popTime = $("popoverCurrentTime");
+    if (popTime) {
+      const now = new Date();
+      popTime.textContent = `Local Time: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+    }
+
+    const popHours = $("popoverHours");
+    if (popHours) {
+      const oT = liveStatus.openTimeFormatted || (typeof formatTime12 === "function" ? formatTime12(cfg.openTime || "10:30") : "10:30 AM");
+      const cT = liveStatus.closeTimeFormatted || (typeof formatTime12 === "function" ? formatTime12(cfg.closeTime || "21:00") : "9:00 PM");
+      popHours.textContent = `${oT} – ${cT} (Tue–Sun)`;
+    }
+
+    const popMonday = $("popoverMonday");
+    if (popMonday) {
+      popMonday.textContent = cfg.mondayClosed !== false ? "Monday Closed (Weekly Atelier Rest Day)" : "Open 7 Days a Week";
+    }
+
+    const popNext = $("popoverNextText");
+    if (popNext) {
+      popNext.textContent = liveStatus.nextActionNote || (liveStatus.isOpen ? "Open today · Walk-ins welcome" : "Currently closed");
+    }
+  },
+
+  initCompactStatusClickOutside() {
+    if (this._clickOutsideBound) return;
+    this._clickOutsideBound = true;
+    document.addEventListener("click", (e) => {
+      const pop = $("shopStatusPopover");
+      const btn = $("compactShopStatusBtn");
+      if (pop && pop.style.display === "block") {
+        if (!pop.contains(e.target) && (!btn || !btn.contains(e.target))) {
+          this.closeShopStatusDropdown();
+        }
+      }
+      const tagPop = $("hangingTagPopover");
+      const tagContainer = $("hangingTagContainer");
+      if (tagPop && tagPop.style.display === "block") {
+        if (!tagPop.contains(e.target) && (!tagContainer || !tagContainer.contains(e.target))) {
+          this.closeHangingTagDropdown();
+        }
+      }
+      const drawer = $("mobileNavDrawer");
+      const navToggle = $("mobileNavToggle");
+      if (drawer && drawer.classList.contains("open")) {
+        if (!drawer.contains(e.target) && (!navToggle || !navToggle.contains(e.target))) {
+          this.closeMobileNav();
+        }
+      }
+    });
+  },
+
+  // ==========================================
+  // FULL PRODUCT CATALOGUE SUITE (product.html)
+  // ==========================================
+  catalogue: {
+    search: "",
+    cat: "All",
+    subcat: "All",
+    sortBy: "newest",
+    minPrice: null,
+    maxPrice: null,
+    selectedSizes: [],
+    selectedColors: [],
+    stockStatus: "all",
+    page: 1,
+    pageSize: 12,
+    pageMode: "All"
+  },
+
+  initCatalogue() {
+    const grid = $("catalogueGrid");
+    if (!grid) return;
+
+    // Detect page specialization from filename
+    const path = (window.location.pathname || "").toLowerCase();
+    if (path.includes("readymade.html")) {
+      this.catalogue.cat = "Readymade";
+      this.catalogue.pageMode = "Readymade";
+    } else if (path.includes("product.html")) {
+      this.catalogue.cat = "Material";
+      this.catalogue.pageMode = "Material";
+    } else {
+      this.catalogue.pageMode = "All";
+    }
+
+    // Read URL search params (e.g. ?subcat=Silk&q=chanderi)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has("cat") && this.catalogue.pageMode === "All") this.catalogue.cat = urlParams.get("cat");
+      if (urlParams.has("subcat")) this.catalogue.subcat = urlParams.get("subcat");
+      if (urlParams.has("q")) this.catalogue.search = urlParams.get("q").trim();
+      if (urlParams.has("sort")) this.catalogue.sortBy = urlParams.get("sort");
+    } catch (e) {}
+
+    const searchInput = $("catalogueSearchInput");
+    if (searchInput && this.catalogue.search) {
+      searchInput.value = this.catalogue.search;
+    }
+
+    this.renderCatalogue();
+  },
+
+  setCatalogueCategory(cat) {
+    this.catalogue.cat = cat;
+    this.catalogue.subcat = "All";
+    this.catalogue.page = 1;
+    this.renderCatalogue();
+  },
+
+  setCatalogueSubcat(subcat) {
+    this.catalogue.subcat = subcat;
+    this.catalogue.page = 1;
+    this.renderCatalogue();
+  },
+
+  setCatalogueSearch(q) {
+    this.catalogue.search = (q || "").trim().toLowerCase();
+    this.catalogue.page = 1;
+    this.renderCatalogue();
+  },
+
+  setCatalogueSort(sortBy) {
+    this.catalogue.sortBy = sortBy;
+    this.catalogue.page = 1;
+    this.renderCatalogue();
+  },
+
+  setCataloguePriceRange(min, max) {
+    this.catalogue.minPrice = (min !== "" && min !== null && !isNaN(min)) ? Number(min) : null;
+    this.catalogue.maxPrice = (max !== "" && max !== null && !isNaN(max)) ? Number(max) : null;
+    this.catalogue.page = 1;
+    this.renderCatalogue();
+  },
+
+  toggleCatalogueSize(sz) {
+    const idx = this.catalogue.selectedSizes.indexOf(sz);
+    if (idx >= 0) {
+      this.catalogue.selectedSizes.splice(idx, 1);
+    } else {
+      this.catalogue.selectedSizes.push(sz);
+    }
+    this.catalogue.page = 1;
+    this.renderCatalogue();
+  },
+
+  toggleCatalogueColor(col) {
+    const idx = this.catalogue.selectedColors.indexOf(col);
+    if (idx >= 0) {
+      this.catalogue.selectedColors.splice(idx, 1);
+    } else {
+      this.catalogue.selectedColors.push(col);
+    }
+    this.catalogue.page = 1;
+    this.renderCatalogue();
+  },
+
+  setCatalogueStockFilter(status) {
+    this.catalogue.stockStatus = status;
+    this.catalogue.page = 1;
+    this.renderCatalogue();
+  },
+
+  resetCatalogueFilters() {
+    this.catalogue.search = "";
+    if (this.catalogue.pageMode === "Material") {
+      this.catalogue.cat = "Material";
+    } else if (this.catalogue.pageMode === "Readymade") {
+      this.catalogue.cat = "Readymade";
+    } else {
+      this.catalogue.cat = "All";
+    }
+    this.catalogue.subcat = "All";
+    this.catalogue.sortBy = "newest";
+    this.catalogue.minPrice = null;
+    this.catalogue.maxPrice = null;
+    this.catalogue.selectedSizes = [];
+    this.catalogue.selectedColors = [];
+    this.catalogue.stockStatus = "all";
+    this.catalogue.page = 1;
+
+    const sInp = $("catalogueSearchInput");
+    if (sInp) sInp.value = "";
+    const pMin = $("catalogueMinPrice");
+    if (pMin) pMin.value = "";
+    const pMax = $("catalogueMaxPrice");
+    if (pMax) pMax.value = "";
+    const sortSelect = $("catalogueSortSelect");
+    if (sortSelect) sortSelect.value = "newest";
+
+    this.renderCatalogue();
+  },
+
+  loadMoreCatalogue() {
+    this.catalogue.page += 1;
+    this.renderCatalogue(true);
+  },
+
+  renderCatalogue(isAppend = false) {
+    const grid = $("catalogueGrid");
+    if (!grid) return;
+
+    // Only display products published by admin
+    const allProds = products().filter(p => p && p.published !== false && p.status !== "Draft");
+
+    // Dynamic extraction of available facets (sizes & colors & subcategories)
+    const availableSizes = new Set();
+    const availableColors = new Set();
+    let maxPriceInDb = 0;
+
+    allProds.forEach(p => {
+      const pr = Number(p.price) || 0;
+      if (pr > maxPriceInDb) maxPriceInDb = pr;
+
+      if (p.sizes) {
+        p.sizes.split(",").forEach(s => {
+          const clean = s.trim();
+          if (clean) availableSizes.add(clean);
+        });
+      }
+      if (p.sizeStock && typeof p.sizeStock === "object") {
+        Object.keys(p.sizeStock).forEach(s => availableSizes.add(s.trim()));
+      }
+      if (Array.isArray(p.variants)) {
+        p.variants.forEach(v => {
+          if (v.size) availableSizes.add(v.size.trim());
+          if (v.color) availableColors.add(v.color.trim());
+        });
+      }
+      if (p.colors) {
+        p.colors.split(",").forEach(c => {
+          const clean = c.trim();
+          if (clean) availableColors.add(clean);
+        });
+      }
+    });
+
+    // 1. Filtering
+    const q = (this.catalogue.search || "").toLowerCase().trim();
+    const cat = this.catalogue.cat;
+    const subcat = this.catalogue.subcat;
+    const minP = this.catalogue.minPrice;
+    const maxP = this.catalogue.maxPrice;
+    const sizes = this.catalogue.selectedSizes;
+    const colors = this.catalogue.selectedColors;
+    const stockStatus = this.catalogue.stockStatus;
+
+    let filtered = allProds.filter(p => {
+      // Category filter
+      if (cat !== "All" && p.cat !== cat) return false;
+
+      // Subcategory filter
+      if (subcat !== "All" && p.subcat !== subcat) return false;
+
+      // Price filter
+      const price = Number(p.price) || 0;
+      if (minP !== null && price < minP) return false;
+      if (maxP !== null && price > maxP) return false;
+
+      // Stock status filter
+      const stock = Number(p.stock) || 0;
+      if (stockStatus === "in_stock" && stock <= 0) return false;
+      if (stockStatus === "low_stock" && (stock <= 0 || stock >= 5)) return false;
+
+      // Size filter (multiselect: must match any selected size)
+      if (sizes.length > 0) {
+        const prodSizes = (p.sizes || "").toUpperCase();
+        const prodSizeStock = p.sizeStock || {};
+        const hasMatchingSize = sizes.some(sz => {
+          const uSz = sz.toUpperCase();
+          if (prodSizes.includes(uSz)) return true;
+          if (prodSizeStock[sz] !== undefined && Number(prodSizeStock[sz]) > 0) return true;
+          if (Array.isArray(p.variants) && p.variants.some(v => String(v.size || '').toUpperCase() === uSz && Number(v.stock) > 0)) return true;
+          return false;
+        });
+        if (!hasMatchingSize) return false;
+      }
+
+      // Color filter (multiselect: must match any selected color)
+      if (colors.length > 0) {
+        const prodColors = (p.colors || "").toLowerCase();
+        const hasMatchingColor = colors.some(col => {
+          const lCol = col.toLowerCase();
+          if (prodColors.includes(lCol)) return true;
+          if (Array.isArray(p.variants) && p.variants.some(v => String(v.color || '').toLowerCase() === lCol)) return true;
+          return false;
+        });
+        if (!hasMatchingColor) return false;
+      }
+
+      // Keyword / text search filter
+      if (q) {
+        const hay = `${p.name || ''} ${p.fabric || ''} ${p.desc || ''} ${p.cat || ''} ${p.subcat || ''} ${p.colors || ''} ${p.sizes || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+
+      return true;
+    });
+
+    // 2. Sorting
+    const sort = this.catalogue.sortBy;
+    filtered.sort((a, b) => {
+      const pA = Number(a.price) || 0;
+      const pB = Number(b.price) || 0;
+      const sA = Number(a.stock) || 0;
+      const sB = Number(b.stock) || 0;
+      const tA = a.created || (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const tB = b.created || (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+
+      if (sort === "price_asc") return pA - pB;
+      if (sort === "price_desc") return pB - pA;
+      if (sort === "stock_desc") return sB - sA;
+      if (sort === "name_asc") return String(a.name || "").localeCompare(String(b.name || ""));
+      return tB - tA; // "newest" by default
+    });
+
+    // 3. Render Category Tabs & Dynamic Subcategory Chips
+    this.renderCatalogueFiltersUI(allProds, availableSizes, availableColors);
+
+    // 4. Render Active Filter Bar & Item Count
+    this.renderCatalogueActiveFilters(filtered.length, allProds.length);
+
+    // 5. Pagination Calculation
+    const totalCount = filtered.length;
+    const displayCount = this.catalogue.page * this.catalogue.pageSize;
+    const pageItems = filtered.slice(0, displayCount);
+
+    if (totalCount === 0) {
+      grid.innerHTML = `
+        <div class="catalogue-empty-state">
+          <div class="empty-icon">🔍</div>
+          <h3>No matching boutique creations found</h3>
+          <p>We couldn't find any pieces matching your chosen criteria. Try relaxing your price filter, selecting another color or size, or clearing all filters.</p>
+          <button class="btn p" onclick="Customer.resetCatalogueFilters()">Reset All Filters ✨</button>
+        </div>
+      `;
+      const loadMoreWrap = $("catalogueLoadMoreWrap");
+      if (loadMoreWrap) loadMoreWrap.style.display = "none";
+      return;
+    }
+
+    // Render Product Cards Grid
+    const cardsHtml = pageItems.map(p => {
+      const vars = Array.isArray(p.variants) && p.variants.length > 0 ? p.variants : null;
+      const totalStock = vars ? vars.reduce((acc, v) => acc + (Number(v.stock) || 0), 0) : (Number(p.stock) || 0);
+      const isOut = totalStock <= 0;
+      const isLow = totalStock > 0 && totalStock < 5;
+      const isNew = (Date.now() - (p.created || 0)) <= (7 * 24 * 60 * 60 * 1000);
+
+      // Sizes list
+      const sizeArr = (p.sizes || "").split(",").map(s => s.trim()).filter(Boolean);
+      // Colors list
+      const colorArr = (p.colors || "").split(",").map(c => c.trim()).filter(Boolean);
+
+      const inWishlist = this.isInWishlist(p.id);
+
+      return `
+        <div class="card catalogue-card ${isOut ? 'out-of-stock-card' : ''}">
+          <div class="pic" style="background:linear-gradient(135deg,${E(p.hx || '#8e1647')}22,${E(p.hx || '#8e1647')}88)" onclick="Customer.openDetail('${p.id}')">
+            ${isNew ? `<span class="ribbon ribbon-new">✨ Just In</span>` : (isLow ? `<span class="ribbon ribbon-low">Only ${totalStock} left</span>` : (isOut ? `<span class="ribbon ribbon-out">Sold Out</span>` : ''))}
+            
+            <button class="card-wishlist-btn ${inWishlist ? 'active' : ''}" 
+              data-id="${p.id}" 
+              type="button"
+              onclick="event.stopPropagation(); Customer.toggleWishlist('${p.id}', event)" 
+              title="${inWishlist ? 'Remove from Wishlist' : 'Save to Wishlist'}" 
+              aria-label="Wishlist">
+              <span class="heart-icon">${inWishlist ? '💖' : '🤍'}</span>
+            </button>
+
+            ${p.img ? `<img src="${Security.escapeHTML(p.img)}" alt="${Security.escapeHTML(p.name)}" loading="lazy">` : `<span style="font-size:3.2rem">${p.em || "👗"}</span>`}
+            
+            <div class="zoom-overlay"><span>🔍 View Ensembles</span></div>
+          </div>
+
+          <div class="cb">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px">
+              <span class="tag">${Security.escapeHTML(p.cat || 'Fabric')}</span>
+              ${p.subcat ? `<span class="pill" style="font-size:0.68rem;padding:2px 8px;background:var(--sf2);color:var(--mu);font-weight:600">${Security.escapeHTML(p.subcat)}</span>` : ''}
+            </div>
+
+            <h3 class="catalogue-prod-title" onclick="Customer.openDetail('${p.id}')">${Security.escapeHTML(p.name)}</h3>
+            <p class="catalogue-prod-fabric">${Security.escapeHTML(p.fabric || 'Luxury Boutique Material')}</p>
+
+            ${sizeArr.length > 0 ? `
+              <div class="catalogue-sizes-row" title="Available sizes">
+                <span class="size-label">Sizes:</span>
+                ${sizeArr.slice(0, 4).map(s => `<span class="size-badge">${Security.escapeHTML(s)}</span>`).join('')}
+                ${sizeArr.length > 4 ? `<span class="size-more">+${sizeArr.length - 4}</span>` : ''}
+              </div>
+            ` : ''}
+
+            ${colorArr.length > 0 ? `
+              <div class="catalogue-colors-row" title="Available colors">
+                <span class="color-label">Colors:</span>
+                <span class="color-text">${Security.escapeHTML(colorArr.slice(0, 3).join(', '))}${colorArr.length > 3 ? '…' : ''}</span>
+              </div>
+            ` : ''}
+
+            <div class="pr">
+              ${typeof R === "function" ? R(p.price) : `₹${p.price}`}
+              ${isOut ? ` <span style="color:var(--bad);font-size:0.84rem;font-weight:600">· Sold out</span>` : (isLow ? ` <span style="color:var(--w);font-size:0.84rem;font-weight:600">· Limited</span>` : '')}
+            </div>
+
+            <div class="row2">
+              <button class="btn s p" ${isOut ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''} onclick="Customer.handleQuickAddToCart('${p.id}')">
+                ${isOut ? 'Out of Stock' : 'Add to Cart'}
+              </button>
+              <button class="btn s" onclick="Customer.openDetail('${p.id}')">Details</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    grid.innerHTML = cardsHtml;
+
+    // Load More Button
+    const loadMoreWrap = $("catalogueLoadMoreWrap");
+    const loadMoreBtn = $("catalogueLoadMoreBtn");
+    const loadMoreText = $("catalogueLoadMoreText");
+    if (loadMoreWrap && loadMoreBtn) {
+      if (displayCount < totalCount) {
+        loadMoreWrap.style.display = "block";
+        const remaining = totalCount - displayCount;
+        if (loadMoreText) {
+          loadMoreText.textContent = `Load More Pieces (${remaining} remaining)`;
+        }
+      } else {
+        loadMoreWrap.style.display = "none";
+      }
+    }
+  },
+
+  renderCatalogueFiltersUI(allProds, availableSizes, availableColors) {
+    // 1. Category Pills
+    const catPillsWrap = $("catalogueCatPills");
+    if (catPillsWrap) {
+      const allCount = allProds.length;
+      const matCount = allProds.filter(p => p.cat === "Material").length;
+      const readyCount = allProds.filter(p => p.cat === "Readymade").length;
+      const curCat = this.catalogue.cat;
+
+      if (this.catalogue.pageMode === "Material") {
+        catPillsWrap.innerHTML = `
+          <div class="catalogue-mode-pill-active">
+            <span class="mode-icon">🧵</span>
+            <strong>Materials &amp; Fabrics Studio</strong>
+            <span class="pill-cnt">${matCount} Pieces</span>
+          </div>
+          <a href="readymade.html" class="cat-pill mode-switch-pill" style="margin-left:auto">
+            <span>Switch to Readymade Ensembles 👗</span>
+          </a>
+        `;
+      } else if (this.catalogue.pageMode === "Readymade") {
+        catPillsWrap.innerHTML = `
+          <div class="catalogue-mode-pill-active">
+            <span class="mode-icon">👗</span>
+            <strong>Readymade Garments &amp; Occasion Wear</strong>
+            <span class="pill-cnt">${readyCount} Pieces</span>
+          </div>
+          <a href="product.html" class="cat-pill mode-switch-pill" style="margin-left:auto">
+            <span>Switch to Fabrics &amp; Materials 🧵</span>
+          </a>
+        `;
+      } else {
+        catPillsWrap.innerHTML = `
+          <button class="cat-pill ${curCat === 'All' ? 'active' : ''}" type="button" onclick="Customer.setCatalogueCategory('All')">
+            <span>All Pieces</span> <span class="pill-cnt">${allCount}</span>
+          </button>
+          <button class="cat-pill ${curCat === 'Material' ? 'active' : ''}" type="button" onclick="Customer.setCatalogueCategory('Material')">
+            <span>🧵 Materials &amp; Fabrics</span> <span class="pill-cnt">${matCount}</span>
+          </button>
+          <button class="cat-pill ${curCat === 'Readymade' ? 'active' : ''}" type="button" onclick="Customer.setCatalogueCategory('Readymade')">
+            <span>👗 Readymade Wear</span> <span class="pill-cnt">${readyCount}</span>
+          </button>
+        `;
+      }
+    }
+
+    // 2. Dynamic Subcategory Chips
+    const subcatWrap = $("catalogueSubcatChips");
+    if (subcatWrap) {
+      const curCat = this.catalogue.cat;
+      const matSubcats = typeof getMaterialSubcats === "function" ? getMaterialSubcats() : (typeof MATERIAL_SUBCATS !== "undefined" ? MATERIAL_SUBCATS : []);
+      const readySubcats = typeof getReadymadeSubcats === "function" ? getReadymadeSubcats() : (typeof READYMADE_SUBCATS !== "undefined" ? READYMADE_SUBCATS : []);
+      const list = curCat === "Material" ? matSubcats : curCat === "Readymade" ? readySubcats : Array.from(new Set([...matSubcats, ...readySubcats]));
+      const curSub = this.catalogue.subcat;
+
+      subcatWrap.innerHTML = `
+        <span class="subcat-chip ${curSub === 'All' ? 'active' : ''}" onclick="Customer.setCatalogueSubcat('All')">All Subcategories</span>
+        ${list.map(s => {
+          const cnt = allProds.filter(p => (curCat === 'All' || p.cat === curCat) && p.subcat === s).length;
+          return `<span class="subcat-chip ${curSub === s ? 'active' : ''}" onclick="Customer.setCatalogueSubcat('${Security.escapeHTML(s)}')">${Security.escapeHTML(s)} ${cnt > 0 ? `(${cnt})` : ''}</span>`;
+        }).join('')}
+      `;
+    }
+
+    // 3. Size Filter Chips
+    const sizeContainer = $("catalogueSizeChips");
+    if (sizeContainer) {
+      const standardOrder = ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "Free Size"];
+      const sortedSizes = Array.from(availableSizes).sort((a, b) => {
+        const iA = standardOrder.indexOf(a.toUpperCase());
+        const iB = standardOrder.indexOf(b.toUpperCase());
+        if (iA >= 0 && iB >= 0) return iA - iB;
+        if (iA >= 0) return -1;
+        if (iB >= 0) return 1;
+        return a.localeCompare(b);
+      });
+
+      sizeContainer.innerHTML = sortedSizes.map(sz => {
+        const isSel = this.catalogue.selectedSizes.includes(sz);
+        return `
+          <button class="facet-chip ${isSel ? 'active' : ''}" type="button" onclick="Customer.toggleCatalogueSize('${Security.escapeHTML(sz)}')">
+            ${Security.escapeHTML(sz)}
+          </button>
+        `;
+      }).join('') || '<span style="font-size:0.78rem;color:var(--mu)">Standard</span>';
+    }
+
+    // 4. Color Filter Chips
+    const colorContainer = $("catalogueColorChips");
+    if (colorContainer) {
+      const colorsList = Array.from(availableColors).sort();
+      colorContainer.innerHTML = colorsList.map(col => {
+        const isSel = this.catalogue.selectedColors.includes(col);
+        return `
+          <button class="facet-chip facet-color-chip ${isSel ? 'active' : ''}" type="button" onclick="Customer.toggleCatalogueColor('${Security.escapeHTML(col)}')">
+            <span class="color-dot" style="background:${col.toLowerCase()}"></span>
+            <span>${Security.escapeHTML(col)}</span>
+          </button>
+        `;
+      }).join('') || '<span style="font-size:0.78rem;color:var(--mu)">All Colours</span>';
+    }
+  },
+
+  renderCatalogueActiveFilters(filteredCount, totalCount) {
+    const summaryEl = $("catalogueCountSummary");
+    if (summaryEl) {
+      summaryEl.textContent = `Showing ${filteredCount} of ${totalCount} pieces`;
+    }
+
+    const activeWrap = $("catalogueActiveFiltersBar");
+    if (!activeWrap) return;
+
+    const tags = [];
+    if (this.catalogue.cat !== "All") {
+      tags.push({ label: `Category: ${this.catalogue.cat}`, reset: () => this.setCatalogueCategory("All") });
+    }
+    if (this.catalogue.subcat !== "All") {
+      tags.push({ label: `Subcategory: ${this.catalogue.subcat}`, reset: () => this.setCatalogueSubcat("All") });
+    }
+    if (this.catalogue.search) {
+      tags.push({ label: `Search: "${this.catalogue.search}"`, reset: () => this.setCatalogueSearch("") });
+    }
+    if (this.catalogue.minPrice !== null || this.catalogue.maxPrice !== null) {
+      const minText = this.catalogue.minPrice !== null ? `₹${this.catalogue.minPrice}` : '₹0';
+      const maxText = this.catalogue.maxPrice !== null ? `₹${this.catalogue.maxPrice}` : '∞';
+      tags.push({ label: `Price: ${minText} – ${maxText}`, reset: () => this.setCataloguePriceRange(null, null) });
+    }
+    if (this.catalogue.stockStatus !== "all") {
+      tags.push({ label: `Stock: ${this.catalogue.stockStatus === 'in_stock' ? 'In Stock' : 'Low Stock'}`, reset: () => this.setCatalogueStockFilter("all") });
+    }
+    this.catalogue.selectedSizes.forEach(sz => {
+      tags.push({ label: `Size: ${sz}`, reset: () => this.toggleCatalogueSize(sz) });
+    });
+    this.catalogue.selectedColors.forEach(col => {
+      tags.push({ label: `Color: ${col}`, reset: () => this.toggleCatalogueColor(col) });
+    });
+
+    if (tags.length === 0) {
+      activeWrap.innerHTML = "";
+      activeWrap.style.display = "none";
+      return;
+    }
+
+    activeWrap.style.display = "flex";
+    activeWrap.innerHTML = `
+      <div class="active-chips-list">
+        ${tags.map((t, idx) => `
+          <span class="active-filter-badge">
+            <span>${Security.escapeHTML(t.label)}</span>
+            <button type="button" onclick="Customer._activeFilterResets[${idx}]()" aria-label="Remove filter">✕</button>
+          </span>
+        `).join('')}
+      </div>
+      <button class="clear-all-filters-btn" type="button" onclick="Customer.resetCatalogueFilters()">Clear All ✕</button>
+    `;
+    this._activeFilterResets = tags.map(t => t.reset);
+  },
+
   openDetail(id) {
     const p = products().find(x => x.id == id);
     if (!p) return;
     if (typeof ensureProductVariants === "function") ensureProductVariants(p);
 
+    const isReadymade = p.cat === "Readymade";
     const variants = p.variants || [];
     const colorList = (p.colors || "").split(",").map(c => c.trim()).filter(Boolean);
-    let sizeList = (p.sizes || "").split(",").map(s => s.trim()).filter(Boolean);
 
-    // If Readymade garment with sizeStock, derive sizes directly from sizeStock if sizes list is empty or matches
-    if (p.cat === "Readymade" && p.sizeStock && typeof p.sizeStock === "object") {
-      const stockKeys = Object.keys(p.sizeStock);
-      if (stockKeys.length > 0 && (!sizeList.length || stockKeys.some(k => sizeList.includes(k)))) {
-        sizeList = stockKeys;
+    let sizeOptions = [];
+    if (isReadymade) {
+      // Size selectors ONLY for readymade products
+      let rawSizes = (p.sizes || "").split(",").map(s => s.trim()).filter(Boolean);
+      if (p.sizeStock && typeof p.sizeStock === "object") {
+        const stockKeys = Object.keys(p.sizeStock);
+        if (stockKeys.length > 0 && (!rawSizes.length || stockKeys.some(k => rawSizes.includes(k)))) {
+          rawSizes = stockKeys;
+        }
+      }
+      if (!rawSizes.length) {
+        rawSizes = ["XS", "S", "M", "L", "XL", "XXL"];
+      }
+      sizeOptions = rawSizes;
+    } else {
+      // Relevant fabric quantity / cut length options for materials
+      let customCuts = (p.sizes || "").split(",").map(s => s.trim()).filter(s => s && s.toLowerCase().includes("m"));
+      if (customCuts.length >= 2) {
+        sizeOptions = customCuts;
+      } else {
+        sizeOptions = [
+          "2.5 Metres (Kurti Cut)",
+          "3.0 Metres (Suit Cut)",
+          "4.5 Metres (Full Set)",
+          "5.5 Metres (Saree Cut)"
+        ];
       }
     }
 
     this._currentProduct = p;
     this._selectedColor = colorList[0] || (variants[0] ? variants[0].color : "Standard");
 
-    // Default to the first in-stock size if available, otherwise first size in list
-    let preferredSize = sizeList[0] || (variants[0] ? variants[0].size : "Standard");
-    for (const sz of sizeList) {
-      const szStock = typeof getProductSizeStock === "function" 
-        ? getProductSizeStock(p, sz, this._selectedColor) 
-        : (Number(p.stock) || 0);
-      if (szStock > 0) {
-        preferredSize = sz;
-        break;
+    // Default to first in-stock size if available for readymade, otherwise first option
+    let preferredOption = sizeOptions[0] || (variants[0] ? variants[0].size : "Standard");
+    if (isReadymade) {
+      for (const sz of sizeOptions) {
+        const szStock = typeof getProductSizeStock === "function" 
+          ? getProductSizeStock(p, sz, this._selectedColor) 
+          : (Number(p.stock) || 0);
+        if (szStock > 0) {
+          preferredOption = sz;
+          break;
+        }
       }
     }
-    this._selectedSize = preferredSize;
+    this._selectedSize = preferredOption;
 
-    const availableStock = typeof getProductSizeStock === "function" 
+    const availableStock = isReadymade && typeof getProductSizeStock === "function" 
       ? getProductSizeStock(p, this._selectedSize, this._selectedColor) 
       : (Number(p.stock) || 0);
     const isOutOfStock = availableStock <= 0;
@@ -760,7 +1633,7 @@ const Customer = {
         ` : ''}
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px">
-        <span class="tag">${E(p.cat)}</span>
+        <span class="tag ${isReadymade ? 'tag-readymade' : 'tag-material'}">${E(p.cat)}</span>
         ${p.subcat ? `<span class="pill" style="font-size:0.72rem;padding:3px 10px;background:var(--sf2);color:var(--mu);font-weight:600">${E(p.subcat)}</span>` : ''}
       </div>
       <h2 style="margin:8px 0 4px;font-family:'Playfair Display',serif">${E(p.name)}</h2>
@@ -774,7 +1647,7 @@ const Customer = {
             🎨 Select Color / Shade: <span id="selectedColorLabel" style="color:var(--tx);font-weight:600">${Security.escapeHTML(this._selectedColor)}</span>
           </label>
           <div style="display:flex;gap:8px;flex-wrap:wrap" id="colorChipsWrap">
-            ${colorList.map((col, idx) => `
+            ${colorList.map((col) => `
               <button type="button" class="variant-chip ${col === this._selectedColor ? 'active' : ''}" onclick="Customer.selectDetailVariant('color', '${Security.escapeHTML(col)}', this)">
                 ${Security.escapeHTML(col)}
               </button>
@@ -783,14 +1656,14 @@ const Customer = {
         </div>
       ` : ''}
 
-      <!-- Size Variant Selection -->
-      ${sizeList.length ? `
+      <!-- Size Variant Selection (Readymade Only) OR Fabric Cut Options (Materials Only) -->
+      ${isReadymade ? `
         <div style="margin:8px 0 14px">
           <label style="display:block;font-size:0.82rem;font-weight:700;color:var(--br);margin-bottom:6px">
-            📏 Select Size / Cut: <span id="selectedSizeLabel" style="color:var(--tx);font-weight:600">${Security.escapeHTML(this._selectedSize)}</span>
+            📏 Select Garment Size: <span id="selectedSizeLabel" style="color:var(--tx);font-weight:600">${Security.escapeHTML(this._selectedSize)}</span>
           </label>
           <div style="display:flex;gap:8px;flex-wrap:wrap" id="sizeChipsWrap">
-            ${sizeList.map((sz) => {
+            ${sizeOptions.map((sz) => {
               const szStock = typeof getProductSizeStock === "function" 
                 ? getProductSizeStock(p, sz, this._selectedColor) 
                 : (Number(p.stock) || 0);
@@ -809,7 +1682,26 @@ const Customer = {
             }).join("")}
           </div>
         </div>
-      ` : ''}
+      ` : `
+        <div style="margin:8px 0 14px">
+          <label style="display:block;font-size:0.82rem;font-weight:700;color:var(--br);margin-bottom:6px">
+            ✂️ Select Fabric Cut / Length: <span id="selectedSizeLabel" style="color:var(--tx);font-weight:600">${Security.escapeHTML(this._selectedSize)}</span>
+          </label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="sizeChipsWrap">
+            ${sizeOptions.map((cut) => {
+              const isSelected = cut === this._selectedSize;
+              return `
+                <button type="button" 
+                  class="variant-chip fabric-cut-chip ${isSelected ? 'active' : ''}" 
+                  data-size="${Security.escapeHTML(cut)}"
+                  onclick="Customer.selectDetailVariant('size', '${Security.escapeHTML(cut)}', this)">
+                  ${Security.escapeHTML(cut)}
+                </button>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      `}
 
       <table style="margin:12px 0">
         <tr><th>Fabric Spec</th><td><b>${E(p.fabric)}</b></td></tr>
@@ -820,6 +1712,9 @@ const Customer = {
       </p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
         <button class="btn p" id="detailAddToCartBtn" ${isOutOfStock ? "disabled style='opacity:0.5;cursor:not-allowed'" : ""} onclick="Customer.addCurrentDetailToCart('${p.id}');closeM()">🛒 Add to Cart</button>
+        <button class="btn wishlist-detail-btn ${this.isInWishlist(p.id) ? 'active' : ''}" id="detailWishlistBtn" data-id="${p.id}" type="button" onclick="Customer.toggleWishlist('${p.id}', event)">
+          ${this.isInWishlist(p.id) ? '💖 Saved in Wishlist' : '🤍 Save to Wishlist'}
+        </button>
         ${p.img ? `<button class="btn" onclick="Customer.openFullImage('${p.img}', '${E(p.name)}')">🔍 View Full Photo</button>` : ''}
         <button class="btn" onclick="Customer.askStylistForProduct('${p.id}')">✨ How to Style</button>
       </div>
@@ -847,8 +1742,9 @@ const Customer = {
     // Refresh size chips stock badges when color changes
     const p = this._currentProduct;
     if (p) {
+      const isReadymade = p.cat === "Readymade";
       const sizeWrap = $("sizeChipsWrap");
-      if (sizeWrap && type === "color") {
+      if (sizeWrap && type === "color" && isReadymade) {
         sizeWrap.querySelectorAll(".variant-chip").forEach(chip => {
           const sz = chip.dataset.size;
           if (sz) {
@@ -866,7 +1762,7 @@ const Customer = {
         });
       }
 
-      const stock = typeof getProductSizeStock === "function" 
+      const stock = isReadymade && typeof getProductSizeStock === "function" 
         ? getProductSizeStock(p, this._selectedSize, this._selectedColor)
         : (Number(p.stock) || 0);
       const isOut = stock <= 0;
@@ -1005,9 +1901,16 @@ const Customer = {
     if (!d) return;
     if (!show) {
       d.classList.remove("on");
+      if (document.body) document.body.classList.remove("cart-open");
       return;
     }
+    const w = $("wdr");
+    if (w) {
+      w.classList.remove("on");
+      if (document.body) document.body.classList.remove("wishlist-open");
+    }
     d.classList.add("on");
+    if (document.body) document.body.classList.add("cart-open");
 
     const subtotal = S.cart.reduce((a, c) => a + c.p * c.q, 0);
     let discount = 0;
@@ -1216,6 +2119,272 @@ const Customer = {
       this.showOrderConfirmation(o);
       if (pay === "UPI") setTimeout(() => Customer.showPayModal(o), 500);
     });
+  },
+
+  // ------------------------------------------
+  // Customer Wishlist Controller
+  // ------------------------------------------
+  isInWishlist(id) {
+    if (!Array.isArray(S.wishlist)) S.wishlist = [];
+    return S.wishlist.some(item => (typeof item === "object" ? String(item.id) : String(item)) === String(id));
+  },
+
+  toggleWishlist(id, event) {
+    if (event) {
+      if (typeof event.stopPropagation === "function") event.stopPropagation();
+      if (typeof event.preventDefault === "function") event.preventDefault();
+    }
+    if (!Array.isArray(S.wishlist)) S.wishlist = [];
+    const p = products().find(x => String(x.id) === String(id));
+    if (!p) return;
+
+    const existingIndex = S.wishlist.findIndex(item => (typeof item === "object" ? String(item.id) : String(item)) === String(id));
+
+    if (existingIndex > -1) {
+      S.wishlist.splice(existingIndex, 1);
+      toast(`Removed "${p.name}" from your wishlist 🤍`);
+    } else {
+      S.wishlist.unshift({
+        id: p.id,
+        addedAt: Date.now()
+      });
+      toast(`Saved "${p.name}" to your wishlist! 💖`);
+    }
+
+    this.saveWishlist();
+    this.updateWishlistUI();
+
+    // If wishlist drawer is open, re-render it
+    const wdr = $("wdr");
+    if (wdr && wdr.classList.contains("on")) {
+      this.openWishlist(true);
+    }
+  },
+
+  saveWishlist() {
+    if (!Array.isArray(S.wishlist)) S.wishlist = [];
+    saveLS("wishlist", S.wishlist);
+    const count = S.wishlist.length;
+    const wc = $("wc");
+    if (wc) wc.textContent = count;
+    const mobWc = $("mobWc");
+    if (mobWc) mobWc.textContent = count;
+  },
+
+  updateWishlistUI() {
+    // Update all floating heart buttons on page
+    document.querySelectorAll(".card-wishlist-btn").forEach(btn => {
+      const pid = btn.getAttribute("data-id");
+      if (pid) {
+        const active = this.isInWishlist(pid);
+        btn.classList.toggle("active", active);
+        btn.title = active ? "Remove from Wishlist" : "Save to Wishlist";
+        const icon = btn.querySelector(".heart-icon");
+        if (icon) icon.textContent = active ? "💖" : "🤍";
+      }
+    });
+
+    // Update detail modal button if open
+    const detailBtn = $("detailWishlistBtn");
+    if (detailBtn) {
+      const pid = detailBtn.getAttribute("data-id");
+      if (pid) {
+        const active = this.isInWishlist(pid);
+        detailBtn.classList.toggle("active", active);
+        detailBtn.innerHTML = active ? "💖 Saved in Wishlist" : "🤍 Save to Wishlist";
+      }
+    }
+  },
+
+  openWishlist(show = true) {
+    const w = $("wdr");
+    if (!w) return;
+    if (!show) {
+      w.classList.remove("on");
+      if (document.body) document.body.classList.remove("wishlist-open");
+      return;
+    }
+
+    // Close cart drawer if open
+    const d = $("dr");
+    if (d) {
+      d.classList.remove("on");
+      if (document.body) document.body.classList.remove("cart-open");
+    }
+
+    w.classList.add("on");
+    if (document.body) document.body.classList.add("wishlist-open");
+
+    const allProds = products();
+    const items = S.wishlist.map(wItem => {
+      const id = typeof wItem === "object" ? wItem.id : wItem;
+      const prod = allProds.find(p => String(p.id) === String(id));
+      return prod ? { ...prod, addedAt: wItem.addedAt } : null;
+    }).filter(Boolean);
+
+    w.innerHTML = `
+      <button class="x" onclick="Customer.openWishlist(false)" title="Close Wishlist">×</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:1.6rem">💖</span>
+        <div>
+          <h2 style="color:var(--br);margin:0;font-size:1.4rem">Saved Wishlist</h2>
+          <small style="color:var(--mu)">${items.length} ${items.length === 1 ? 'handcrafted piece' : 'handcrafted pieces'}</small>
+        </div>
+      </div>
+      <hr style="border:none;border-bottom:1px solid var(--ln);margin:12px 0 16px">
+
+      ${!items.length ? `
+        <div class="wishlist-empty-state">
+          <div class="wishlist-empty-icon">✨👗</div>
+          <h3 style="color:var(--br);margin:10px 0 6px">Your wishlist is empty</h3>
+          <p style="color:var(--mu);font-size:0.86rem;line-height:1.5;max-width:290px;margin:0 auto 20px">
+            Explore our curated fabrics, designer suits, and handcrafted ensembles. Tap the heart 🤍 on any piece to save it here!
+          </p>
+          <button class="btn p s" onclick="Customer.openWishlist(false); const s=$('shop'); if(s) s.scrollIntoView({behavior:'smooth'})">
+            👗 Explore Boutique Catalogue
+          </button>
+        </div>
+      ` : `
+        <div class="wishlist-items-list">
+          ${items.map(p => {
+            const isOut = (Number(p.stock) || 0) <= 0;
+            return `
+              <div class="wishlist-item-card" id="witem_${p.id}">
+                <div class="wishlist-item-thumb" onclick="Customer.openWishlist(false); Customer.openDetail('${p.id}')" title="Click to view full details">
+                  ${p.img ? `<img src="${p.img}" alt="${E(p.name)}" loading="lazy">` : `<span style="font-size:1.8rem">${p.em || "👗"}</span>`}
+                </div>
+                <div class="wishlist-item-info">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
+                    <span class="tag" style="font-size:0.65rem;padding:2px 7px">${E(p.cat)}</span>
+                    <button class="wishlist-remove-btn" onclick="Customer.toggleWishlist('${p.id}', event)" title="Remove item from wishlist" aria-label="Remove">
+                      ✕
+                    </button>
+                  </div>
+                  <h4 class="wishlist-item-title" onclick="Customer.openWishlist(false); Customer.openDetail('${p.id}')">
+                    ${E(p.name)}
+                  </h4>
+                  <small style="color:var(--mu);font-size:0.75rem">${E(p.fabric || 'Pure Fabric')}</small>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+                    <b style="color:var(--br);font-size:0.98rem">${R(p.price)}</b>
+                    <span style="font-size:0.75rem;font-weight:600;color:${isOut ? 'var(--bad)' : 'var(--ok)'}">
+                      ${isOut ? '· Sold out' : '· In stock'}
+                    </span>
+                  </div>
+                  <div style="margin-top:8px;display:flex;gap:6px">
+                    <button class="btn s p" style="flex:1;padding:6px 10px;font-size:0.78rem" 
+                      ${isOut ? "disabled style='opacity:0.5;cursor:not-allowed'" : ""} 
+                      onclick="Customer.moveWishlistToCart('${p.id}')">
+                      🛒 Add to Cart
+                    </button>
+                    <button class="btn s" style="padding:6px 10px;font-size:0.78rem" 
+                      onclick="Customer.openWishlist(false); Customer.openDetail('${p.id}')">
+                      Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+
+        <div class="wishlist-footer-actions">
+          <button class="btn p" style="width:100%;margin-bottom:8px" onclick="Customer.moveAllWishlistToCart()">
+            🛍️ Move All In-Stock to Cart
+          </button>
+          <button class="btn s" style="width:100%;color:var(--mu)" onclick="Customer.clearWishlist()">
+            Clear Wishlist
+          </button>
+        </div>
+      `}
+    `;
+  },
+
+  moveWishlistToCart(productId) {
+    const p = products().find(x => String(x.id) === String(productId));
+    if (!p) return;
+    if ((Number(p.stock) || 0) <= 0) {
+      return toast("This item is currently sold out 😔");
+    }
+
+    const colorList = (p.colors || "").split(",").map(c => c.trim()).filter(Boolean);
+    const sizeList = (p.sizes || "").split(",").map(s => s.trim()).filter(Boolean);
+    if (colorList.length > 1 || sizeList.length > 1 || p.cat === "Readymade") {
+      this.openWishlist(false);
+      this.openDetail(productId);
+      toast("Please pick your size & shade to add to cart 📏");
+      return;
+    }
+
+    this.addToCart(productId, sizeList[0] || "Standard", colorList[0] || "Standard");
+    const idx = S.wishlist.findIndex(item => (typeof item === "object" ? String(item.id) : String(item)) === String(productId));
+    if (idx > -1) {
+      S.wishlist.splice(idx, 1);
+      this.saveWishlist();
+      this.updateWishlistUI();
+    }
+
+    this.openWishlist(false);
+    this.openCart(true);
+    toast(`Moved "${p.name}" to your cart! 🛍️`);
+  },
+
+  moveAllWishlistToCart() {
+    const allProds = products();
+    let movedCount = 0;
+    const remainingWishlist = [];
+
+    S.wishlist.forEach(wItem => {
+      const id = typeof wItem === "object" ? wItem.id : wItem;
+      const p = allProds.find(x => String(x.id) === String(id));
+      if (!p || (Number(p.stock) || 0) <= 0) {
+        remainingWishlist.push(wItem);
+        return;
+      }
+
+      const colorList = (p.colors || "").split(",").map(c => c.trim()).filter(Boolean);
+      const sizeList = (p.sizes || "").split(",").map(s => s.trim()).filter(Boolean);
+      const chosenColor = colorList[0] || "Standard";
+      const chosenSize = sizeList[0] || "Standard";
+
+      const existing = S.cart.find(c => String(c.id) === String(p.id) && c.size === chosenSize && c.color === chosenColor);
+      if (existing) {
+        existing.q += 1;
+      } else {
+        S.cart.push({
+          id: p.id,
+          n: p.name,
+          p: p.price,
+          q: 1,
+          size: chosenSize,
+          color: chosenColor,
+          variantId: null
+        });
+      }
+      movedCount++;
+    });
+
+    if (movedCount > 0) {
+      S.wishlist = remainingWishlist;
+      this.saveWishlist();
+      this.saveCart();
+      this.updateWishlistUI();
+      this.openWishlist(false);
+      this.openCart(true);
+      toast(`Moved ${movedCount} item(s) to your cart! 🛍️`);
+    } else {
+      toast("No in-stock items available to move right now.");
+    }
+  },
+
+  clearWishlist() {
+    if (!S.wishlist.length) return;
+    if (confirm("Are you sure you want to clear your saved wishlist?")) {
+      S.wishlist = [];
+      this.saveWishlist();
+      this.updateWishlistUI();
+      this.openWishlist(true);
+      toast("Wishlist cleared 🤍");
+    }
   },
 
   // ------------------------------------------
@@ -1603,25 +2772,253 @@ const Customer = {
     }
     if (teamSec) teamSec.style.display = "";
     tmg.innerHTML = members.map(t => `
-      <div class="tm">
-        <div class="av">
-          ${t.img ? `<img src="${t.img}" alt="${E(t.name)}">` : (t.em ? E(t.em) : E((t.name || "?")[0]))}
+      <div class="team-card">
+        <div class="team-card-inner">
+          <div class="team-avatar-wrap">
+            <div class="team-avatar-frame">
+              ${t.img 
+                ? `<img src="${Security.escapeHTML(t.img)}" alt="${Security.escapeHTML(t.name)}" loading="lazy">` 
+                : `<div class="team-avatar-emoji">${t.em ? Security.escapeHTML(t.em) : "🧑‍💼"}</div>`}
+            </div>
+            <div class="team-badge" title="Verified Saifa Designs In-House Artisan">
+              <span>🧵 Master Artisan</span>
+            </div>
+          </div>
+          <div class="team-info">
+            <h3 class="team-name">${Security.escapeHTML(t.name)}</h3>
+            <div class="team-role-pill">
+              <span>${Security.escapeHTML(t.role)}</span>
+            </div>
+            <p class="team-bio">${Security.escapeHTML(t.bio)}</p>
+            <div class="team-card-footer">
+              <span class="team-atelier-tag">✨ Saifa Designs Atelier</span>
+            </div>
+          </div>
         </div>
-        <h3>${E(t.name)}</h3>
-        <div class="role">${E(t.role)}</div>
-        <p>${E(t.bio)}</p>
       </div>
     `).join("");
+  },
+
+  // ------------------------------------------
+  // Tailoring-Themed Splash Screen Controller
+  // ------------------------------------------
+  initSplashScreen() {
+    const splash = $("atelierSplashScreen");
+    if (!splash) return;
+
+    // Exclusively show on main homepage
+    const path = (window.location.pathname || "").toLowerCase();
+    const isOtherPage = path.includes("product.html") || path.includes("readymade.html");
+    if (isOtherPage) {
+      splash.style.display = "none";
+      return;
+    }
+
+    // Respect user reduced-motion preferences
+    const prefersReducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      splash.style.display = "none";
+      return;
+    }
+
+    // Only display on the first visit in this browsing session
+    try {
+      if (sessionStorage.getItem("saifa_splash_shown")) {
+        splash.style.display = "none";
+        return;
+      }
+      sessionStorage.setItem("saifa_splash_shown", "1");
+    } catch (e) {}
+
+    splash.style.display = "flex";
+    if (document.body) document.body.classList.add("splash-active");
+
+    // Auto-dismiss after 4 seconds (approx 4–5s total with 0.55s smooth exit animation)
+    this._splashTimer = setTimeout(() => {
+      this.dismissSplashScreen();
+    }, 4000);
+  },
+
+  dismissSplashScreen() {
+    if (this._splashTimer) {
+      clearTimeout(this._splashTimer);
+      this._splashTimer = null;
+    }
+    const splash = $("atelierSplashScreen");
+    if (!splash || splash.style.display === "none") {
+      if (document.body) document.body.classList.remove("splash-active");
+      return;
+    }
+
+    splash.classList.add("fade-out");
+    setTimeout(() => {
+      splash.style.display = "none";
+      splash.classList.remove("fade-out");
+      if (document.body) document.body.classList.remove("splash-active");
+    }, 550);
+  },
+
+  // ------------------------------------------
+  // Hanging Atelier Status Tag & Popover (Homepage Only)
+  // ------------------------------------------
+  toggleHangingTagDropdown(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const pop = $("hangingTagPopover");
+    const container = $("hangingTagContainer");
+    if (!pop) return;
+    const isShowing = pop.style.display === "block";
+    if (isShowing) {
+      this.closeHangingTagDropdown(e);
+    } else {
+      this.renderHangingTagPopover();
+      pop.style.display = "block";
+      if (container) {
+        container.setAttribute("aria-expanded", "true");
+        container.classList.add("active");
+      }
+    }
+  },
+
+  closeHangingTagDropdown(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const pop = $("hangingTagPopover");
+    const container = $("hangingTagContainer");
+    if (pop) pop.style.display = "none";
+    if (container) {
+      container.setAttribute("aria-expanded", "false");
+      container.classList.remove("active");
+    }
+  },
+
+  renderHangingTagPopover() {
+    const liveStatus = typeof getShopLiveStatus === "function" 
+      ? getShopLiveStatus() 
+      : { isOpen: true, isMondayClosed: false };
+    const cfg = S.cfg || (typeof DEF !== "undefined" ? DEF : {});
+    const now = new Date();
+
+    const badgeEl = $("hangingPopBadge");
+    const hoursEl = $("hangingPopHours");
+    const mondayEl = $("hangingPopMonday");
+    const nextEl = $("hangingPopNext");
+    const localTimeEl = $("hangingPopLocalTime");
+
+    let statusClass = "open";
+    let statusBadgeText = "🟢 Atelier Open Now";
+
+    if (liveStatus.isMondayClosed) {
+      statusClass = "rest";
+      statusBadgeText = "🟡 Monday Rest Day";
+    } else if (liveStatus.isOpen) {
+      statusClass = "open";
+      statusBadgeText = "🟢 Atelier Open Now";
+    } else {
+      statusClass = "closed";
+      statusBadgeText = "🔴 Atelier Closed";
+    }
+
+    if (badgeEl) {
+      badgeEl.className = `tag-popover-badge ${statusClass}`;
+      badgeEl.textContent = statusBadgeText;
+    }
+
+    if (hoursEl) {
+      const oT = liveStatus.openTimeFormatted || (typeof formatTime12 === "function" ? formatTime12(cfg.openTime || "10:30") : "10:30 AM");
+      const cT = liveStatus.closeTimeFormatted || (typeof formatTime12 === "function" ? formatTime12(cfg.closeTime || "21:00") : "9:00 PM");
+      hoursEl.textContent = `${oT} – ${cT} (Tue–Sun)`;
+    }
+
+    if (mondayEl) {
+      mondayEl.textContent = cfg.mondayClosed !== false 
+        ? "Monday Closed (Weekly Atelier Rest Day)" 
+        : "Open 7 Days a Week";
+    }
+
+    if (nextEl) {
+      nextEl.textContent = liveStatus.nextActionNote || (liveStatus.isOpen ? "Open today · Walk-ins & bespoke consultations welcome" : "Opens tomorrow at 10:30 AM");
+    }
+
+    if (localTimeEl) {
+      localTimeEl.textContent = `Local Time: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+    }
+  },
+
+  updateHangingShopStatus() {
+    const wrap = $("hangingTagWrapper");
+    if (!wrap) return;
+
+    // Exclusively show on the main homepage
+    const path = (typeof window !== "undefined" && window.location && window.location.pathname ? window.location.pathname : "").toLowerCase();
+    const isOtherPage = path.includes("product.html") || path.includes("readymade.html");
+    if (isOtherPage) {
+      wrap.style.display = "none";
+      return;
+    }
+
+    const liveStatus = typeof getShopLiveStatus === "function" 
+      ? getShopLiveStatus() 
+      : { isOpen: true, isMondayClosed: false };
+    const statusEl = $("hangingTagStatus");
+    const dotEl = $("hangingTagDot");
+    const containerEl = $("hangingTagContainer");
+
+    let statusText = "🟢 Atelier Open";
+    let statusClass = "open";
+    let titleTip = "Atelier Open";
+
+    if (liveStatus.isMondayClosed) {
+      statusText = "🟡 Rest Day";
+      statusClass = "rest";
+      titleTip = "Monday Atelier Rest Day · Reopens Tuesday 10:30 AM";
+    } else if (liveStatus.isOpen) {
+      statusText = "🟢 Atelier Open";
+      statusClass = "open";
+      titleTip = `Atelier Open · ${liveStatus.openTimeFormatted || '10:30 AM'} – ${liveStatus.closeTimeFormatted || '9:00 PM'}`;
+    } else {
+      statusText = "🔴 Atelier Closed";
+      statusClass = "closed";
+      titleTip = `Atelier Closed · ${liveStatus.nextActionNote || 'Opens at 10:30 AM'}`;
+    }
+
+    if (statusEl) statusEl.textContent = statusText;
+    if (dotEl) dotEl.className = `tag-status-dot ${statusClass}`;
+    if (containerEl) {
+      containerEl.className = `hanging-tag-container status-${statusClass}`;
+      containerEl.setAttribute("title", `Saifa Designs · ${titleTip} (Click for details)`);
+    }
+
+    // Keep popover live if currently opened by user
+    const pop = $("hangingTagPopover");
+    if (pop && pop.style.display === "block") {
+      this.renderHangingTagPopover();
+    }
+  },
+
+  startShopStatusAutoUpdater() {
+    this.updateHangingShopStatus();
+    if (!this._shopStatusInterval) {
+      // Periodic check every 20 seconds to capture exact opening, closing, or midnight transitions
+      this._shopStatusInterval = setInterval(() => {
+        this.updateHangingShopStatus();
+      }, 20000);
+    }
   },
 
   renderFront() {
     this.renderShop();
     this.renderNewArrivals();
     this.renderTeam();
+    this.renderCompactShopStatus();
+    if (typeof this.renderCatalogue === "function" && $("catalogueGrid")) {
+      this.renderCatalogue();
+    }
+
+    // Sync decorative hanging boutique garment tag (Atelier status: Open / Closed / Rest Day)
+    this.updateHangingShopStatus();
     const c = S.cfg || DEF;
+    const liveStatus = typeof getShopLiveStatus === "function" ? getShopLiveStatus() : { isOpen: true, label: "Open · 10:30 AM–9:00 PM", badgeClass: "open", message: "Boutique Open" };
 
     // Dynamically sync live shop status pill with operating schedule & Monday rest day
-    const liveStatus = typeof getShopLiveStatus === "function" ? getShopLiveStatus() : { isOpen: true, label: "Open · 10:30 AM–9:00 PM", badgeClass: "open", message: "Boutique Open" };
     const pill = $("shopStatusPill");
     const textEl = $("shopStatusText");
     const badgeEl = $("shopStatusBadge");
@@ -1727,9 +3124,14 @@ const Customer = {
     if ($("contactPhoneSub")) $("contactPhoneSub").textContent = `Instant design consultation: ${formattedPhone}`;
     if ($("contactAddressSub")) $("contactAddressSub").textContent = c.address ? (c.address.length > 55 ? c.address.slice(0, 52) + "..." : c.address) : "Walk-ins, fitting trials & fabric curation";
 
-    if ($("foot")) {
+    if ($("footCopy")) {
+      $("footCopy").innerHTML = `© 2026 SAIFA DESIGNS · Ladies Tailor &amp; Boutique · 📍 ${Security.escapeHTML(c.address)} · 📞 ${Security.escapeHTML(formattedPhone)} · ${Security.escapeHTML(c.hours)}`;
+    } else if ($("foot")) {
       $("foot").innerHTML = `© 2026 SAIFA DESIGNS · Ladies Tailor &amp; Boutique · 📍 ${Security.escapeHTML(c.address)} · 📞 ${Security.escapeHTML(formattedPhone)} · ${Security.escapeHTML(c.hours)}`;
     }
+    if ($("footerAddressText")) $("footerAddressText").textContent = c.address;
+    if ($("footerHoursText")) $("footerHoursText").textContent = c.hours;
+    if ($("footerWaLink")) $("footerWaLink").href = waLink;
 
     // Dynamic Header Staff / Admin Button status
     const lgBtn = $("lg");
@@ -1750,11 +3152,12 @@ const Customer = {
     this.renderRatingWidget();
 
     const fsbox = $("fsbox");
-    if (fsbox && !fsbox.dataset.ok) {
+    if (fsbox && (!fsbox.dataset || !fsbox.dataset.ok)) {
       fsbox.innerHTML = sForm("fs", false);
-      fsbox.dataset.ok = 1;
+      if (fsbox.dataset) fsbox.dataset.ok = 1;
     }
     this.saveCart();
+    this.saveWishlist();
 
     // Auto-sync active tracking card in real time if user is viewing their order status
     if (this._lastTrackedOrderNo) {
@@ -1809,9 +3212,9 @@ const Customer = {
     }
     const heroCust = $("heroCustStat");
     if (heroCust) {
-      const custStats = typeof getGenuineCustomerStats === "function" ? getGenuineCustomerStats() : { totalGenuineCustomers: 0 };
-      const genuineCount = (custStats.totalGenuineCustomers !== undefined) ? custStats.totalGenuineCustomers : (custStats.displayCount || 0);
-      heroCust.textContent = genuineCount > 0 ? `${genuineCount}+` : `Atelier Clients`;
+      const custStats = typeof getGenuineCustomerStats === "function" ? getGenuineCustomerStats() : { displayCount: 0 };
+      const genuineCount = (custStats.displayCount !== undefined) ? custStats.displayCount : 0;
+      heroCust.textContent = `${genuineCount}+`;
     }
 
     // 5. Star Distribution Progress Bars
@@ -2612,6 +4015,7 @@ function submitStitch(p, admin = false) {
 // Global aliases to maintain complete backwards compatibility
 function shop() { Customer.renderShop(); }
 function cart(o) { Customer.openCart(Boolean(o)); }
+function wishlist(o) { Customer.openWishlist(o !== false); }
 function track() { Customer.trackOrder(); }
 function stylist() { Customer.askStylist(); }
 function renderFront() { Customer.renderFront(); }
@@ -2623,3 +4027,5 @@ window.submitStitch = submitStitch;
 window.Customer = Customer;
 window.toggleStitch = () => Customer.toggleStitchingDropdown();
 window.openStitch = () => Customer.openStitchingForm();
+window.toggleHangingTag = (e) => Customer.toggleHangingTagDropdown(e);
+window.wishlist = wishlist;

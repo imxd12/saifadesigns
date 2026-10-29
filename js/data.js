@@ -300,7 +300,44 @@ SEED_PROD.forEach((p, idx) => {
   }
 });
 
-const SEED_TEAM = [];
+const SEED_TEAM = [
+  {
+    id: "tm_1",
+    name: "Saifa Khatun",
+    role: "Founder & Creative Director",
+    ord: 1,
+    em: "👑",
+    img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80",
+    bio: "Over 14 years shaping bespoke Indian couture, royal bridal silhouettes, and precise made-to-measure fitting patterns."
+  },
+  {
+    id: "tm_2",
+    name: "Master Mohammad",
+    role: "Master Pattern & Cutting Craftsman",
+    ord: 2,
+    em: "✂️",
+    img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80",
+    bio: "Decades of master cutting expertise ensuring zero-crease armhole contouring, tailored darts, and graceful drape."
+  },
+  {
+    id: "tm_3",
+    name: "Zoya Ansari",
+    role: "Senior Zardozi & Hand Embroidery Artisan",
+    ord: 3,
+    em: "🧵",
+    img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=600&q=80",
+    bio: "Handcrafting intricate zari borders, pearl moti latkans, and authentic royal threadwork for festive ensembles."
+  },
+  {
+    id: "tm_4",
+    name: "Fatima Sheikh",
+    role: "Bespoke Fitting & Client Stylist",
+    ord: 4,
+    em: "🎨",
+    img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
+    bio: "Archiving individual Client ID measurement profiles and providing curated fabric-to-silhouette consultations."
+  }
+];
 const SEED_WORKERS = [];
 const SEED_COUPONS = [];
 const SEED_ORDERS = [];

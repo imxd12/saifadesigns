@@ -42,6 +42,7 @@ let S = {
   reviews: loadLS("reviews", []),
   cfg: loadLS("cfg", JSON.parse(JSON.stringify(DEF))),
   cart: loadLS("cart", []),
+  wishlist: loadLS("wishlist", []),
   appliedCoupon: null,
   cat: "All",
   me: loadLS("me", null),
@@ -206,7 +207,7 @@ function getGarmentPay(garment) {
 
 // Selectors
 const products = () => (Array.isArray(S.prod) ? S.prod : SEED_PROD);
-const team = () => (Array.isArray(S.team) ? S.team.slice().sort((a, b) => (a.ord || 0) - (b.ord || 0)) : []);
+const team = () => (Array.isArray(S.team) && S.team.length > 0 ? S.team.slice().sort((a, b) => (a.ord || 0) - (b.ord || 0)) : (typeof SEED_TEAM !== "undefined" ? SEED_TEAM : []));
 const orders = () => (Array.isArray(S.orders) ? S.orders : []);
 const custs = () => S.customers || [];
 const workers = () => (Array.isArray(S.workers) ? S.workers : []);
@@ -247,7 +248,13 @@ function getShopRatingStats() {
 // ------------------------------------------
 function getGenuineCustomerStats() {
   const os = orders();
-  const qualifyingOrders = os.filter(o => o.status === "Delivered" || o.paid === "Paid");
+  const qualifyingOrders = os.filter(o => {
+    if (!o) return false;
+    if (o.status === "Cancelled" || o.status === "Rejected" || o.status === "Refunded") return false;
+    const isPaid = o.paid === "Paid";
+    const isActiveFulfillment = ["Delivered", "Claimed", "Ready", "Stitching", "Confirmed"].includes(o.status);
+    return isPaid || isActiveFulfillment;
+  });
   const uniquePhones = new Set();
   const phoneOrderCounts = {};
 
@@ -259,18 +266,17 @@ function getGenuineCustomerStats() {
     }
   });
 
-  const totalRegistered = (S.customers || []).length;
   const qualifyingBuyersCount = uniquePhones.size;
   const repeatBuyersCount = Object.values(phoneOrderCounts).filter(cnt => cnt >= 2).length;
   const retentionRate = qualifyingBuyersCount > 0 ? Math.round((repeatBuyersCount / qualifyingBuyersCount) * 100) : 0;
 
   return {
-    totalRegistered,
+    totalRegistered: qualifyingBuyersCount,
     qualifyingBuyersCount,
     repeatBuyersCount,
     retentionRate,
-    totalGenuineCustomers: qualifyingBuyersCount > 0 ? qualifyingBuyersCount : totalRegistered,
-    displayCount: qualifyingBuyersCount > 0 ? qualifyingBuyersCount : totalRegistered
+    totalGenuineCustomers: qualifyingBuyersCount,
+    displayCount: qualifyingBuyersCount
   };
 }
 
@@ -462,6 +468,10 @@ function formatTime12(timeStr = "10:30") {
 function getShopLiveStatus() {
   const cfg = S.cfg || DEF;
   const setting = cfg.shopStatus || "Auto";
+  const openTime12 = formatTime12(cfg.openTime || "10:30");
+  const closeTime12 = formatTime12(cfg.closeTime || "21:00");
+  const now = new Date();
+  const curTime12 = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
   if (setting === "Online") {
     const msg = "Boutique Atelier is Open · Orders & Bespoke Stitching Active";
@@ -470,10 +480,15 @@ function getShopLiveStatus() {
       setting: "Online",
       status: "Online",
       label: "Online & Accepting Orders",
+      compactStatusText: "🟢 Atelier Open",
       badgeClass: "open",
       icon: "🟢",
       reason: msg,
       message: msg,
+      openTimeFormatted: openTime12,
+      closeTimeFormatted: closeTime12,
+      nextActionNote: `Open 24/7 online · Atelier hours ${openTime12} – ${closeTime12}`,
+      currentTimeFormatted: curTime12,
       hoursFormatted: cfg.hours || "Tue–Sun 10:30 AM – 9:00 PM (Monday Closed)"
     };
   }
@@ -485,31 +500,40 @@ function getShopLiveStatus() {
       setting: "Offline",
       status: "Offline",
       label: "Boutique Temporarily Closed",
+      compactStatusText: "🔴 Atelier Closed",
       badgeClass: "closed",
       icon: "🔴",
       reason: msg,
       message: msg,
+      openTimeFormatted: openTime12,
+      closeTimeFormatted: closeTime12,
+      nextActionNote: msg,
+      currentTimeFormatted: curTime12,
       hoursFormatted: cfg.hours || "Tue–Sun 10:30 AM – 9:00 PM (Monday Closed)"
     };
   }
 
   // "Auto" Schedule Evaluation
-  const now = new Date();
   const day = now.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
   const isMonday = day === 1;
 
   if (cfg.mondayClosed && isMonday) {
-    const msg = "Weekly Monday Closure · Reopens Tuesday at " + formatTime12(cfg.openTime || "10:30");
+    const msg = "Weekly Monday Closure · Reopens Tuesday at " + openTime12;
     return {
       isOpen: false,
       setting: "Auto",
       status: "Auto",
       isMondayClosed: true,
       label: "Closed Today (Monday Atelier Rest Day)",
+      compactStatusText: "🔴 Monday Closed",
       badgeClass: "closed",
       icon: "🔴",
       reason: msg,
       message: msg,
+      openTimeFormatted: openTime12,
+      closeTimeFormatted: closeTime12,
+      nextActionNote: `Weekly Monday Rest Day · Reopens Tuesday at ${openTime12}`,
+      currentTimeFormatted: curTime12,
       hoursFormatted: cfg.hours || "Tue–Sun 10:30 AM – 9:00 PM (Monday Closed)"
     };
   }
@@ -522,33 +546,43 @@ function getShopLiveStatus() {
   const closeMinutes = (closeH || 21) * 60 + (closeM || 0);
 
   if (curMinutes >= openMinutes && curMinutes < closeMinutes) {
-    const msg = `Open today until ${formatTime12(cfg.closeTime || "21:00")} · Walk-ins & Online Orders Welcome`;
+    const msg = `Open today until ${closeTime12} · Walk-ins & Online Orders Welcome`;
     return {
       isOpen: true,
       setting: "Auto",
       status: "Auto",
-      label: `Open · ${formatTime12(cfg.openTime || "10:30")}–${formatTime12(cfg.closeTime || "21:00")}`,
+      label: `Open · ${openTime12}–${closeTime12}`,
+      compactStatusText: "🟢 Atelier Open",
       badgeClass: "open",
       icon: "🟢",
       reason: msg,
       message: msg,
+      openTimeFormatted: openTime12,
+      closeTimeFormatted: closeTime12,
+      nextActionNote: `Open today · Closes at ${closeTime12}`,
+      currentTimeFormatted: curTime12,
       hoursFormatted: cfg.hours || "Tue–Sun 10:30 AM – 9:00 PM (Monday Closed)"
     };
   } else {
     const isMorning = curMinutes < openMinutes;
     const nextReopen = isMorning 
-      ? `Opens today at ${formatTime12(cfg.openTime || "10:30")}` 
-      : isMonday ? `Opens Tuesday at ${formatTime12(cfg.openTime || "10:30")}` : `Opens tomorrow at ${formatTime12(cfg.openTime || "10:30")}`;
-    const msg = `Operating Hours: ${formatTime12(cfg.openTime || "10:30")} to ${formatTime12(cfg.closeTime || "21:00")} (Mon Closed)`;
+      ? `Opens today at ${openTime12}` 
+      : isMonday ? `Opens Tuesday at ${openTime12}` : (day === 0 && cfg.mondayClosed ? `Opens Tuesday at ${openTime12}` : `Opens tomorrow at ${openTime12}`);
+    const msg = `Operating Hours: ${openTime12} to ${closeTime12} (Mon Closed)`;
     return {
       isOpen: false,
       setting: "Auto",
       status: "Auto",
       label: `Closed · ${nextReopen}`,
+      compactStatusText: "🔴 Atelier Closed",
       badgeClass: "closed",
       icon: "🌙",
       reason: msg,
       message: msg,
+      openTimeFormatted: openTime12,
+      closeTimeFormatted: closeTime12,
+      nextActionNote: nextReopen,
+      currentTimeFormatted: curTime12,
       hoursFormatted: cfg.hours || "Tue–Sun 10:30 AM – 9:00 PM (Monday Closed)"
     };
   }

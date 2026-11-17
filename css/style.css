@@ -6757,5 +6757,324 @@ body.splash-active {
   }
 }
 
+/* ==========================================
+   PWA APP FOUNDATIONS: MOBILE BOTTOM NAVIGATION
+   ========================================== */
+.mobile-bottom-nav {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: color-mix(in srgb, var(--sf) 88%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-top: 1px solid color-mix(in srgb, var(--gd) 25%, var(--ln));
+  z-index: 990;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 4px max(6px, env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 22px rgba(0, 0, 0, 0.08);
+}
+
+.mob-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  text-decoration: none;
+  color: var(--mu);
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 6px 0;
+  transition: all 0.2s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+.mob-nav-item .mob-nav-icon {
+  font-size: 1.25rem;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.mob-nav-item.active {
+  color: var(--br);
+  font-weight: 700;
+}
+
+.mob-nav-item.active .mob-nav-icon {
+  transform: translateY(-2px) scale(1.15);
+}
+
+.mob-nav-badge {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  background: var(--br);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 99px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 4px;
+  border: 1.5px solid var(--sf);
+}
+
+@media (min-width: 769px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Native-feeling Floating PWA Install Banner */
+.pwa-install-banner {
+  position: fixed;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  left: 14px;
+  right: 14px;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--sf);
+  border: 1.5px solid var(--gd);
+  border-radius: 18px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.22);
+  z-index: 989;
+  display: none;
+  animation: pwaSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pwa-install-banner.active {
+  display: block;
+}
+
+@keyframes pwaSlideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.pwa-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pwa-banner-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--br), var(--gd));
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-family: 'Playfair Display', serif;
+  font-weight: 800;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.pwa-banner-text {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.pwa-banner-text strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--br);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pwa-banner-text small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--mu);
+}
+
+.pwa-install-action {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pwa-banner-close {
+  background: none;
+  border: none;
+  color: var(--mu);
+  font-size: 1rem;
+  padding: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Skeleton Loaders & Shimmer States */
+.skeleton-box {
+  display: inline-block;
+  height: 1em;
+  position: relative;
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--tx) 8%, var(--sf));
+  border-radius: 8px;
+}
+
+.skeleton-box::after {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.15) 20%,
+    rgba(255, 255, 255, 0.3) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 1.5s infinite;
+  content: '';
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Conversational AI Stylist Chat Drawer */
+.stylist-chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 72vh;
+  max-height: 600px;
+}
+
+.stylist-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ln);
+}
+
+.stylist-chat-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--br), var(--gd));
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--br) 35%, transparent);
+}
+
+.stylist-messages-box {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stylist-msg {
+  display: flex;
+  gap: 8px;
+  max-width: 86%;
+}
+
+.stylist-msg.bot {
+  align-self: flex-start;
+}
+
+.stylist-msg.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.stylist-bubble {
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.stylist-msg.bot .stylist-bubble {
+  background: var(--sf2);
+  border: 1px solid var(--ln);
+  color: var(--tx);
+  border-top-left-radius: 4px;
+}
+
+.stylist-msg.user .stylist-bubble {
+  background: linear-gradient(135deg, var(--br), color-mix(in srgb, var(--br) 85%, #000));
+  color: #fff;
+  border-top-right-radius: 4px;
+}
+
+.stylist-chips-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px 0 10px;
+  scrollbar-width: none;
+}
+
+.stylist-chips-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.stylist-chip {
+  padding: 6px 12px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: 99px;
+  background: var(--sf2);
+  border: 1px solid var(--ln);
+  color: var(--tx);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stylist-chip:hover {
+  border-color: var(--gd);
+  color: var(--br);
+  background: color-mix(in srgb, var(--gd) 10%, var(--sf2));
+}
+
+.stylist-input-row {
+  display: flex;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ln);
+}
+
+.stylist-input-field {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--ln);
+  background: var(--sf);
+  color: var(--tx);
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
 
 

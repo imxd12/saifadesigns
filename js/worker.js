@@ -140,7 +140,7 @@ const WorkerPortal = {
                     </div>
                   </div>
                   <div style="margin:6px 0;font-size:0.88rem">
-                    <b>Order #${Security.escapeHTML(o.no)}</b> · Client: <b>${Security.escapeHTML(o.customer)}</b> (${Security.escapeHTML(o.phone)})<br>
+                    <b>Order #${Security.escapeHTML(o.no)}</b> · Client: <b>${Security.escapeHTML(Security.maskName(o.customer))}</b> (${Security.escapeHTML(Security.maskPhone(o.phone))})<br>
                     <small style="color:${o.due ? 'var(--br)' : 'var(--mu)'}">Due Date: <b>${Security.escapeHTML(o.due || "Immediate priority")}</b> · Fabric: ${Security.escapeHTML(o.fabric || "Client's Own")}</small>
                   </div>
                   <div class="meas" style="font-size:0.8rem;background:var(--sf);padding:8px;border-radius:10px;margin:8px 0">

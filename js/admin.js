@@ -1442,6 +1442,8 @@ function renderOrdersTab() {
     .filter(o => f === "All" || o.status === f || (f === "Pending Payment" && o.paid !== "Paid"))
     .sort((a, b) => b.ts - a.ts);
 
+  const isKanban = S.orderViewMode === "kanban";
+
   return `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
       <div class="tabs" style="justify-content:flex-start;margin:0">
@@ -1449,9 +1451,16 @@ function renderOrdersTab() {
           <span class="chip ${f === s ? "on" : ""}" onclick="S.ofilter='${s}';panel()">${s}</span>
         `).join("")}
       </div>
-      <button class="btn s" onclick="exportOrdersCSV()">📄 Export Orders to CSV</button>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="kanban-view-toggle">
+          <button class="kanban-view-btn ${!isKanban ? 'active' : ''}" onclick="S.orderViewMode='table';panel()">📋 Table</button>
+          <button class="kanban-view-btn ${isKanban ? 'active' : ''}" onclick="S.orderViewMode='kanban';panel()">📌 Kanban Board</button>
+        </div>
+        <button class="btn s" onclick="exportOrdersCSV()">📄 Export CSV</button>
+      </div>
     </div>
 
+    ${isKanban ? renderKanbanBoard(list) : `
     <div class="box">
       <table>
         <thead>
@@ -1517,8 +1526,96 @@ function renderOrdersTab() {
         </tbody>
       </table>
     </div>
+    `}
   `;
 }
+
+function renderKanbanBoard(list) {
+  const COLUMNS = [
+    { id: "new", title: "📝 New Orders", filter: o => !o.stage || o.stage === "Order Placed" || o.status === "New" },
+    { id: "cutting", title: "✂️ Cutting & Drafting", filter: o => o.stage === "Cutting & Pattern Drafting" },
+    { id: "stitching", title: "🪡 Artisan Stitching", filter: o => o.stage === "Artisan Hand Stitching" },
+    { id: "finishing", title: "👗 Finishing & QC", filter: o => o.stage === "Finishing & Ironing" || o.stage === "Master Quality Check" },
+    { id: "ready", title: "✨ Ready / Delivered", filter: o => o.stage === "Ready for Trial" || o.status === "Ready for Trial" || o.status === "Delivered" }
+  ];
+
+  return `
+    <div class="kanban-board">
+      ${COLUMNS.map(col => {
+        const colOrders = list.filter(col.filter);
+        return `
+          <div class="kanban-column" id="kanban_col_${col.id}">
+            <div class="kanban-col-header">
+              <span class="kanban-col-title">${col.title}</span>
+              <span class="kanban-col-count">${colOrders.length}</span>
+            </div>
+            <div class="kanban-cards-list">
+              ${colOrders.length === 0 ? `
+                <div style="text-align:center;padding:28px 8px;color:var(--mu);font-size:0.8rem">
+                  No orders in this stage
+                </div>
+              ` : colOrders.map(o => `
+                <div class="kanban-card" onclick="printInvoice('${o.id}')" title="Click to view invoice & details">
+                  <div class="kanban-card-top">
+                    <span class="kanban-order-badge">#${E(o.no)}</span>
+                    <span class="pill ${o.paid === 'Paid' ? 'ok' : 'w'}" style="font-size:0.65rem">${E(o.paid || 'Pending')}</span>
+                  </div>
+                  <h4 class="kanban-card-title">${E(o.customer)}</h4>
+                  <p class="kanban-card-desc">
+                    ${E(o.type === "Stitch" ? o.garment : (o.items || []).map(i => i.n).join(", "))}
+                  </p>
+                  <div class="kanban-card-footer">
+                    <b style="color:var(--br)">${R(o.total)}</b>
+                    <button class="kanban-advance-btn" type="button" onclick="event.stopPropagation(); advanceOrderKanban('${o.id}', '${E(o.stage || 'Order Placed')}')">
+                      ➔ Next Stage
+                    </button>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+window.advanceOrderKanban = function(orderId, currentStage) {
+  const STAGES = [
+    "Cutting & Pattern Drafting",
+    "Artisan Hand Stitching",
+    "Finishing & Ironing",
+    "Master Quality Check",
+    "Ready for Trial",
+    "Delivered"
+  ];
+  const idx = STAGES.indexOf(currentStage);
+  const nextStage = idx !== -1 && idx < STAGES.length - 1 ? STAGES[idx + 1] : (idx === -1 ? STAGES[0] : "Delivered");
+  const nextStatus = nextStage === "Delivered" ? "Delivered" : (nextStage === "Ready for Trial" ? "Ready" : "In Progress");
+
+  const ords = orders();
+  const o = ords.find(x => x.id === orderId || x.no === orderId);
+  if (!o) return;
+
+  o.stage = nextStage;
+  o.status = nextStatus;
+
+  // Audit trail log
+  o.audit = o.audit || [];
+  o.audit.push({
+    action: `Advanced stage to "${nextStage}"`,
+    by: (S.me && S.me.name) ? S.me.name : "Master Tailor (Admin)",
+    ts: Date.now()
+  });
+
+  saveOrders(ords);
+  toast(`Order #${o.no} advanced to "${nextStage}" ✂️`);
+  if (typeof panel === "function") panel();
+
+  if (typeof Realtime !== "undefined" && typeof Realtime.broadcast === "function") {
+    Realtime.broadcast("ORDER_UPDATED", o);
+  }
+};
 
 function openPaymentProofModal(orderId) {
   const o = orders().find(x => x.id === orderId);

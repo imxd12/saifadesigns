@@ -16,6 +16,7 @@ const Customer = {
     this.initThreeHero();
     this.initCompactStatusClickOutside();
     this.generateTrackCaptcha();
+    this.renderBottomNav();
 
     const handleHash = () => {
       this.checkUrlForTracking();
@@ -2044,8 +2045,11 @@ const Customer = {
 
   saveCart() {
     saveLS("cart", S.cart);
+    const count = S.cart.reduce((a, c) => a + c.q, 0);
     const cc = $("cc");
-    if (cc) cc.textContent = S.cart.reduce((a, c) => a + c.q, 0);
+    if (cc) cc.textContent = count;
+    const botCc = $("mobBotCartBadge");
+    if (botCc) botCc.textContent = count;
   },
 
   openCart(show = true) {
@@ -2934,11 +2938,17 @@ const Customer = {
   },
 
   // ------------------------------------------
-  // AI Fashion Stylist Integration
+  // AI Fashion Stylist Integration & Chat Drawer
   // ------------------------------------------
   async askStylist() {
-    const q = $("aq").value.trim();
-    if (!q) return toast("Please enter your outfit style requirement");
+    const inputEl = $("aq");
+    if (!inputEl) {
+      return this.openStylistChat();
+    }
+    const q = inputEl.value.trim();
+    if (!q) {
+      return this.openStylistChat();
+    }
 
     if (typeof Security !== "undefined" && typeof Security.checkRateLimit === "function") {
       const rate = Security.checkRateLimit("ai_stylist", 6, 60);
@@ -2949,10 +2959,378 @@ const Customer = {
     }
 
     const el = $("ao");
-    el.style.display = "block";
-    el.textContent = "Consulting SAIFA AI stylist...";
-    const advice = await AI.getStylingAdvice(q);
-    el.textContent = advice;
+    if (el) {
+      el.style.display = "block";
+      el.textContent = "Consulting SAIFA AI stylist...";
+      const advice = await AI.getStylingAdvice(q);
+      el.textContent = advice;
+    } else {
+      this.openStylistChat(q);
+    }
+  },
+
+  // ------------------------------------------
+  // Conversational AI Style Consultant Chat UI
+  // ------------------------------------------
+  openStylistChat(initialQuery = "") {
+    modal(`
+      <div class="stylist-chat-container">
+        <div class="stylist-chat-header">
+          <div class="stylist-chat-avatar">🪡</div>
+          <div style="flex:1">
+            <h3 style="font-family:'Playfair Display',serif;color:var(--br);margin:0;font-size:1.15rem">SAIFA AI Style Consultant</h3>
+            <small style="color:var(--gd)">🟢 Online · Master Silhouette &amp; Fabric Drafter</small>
+          </div>
+          <button class="btn s" onclick="closeM()" style="padding:4px 8px">✕</button>
+        </div>
+
+        <div class="stylist-messages-box" id="stylistMsgBox">
+          <div class="stylist-msg bot">
+            <div class="stylist-bubble">
+              ✨ <b>Namaste!</b> I am your Saifa Atelier Style Consultant. Are you planning a wedding lehenga, an everyday kurti, or looking for the perfect fabric cut? Ask me anything about tailoring silhouettes, necklines, or color pairings!
+            </div>
+          </div>
+        </div>
+
+        <div class="stylist-chips-strip">
+          <span class="stylist-chip" onclick="Customer.sendStylistChatMessage('Suggest bridal lehengas and festive suits')">👰 Bridal &amp; Lehengas</span>
+          <span class="stylist-chip" onclick="Customer.sendStylistChatMessage('Recommend chic office salwar suits')">💼 Office Wear Suits</span>
+          <span class="stylist-chip" onclick="Customer.sendStylistChatMessage('What is the difference between Chanderi and pure Organza?')">🧵 Silk vs Organza</span>
+          <span class="stylist-chip" onclick="Customer.sendStylistChatMessage('Show me pure Jaipur cotton fabrics')">🌸 Jaipur Cottons</span>
+          <span class="stylist-chip" onclick="Customer.sendStylistChatMessage('What neckline suits deep back silk blouses?')">✂️ Blouse Cuts &amp; Necklines</span>
+        </div>
+
+        <div class="stylist-input-row">
+          <input id="stylistChatInput" class="stylist-input-field" placeholder="Ask about styles, fabrics, fittings…" onkeydown="if(event.key==='Enter'){Customer.sendStylistChatMessage();}">
+          <button class="btn p" type="button" onclick="Customer.sendStylistChatMessage()" style="padding:8px 16px">Send ➔</button>
+        </div>
+      </div>
+    `);
+
+    if (initialQuery) {
+      setTimeout(() => this.sendStylistChatMessage(initialQuery), 300);
+    }
+  },
+
+  async sendStylistChatMessage(forcedText = null) {
+    const input = $("stylistChatInput");
+    const msg = (forcedText || (input ? input.value : "")).trim();
+    if (!msg) return;
+
+    if (input) input.value = "";
+    const box = $("stylistMsgBox");
+    if (!box) return;
+
+    // Append user message
+    box.innerHTML += `
+      <div class="stylist-msg user">
+        <div class="stylist-bubble">${Security.escapeHTML(msg)}</div>
+      </div>
+    `;
+    box.scrollTop = box.scrollHeight;
+
+    // Show bot thinking bubble
+    const thinkingId = "stylist_thinking_" + Date.now();
+    box.innerHTML += `
+      <div class="stylist-msg bot" id="${thinkingId}">
+        <div class="stylist-bubble" style="color:var(--mu)">
+          <i>✨ Consulting master draping guide…</i>
+        </div>
+      </div>
+    `;
+    box.scrollTop = box.scrollHeight;
+
+    const advice = await AI.getStylingAdvice(msg);
+    const thinkingEl = $(thinkingId);
+    if (thinkingEl) {
+      thinkingEl.innerHTML = `<div class="stylist-bubble">${Security.escapeHTML(advice)}</div>`;
+      box.scrollTop = box.scrollHeight;
+    }
+  },
+
+  // ------------------------------------------
+  // Mobile PWA App Bottom Navigation Bar
+  // ------------------------------------------
+  renderBottomNav() {
+    if ($("mobileBottomNav")) return;
+    const path = (window.location.pathname || "").toLowerCase();
+    const isHome = path === "" || path.endsWith("index.html") || path.endsWith("/");
+    const isReady = path.includes("readymade.html");
+    const isFabrics = path.includes("product.html");
+
+    const nav = document.createElement("nav");
+    nav.id = "mobileBottomNav";
+    nav.className = "mobile-bottom-nav";
+    nav.setAttribute("aria-label", "Mobile App Navigation");
+    nav.innerHTML = `
+      <a href="index.html" class="mob-nav-item ${isHome ? 'active' : ''}">
+        <span class="mob-nav-icon">🏛️</span>
+        <span class="mob-nav-label">Home</span>
+      </a>
+      <a href="readymade.html" class="mob-nav-item ${isReady ? 'active' : ''}">
+        <span class="mob-nav-icon">👗</span>
+        <span class="mob-nav-label">Ready</span>
+      </a>
+      <a href="product.html" class="mob-nav-item ${isFabrics ? 'active' : ''}">
+        <span class="mob-nav-icon">🧵</span>
+        <span class="mob-nav-label">Fabrics</span>
+      </a>
+      <a href="javascript:void(0)" class="mob-nav-item" onclick="Customer.openTrackModal()">
+        <span class="mob-nav-icon">📦</span>
+        <span class="mob-nav-label">Track</span>
+      </a>
+      <a href="javascript:void(0)" class="mob-nav-item" onclick="Customer.openClientProfile()">
+        <span class="mob-nav-icon">👤</span>
+        <span class="mob-nav-label">Profile</span>
+      </a>
+      <a href="javascript:void(0)" class="mob-nav-item" onclick="cart(1)">
+        <span class="mob-nav-icon" style="position:relative">
+          🛒
+          <span class="mob-nav-badge" id="mobBotCartBadge">${(S.cart || []).length}</span>
+        </span>
+        <span class="mob-nav-label">Cart</span>
+      </a>
+    `;
+    document.body.appendChild(nav);
+  },
+
+  openTrackModal() {
+    const trackSec = $("track");
+    if (trackSec) {
+      trackSec.scrollIntoView({ behavior: "smooth" });
+      const tk = $("tk");
+      if (tk) setTimeout(() => tk.focus(), 400);
+      return;
+    }
+    modal(`
+      <div style="text-align:left;padding:6px 0">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <span style="font-size:1.8rem">📦</span>
+          <div>
+            <span class="eyebrow" style="font-size:0.65rem;margin:0 0 2px">LIVE ATELIER TRACKING</span>
+            <h2 style="font-family:'Playfair Display',serif;color:var(--br);margin:0;font-size:1.35rem">Track Your Outfit</h2>
+          </div>
+        </div>
+        <p style="color:var(--mu);font-size:0.86rem;line-height:1.45;margin-bottom:14px">
+          Enter your Order Token (starts with SD) and 10-digit mobile number to follow live tailoring milestones.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+          <input id="modal_tk" type="text" placeholder="Order ID (e.g. SD7K9X2M)" style="padding:10px 14px;border-radius:10px;border:1px solid var(--ln);background:var(--sf);color:var(--tx);font-family:monospace;font-weight:700">
+          <input id="modal_tp" type="tel" maxlength="10" placeholder="10-digit Mobile Number" style="padding:10px 14px;border-radius:10px;border:1px solid var(--ln);background:var(--sf);color:var(--tx)">
+          <div style="display:flex;gap:8px;align-items:center">
+            <span id="modal_tcaptcha_question" style="font-weight:700;font-size:0.85rem;color:var(--gd)">Security Check:</span>
+            <input id="modal_tcaptcha_input" type="number" placeholder="Answer" style="width:90px;padding:8px;border-radius:8px;border:1px solid var(--ln);background:var(--sf);color:var(--tx)">
+          </div>
+          <button class="btn p" type="button" onclick="Customer.trackModalOrder()" style="padding:12px;width:100%">
+            🔍 Check Live Progress
+          </button>
+        </div>
+        <div id="modal_tr" style="display:none;background:var(--sf2);padding:14px;border-radius:12px;border:1px solid var(--ln);font-size:0.88rem"></div>
+        <div style="text-align:right;margin-top:14px">
+          <button class="btn s" onclick="closeM()">Close</button>
+        </div>
+      </div>
+    `);
+
+    const a = Math.floor(Math.random() * 8) + 2;
+    const b = Math.floor(Math.random() * 8) + 1;
+    window._modalCaptchaAnswer = a + b;
+    const qEl = $("modal_tcaptcha_question");
+    if (qEl) qEl.textContent = `Security Check: What is ${a} + ${b}?`;
+  },
+
+  trackModalOrder() {
+    const id = ($("modal_tk")?.value || "").trim().toUpperCase();
+    const phone = ($("modal_tp")?.value || "").trim().replace(/\D/g, "");
+    const ans = Number($("modal_tcaptcha_input")?.value);
+    const tr = $("modal_tr");
+
+    if (!id || !phone) return toast("Please enter both Order ID and 10-digit Mobile Number");
+    if (ans !== window._modalCaptchaAnswer) return toast("Security verification failed. Please check the answer.");
+
+    const res = Backend.getOrder(id, phone);
+    if (!tr) return;
+    tr.style.display = "block";
+    if (!res) {
+      tr.innerHTML = `<b style="color:var(--bad)">⚠️ Order record not found.</b><br><small style="color:var(--mu)">Please verify the Order ID or WhatsApp our atelier directly.</small>`;
+      return;
+    }
+    tr.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <b style="color:var(--br)">#${Security.escapeHTML(res.no)}</b>
+        <span class="pill ok">${Security.escapeHTML(res.stage || res.status)}</span>
+      </div>
+      <p style="margin:0 0 6px;color:var(--tx)">Client: <b>${Security.escapeHTML(Security.maskName(res.customer))}</b></p>
+      <p style="margin:0 0 6px;color:var(--mu);font-size:0.82rem">Garment: ${Security.escapeHTML(res.type === "Stitch" ? res.garment : "Readymade Ensembles")}</p>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn s" onclick="Customer.openReceiptModal('${res.id}')">🧾 View Receipt</button>
+        <a href="https://wa.me/919289241183?text=Hi%20Saifa%20Designs,%20checking%20status%20for%20order%20${encodeURIComponent(res.no)}" class="btn s g" target="_blank" rel="noopener">💬 WhatsApp Studio</a>
+      </div>
+    `;
+  },
+
+  // ------------------------------------------
+  // Customer Profile, Loyalty Rewards & Saved Fits
+  // ------------------------------------------
+  openClientProfile() {
+    let profile = null;
+    try {
+      const saved = localStorage.getItem("saifa_customer_profile");
+      if (saved) profile = JSON.parse(saved);
+    } catch (e) {}
+
+    const phone = profile?.phone || "";
+    const name = profile?.name || "Boutique Patron";
+    const userOrders = phone ? orders().filter(o => o.phone && o.phone.replace(/\D/g, "").includes(phone.replace(/\D/g, ""))) : [];
+    const totalSpent = userOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+    const points = Math.max(50, Math.floor(totalSpent / 100));
+    const tier = totalSpent > 5000 ? "Gold Atelier Member 👑" : "Silver Boutique Member ✨";
+
+    modal(`
+      <div style="text-align:left;max-height:82vh;overflow-y:auto;padding-right:4px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--br),var(--gd));display:grid;place-items:center;color:#fff;font-size:1.4rem;flex-shrink:0">
+            👤
+          </div>
+          <div>
+            <span class="eyebrow" style="font-size:0.65rem;margin:0 0 2px">${tier}</span>
+            <h2 style="font-family:'Playfair Display',serif;color:var(--br);margin:0;font-size:1.35rem">${Security.escapeHTML(name)}</h2>
+          </div>
+        </div>
+
+        <!-- Loyalty Rewards Card -->
+        <div style="background:linear-gradient(135deg,color-mix(in srgb,var(--br) 12%,var(--sf)),var(--sf));border:1.5px solid var(--gd);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <span style="font-size:0.75rem;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:0.04em">Atelier Loyalty Balance</span>
+            <div style="font-size:1.45rem;font-weight:800;color:var(--br)">${points} Points</div>
+            <small style="color:var(--mu);font-size:0.75rem">Worth ₹${points} off your next bespoke stitching order</small>
+          </div>
+          <span style="font-size:2.2rem">🎁</span>
+        </div>
+
+        <!-- Client Mobile / Profile Setup -->
+        <div style="background:var(--sf2);padding:12px;border-radius:12px;border:1px solid var(--ln);margin-bottom:14px">
+          <b style="font-size:0.84rem;color:var(--tx);display:block;margin-bottom:6px">Mobile Number Sync</b>
+          <div style="display:flex;gap:8px">
+            <input id="profilePhoneInput" type="tel" maxlength="10" value="${phone}" placeholder="Enter 10-digit phone" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--ln);background:var(--sf);color:var(--tx);font-size:0.88rem">
+            <button class="btn p" type="button" onclick="Customer.saveClientPhone()" style="padding:8px 14px;font-size:0.82rem;white-space:nowrap">Save &amp; Sync</button>
+          </div>
+        </div>
+
+        <!-- Orders History -->
+        <div style="margin-bottom:14px">
+          <b style="font-size:0.9rem;color:var(--br);display:block;margin-bottom:8px">📦 Order History (${userOrders.length})</b>
+          ${userOrders.length === 0 ? `
+            <div style="text-align:center;padding:16px;background:var(--sf);border:1px solid var(--ln);border-radius:10px;color:var(--mu);font-size:0.82rem">
+              No orders recorded for this phone yet. Live tailoring milestones and receipts appear here.
+            </div>
+          ` : `
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${userOrders.map(o => `
+                <div style="background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+                  <div>
+                    <b>#${Security.escapeHTML(o.no)}</b> · <span class="pill ok" style="font-size:0.7rem">${Security.escapeHTML(o.stage || o.status)}</span><br>
+                    <small style="color:var(--mu)">${Security.escapeHTML(o.type === 'Stitch' ? o.garment : 'Readymade')} · ₹${Number(o.total || 0).toLocaleString('en-IN')}</small>
+                  </div>
+                  <button class="btn s" type="button" onclick="Customer.openReceiptModal('${o.id}')" style="padding:4px 10px;font-size:0.75rem">Receipt 🧾</button>
+                </div>
+              `).join("")}
+            </div>
+          `}
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;border-top:1px dashed var(--ln);padding-top:12px">
+          <a href="privacy.html" onclick="Customer.openPolicyModal('privacy'); return false;" style="font-size:0.78rem;color:var(--mu);text-decoration:none">🔒 DPDP Data Rights</a>
+          <button class="btn s" onclick="closeM()">Close</button>
+        </div>
+      </div>
+    `);
+  },
+
+  saveClientPhone() {
+    const input = $("profilePhoneInput");
+    const val = input ? input.value.trim().replace(/\D/g, "") : "";
+    if (!val || val.length < 10) return toast("Please enter a valid 10-digit mobile number");
+    const prof = { phone: val, name: "Atelier Patron", updatedAt: Date.now() };
+    try {
+      localStorage.setItem("saifa_customer_profile", JSON.stringify(prof));
+    } catch (e) {}
+    toast("Fit profile updated & synced ✨");
+    this.openClientProfile();
+  },
+
+  // ------------------------------------------
+  // In-App Printable & Downloadable Tax Receipt
+  // ------------------------------------------
+  openReceiptModal(orderId) {
+    const ords = orders();
+    const o = ords.find(x => x.id === orderId || x.no === orderId);
+    if (!o) return toast("Receipt record not found");
+
+    modal(`
+      <div id="customerReceiptArea" style="text-align:left;padding:8px 0;max-height:82vh;overflow-y:auto">
+        <div style="border-bottom:2px solid var(--gd);padding-bottom:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <h3 style="font-family:'Playfair Display',serif;color:var(--br);margin:0;font-size:1.35rem">SAIFA DESIGNS</h3>
+            <small style="color:var(--mu);display:block">Haute Couture &amp; Atelier · Ladies Tailor</small>
+            <address style="font-style:normal;font-size:0.78rem;color:var(--tx);margin-top:4px">Shop No. 12, Gulshan Market, Main Road, New Delhi 110025</address>
+          </div>
+          <div style="text-align:right">
+            <span class="pill ok" style="font-size:0.72rem">TAX INVOICE</span>
+            <div style="font-family:monospace;font-weight:700;font-size:0.88rem;margin-top:4px">#${Security.escapeHTML(o.no)}</div>
+            <small style="color:var(--mu)">${new Date(o.ts || Date.now()).toLocaleDateString("en-IN")}</small>
+          </div>
+        </div>
+
+        <div style="background:var(--sf2);padding:10px 12px;border-radius:10px;border:1px solid var(--ln);font-size:0.84rem;margin-bottom:14px">
+          <b>Client:</b> ${Security.escapeHTML(o.customer)}<br>
+          <b>Contact:</b> ${Security.escapeHTML(Security.maskPhone(o.phone))}<br>
+          ${o.addr ? `<b>Delivery:</b> ${Security.escapeHTML(Security.maskAddress(o.addr))}<br>` : ''}
+          <b>Current Stage:</b> <span style="color:var(--br);font-weight:700">${Security.escapeHTML(o.stage || o.status || 'Active')}</span>
+        </div>
+
+        <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:0.85rem">
+          <thead>
+            <tr style="border-bottom:1px solid var(--ln);color:var(--mu);text-align:left">
+              <th style="padding:6px 4px">Garment / Item</th>
+              <th style="padding:6px 4px;text-align:right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:8px 4px">
+                <b>${Security.escapeHTML(o.type === 'Stitch' ? o.garment : (o.items || []).map(i => i.n + ' × ' + i.q).join(', '))}</b><br>
+                ${o.fabric ? `<small style="color:var(--mu)">Fabric: ${Security.escapeHTML(o.fabric)}</small>` : ''}
+              </td>
+              <td style="padding:8px 4px;text-align:right;font-weight:700">₹${Number(o.total || 0).toLocaleString('en-IN')}</td>
+            </tr>
+            ${o.discount ? `
+            <tr style="color:var(--ok)">
+              <td style="padding:4px">Discount (Coupon ${Security.escapeHTML(o.coupon || '')})</td>
+              <td style="padding:4px;text-align:right">-₹${Number(o.discount).toLocaleString('en-IN')}</td>
+            </tr>
+            ` : ''}
+          </tbody>
+        </table>
+
+        <div style="border-top:1.5px solid var(--ln);padding-top:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <b>Payment Mode:</b> ${Security.escapeHTML(o.pay || 'UPI')}<br>
+            <small style="color:var(--mu)">Status: <b>${Security.escapeHTML(o.paid || 'Paid')}</b></small>
+          </div>
+          <div style="text-align:right">
+            <small style="color:var(--mu)">Grand Total:</small>
+            <div style="font-size:1.4rem;font-weight:800;color:var(--br)">₹${Number(o.total || 0).toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px dashed var(--ln);padding-top:12px">
+          <button class="btn s" onclick="closeM()">Close</button>
+          <button class="btn p" onclick="window.print()">🖨️ Print / Download PDF</button>
+        </div>
+      </div>
+    `);
   },
 
   async askStylistForProduct(id) {

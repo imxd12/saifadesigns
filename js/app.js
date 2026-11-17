@@ -84,28 +84,120 @@ const App = {
   },
 
   // ------------------------------------------
-  // PWA Install Prompt Handler
+  // PWA Service Worker & Native Install Prompt
   // ------------------------------------------
   initPWAInstall() {
-    let deferredPrompt = null;
+    // 1. Register Service Worker with auto-update detection
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js")
+          .then(reg => {
+            console.log("✅ SAIFA DESIGNS Service Worker registered with scope:", reg.scope);
+            reg.addEventListener("updatefound", () => {
+              const newWorker = reg.installing;
+              if (newWorker) {
+                newWorker.addEventListener("statechange", () => {
+                  if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                    toast("✨ Atelier App updated! Pull to refresh for latest features.");
+                  }
+                });
+              }
+            });
+          })
+          .catch(err => {
+            console.warn("⚠️ ServiceWorker registration note:", err);
+          });
+      });
+    }
+
+    // 2. Offline / Online Network Awareness
+    window.addEventListener("online", () => {
+      toast("🟢 Back online! Real-time syncing restored.");
+      document.body.classList.remove("is-offline");
+    });
+
+    window.addEventListener("offline", () => {
+      toast("⚡ Offline Mode — viewing cached atelier collection.");
+      document.body.classList.add("is-offline");
+    });
+
+    // 3. Native A2HS Install Handler
     const instBtn = $("inst");
+
     window.addEventListener("beforeinstallprompt", e => {
       e.preventDefault();
-      deferredPrompt = e;
+      window.saifaDeferredInstall = e;
+
       if (instBtn) {
         instBtn.style.display = "inline-flex";
-        instBtn.onclick = async () => {
-          if (!deferredPrompt) return;
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          if (outcome === "accepted") {
-            toast("Thank you for installing SAIFA DESIGNS app! 📲");
-          }
-          deferredPrompt = null;
-          instBtn.style.display = "none";
-        };
+        instBtn.onclick = () => this.triggerPWAInstall();
+      }
+
+      // Show floating mobile install banner after 5 seconds if not standalone
+      const dismissed = localStorage.getItem("saifa_pwa_dismissed");
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+      if (!dismissed && !isStandalone) {
+        setTimeout(() => {
+          this.showInstallBanner();
+        }, 5000);
       }
     });
+
+    window.addEventListener("appinstalled", () => {
+      toast("🎉 Welcome to SAIFA DESIGNS App! Installed on your device.");
+      window.saifaDeferredInstall = null;
+      if (instBtn) instBtn.style.display = "none";
+      this.hideInstallBanner();
+    });
+  },
+
+  async triggerPWAInstall() {
+    const promptEvent = window.saifaDeferredInstall;
+    if (!promptEvent) {
+      toast("To install, tap your browser's share or menu icon and select 'Add to Home Screen' 📲");
+      return;
+    }
+    promptEvent.prompt();
+    const { outcome } = await promptEvent.userChoice;
+    if (outcome === "accepted") {
+      toast("Thank you for installing SAIFA DESIGNS! 📲");
+    }
+    window.saifaDeferredInstall = null;
+    this.hideInstallBanner();
+  },
+
+  showInstallBanner() {
+    let banner = $("pwaInstallBanner");
+    if (!banner) {
+      banner = document.createElement("div");
+      banner.id = "pwaInstallBanner";
+      banner.className = "pwa-install-banner";
+      banner.innerHTML = `
+        <div class="pwa-banner-content">
+          <div class="pwa-banner-icon"><i>S</i></div>
+          <div class="pwa-banner-text">
+            <strong>Install SAIFA DESIGNS App</strong>
+            <small>Fast offline browsing &amp; instant fitting alerts</small>
+          </div>
+          <button class="btn p pwa-install-action" onclick="App.triggerPWAInstall()">Install</button>
+          <button class="pwa-banner-close" onclick="App.dismissInstallBanner()" aria-label="Dismiss">✕</button>
+        </div>
+      `;
+      document.body.appendChild(banner);
+    }
+    banner.classList.add("active");
+  },
+
+  hideInstallBanner() {
+    const banner = $("pwaInstallBanner");
+    if (banner) banner.classList.remove("active");
+  },
+
+  dismissInstallBanner() {
+    this.hideInstallBanner();
+    try {
+      localStorage.setItem("saifa_pwa_dismissed", String(Date.now()));
+    } catch (e) {}
   },
 
   // ------------------------------------------

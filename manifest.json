@@ -1,18 +1,62 @@
 {
-  "name": "SAIFA DESIGNS Atelier",
+  "name": "SAIFA DESIGNS Atelier & Boutique",
   "short_name": "SAIFA DESIGNS",
-  "description": "Bespoke Ladies Tailor & Haute Couture Atelier, New Delhi",
+  "description": "Bespoke Ladies Tailor, Haute Couture Atelier & Luxury Fabrics, New Delhi",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0d090a",
   "theme_color": "#8e1647",
+  "categories": ["shopping", "lifestyle"],
   "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "👗 Readymade Ensembles",
+      "short_name": "Readymade",
+      "description": "Explore boutique ready-to-wear salwar suits & lehengas",
+      "url": "/readymade.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "🧵 Fabrics Studio",
+      "short_name": "Fabrics",
+      "description": "Pure Chanderi silks, georgette & cotton fabrics",
+      "url": "/product.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "📦 Track My Order",
+      "short_name": "Track Order",
+      "description": "Live tailoring progress and trial schedule",
+      "url": "/#track",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "✂️ Bespoke Stitching",
+      "short_name": "Stitching",
+      "description": "Book bespoke tailoring & record measurements",
+      "url": "/#stitch",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
   ]
 }
-

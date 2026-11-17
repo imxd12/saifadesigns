@@ -22,7 +22,10 @@ const App = {
     // 4. Hook real-time reactive sync across panels
     this.initRealtimeSyncListener();
 
-    // 5. Check if user just logged out from admin and show confirmation
+    // 5. Initialize secret 5-second long press on header shop logo for staff portal
+    this.initSecretLogoLogin();
+
+    // 6. Check if user just logged out from admin and show confirmation
     try {
       if (sessionStorage.getItem("saifa_logout_toast")) {
         sessionStorage.removeItem("saifa_logout_toast");
@@ -138,6 +141,111 @@ const App = {
       } else if ((type === "REVIEW_SUBMITTED" || type === "REVIEW_UPDATED") && S.me && S.me.role === "admin") {
         toast(`⭐ New verified client rating (${payload?.rating || 5}★) received!`);
       }
+    });
+  },
+
+  // ------------------------------------------
+  // Secret 5-Second Long-Press Shop Logo Trigger
+  // Opens Staff/Admin Portal upon 5s continuous hold
+  // ------------------------------------------
+  initSecretLogoLogin() {
+    const logos = document.querySelectorAll(".logo, a.logo, #shopHeaderLogo");
+    if (!logos || logos.length === 0) return;
+
+    logos.forEach(logo => {
+      let holdTimer = null;
+      let holdTriggered = false;
+      let startX = 0;
+      let startY = 0;
+      const HOLD_MS = 5000; // 5 seconds
+
+      const startHold = (e) => {
+        // Accept primary mouse button or single touch
+        if (e.type === "mousedown" && e.button !== 0) return;
+        if (e.type === "touchstart") {
+          if (e.touches && e.touches.length > 1) return;
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+        }
+
+        holdTriggered = false;
+        logo.classList.add("holding");
+
+        if (holdTimer) clearTimeout(holdTimer);
+
+        holdTimer = setTimeout(() => {
+          holdTriggered = true;
+          logo.classList.remove("holding");
+          logo.classList.add("hold-success");
+
+          // Haptic feedback on mobile if supported
+          if (navigator.vibrate) {
+            try { navigator.vibrate([60, 40, 80]); } catch (err) {}
+          }
+
+          toast("🔑 Atelier Staff Portal Access Granted");
+
+          setTimeout(() => {
+            logo.classList.remove("hold-success");
+          }, 1200);
+
+          // Open Staff/Admin Login
+          if (typeof openLogin === "function") {
+            openLogin("admin");
+          } else if (typeof App !== "undefined" && typeof App.openLoginModal === "function") {
+            App.openLoginModal("admin");
+          } else {
+            window.location.href = "admin.html";
+          }
+        }, HOLD_MS);
+      };
+
+      const cancelHold = (e) => {
+        if (holdTimer) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+        }
+        logo.classList.remove("holding");
+      };
+
+      const checkTouchMove = (e) => {
+        if (!holdTimer || !e.touches || !e.touches[0]) return;
+        const moveX = Math.abs(e.touches[0].clientX - startX);
+        const moveY = Math.abs(e.touches[0].clientY - startY);
+        // If user scrolls or drags finger away by > 15px, cancel hold
+        if (moveX > 15 || moveY > 15) {
+          cancelHold();
+        }
+      };
+
+      // Suppress standard link navigation if secret hold was triggered
+      logo.addEventListener("click", (e) => {
+        if (holdTriggered) {
+          e.preventDefault();
+          e.stopPropagation();
+          holdTriggered = false;
+          return false;
+        }
+      });
+
+      // Suppress context menu (long press popup on mobile) during hold
+      logo.addEventListener("contextmenu", (e) => {
+        if (logo.classList.contains("holding") || holdTriggered) {
+          e.preventDefault();
+          return false;
+        }
+      });
+
+      // Mouse events (Desktop)
+      logo.addEventListener("mousedown", startHold);
+      logo.addEventListener("mouseup", cancelHold);
+      logo.addEventListener("mouseleave", cancelHold);
+
+      // Touch events (Mobile / Tablet)
+      logo.addEventListener("touchstart", startHold, { passive: true });
+      logo.addEventListener("touchmove", checkTouchMove, { passive: true });
+      logo.addEventListener("touchend", cancelHold);
+      logo.addEventListener("touchcancel", cancelHold);
     });
   },
 
@@ -642,10 +750,6 @@ function openLogin(role = "admin") {
   }
   if (S.me && S.me.role === "worker" && typeof wpanel === "function") {
     wpanel();
-    return;
-  }
-  if (typeof panel !== "function") {
-    window.location.href = "admin.html" + (role === "worker" ? "#worker" : "#admin");
     return;
   }
   App.openLoginModal(role);

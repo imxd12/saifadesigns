@@ -44,6 +44,8 @@
     href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/login.css">
   <script>(function () { try { var t = localStorage.getItem("saifa_theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); document.documentElement.setAttribute("data-theme", t); } catch (e) { } })();</script>
 </head>
 
@@ -440,7 +442,7 @@
 
     <div class="footer-bottom-bar" id="foot">
       <div class="footer-bottom-inner">
-        <span id="footCopy">© 2026 SAIFA DESIGNS · Ladies Tailor, Boutique &amp; Fabric Studio · All Rights Reserved · <a href="admin.html" target="_blank" rel="noopener" style="color:var(--mu);text-decoration:none;font-size:0.72rem;opacity:0.6" title="Atelier Staff Portal">Staff Portal ➔</a></span>
+        <span id="footCopy">© 2026 SAIFA DESIGNS · Ladies Tailor, Boutique &amp; Fabric Studio · All Rights Reserved · <a href="javascript:void(0)" onclick="openLogin()" style="color:var(--mu);text-decoration:none;font-size:0.72rem;opacity:0.6" title="Atelier Staff Portal">Staff Portal</a></span>
         <button class="footer-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to Top">
           <span>Back to Top</span> <b>↑</b>
         </button>
@@ -448,12 +450,13 @@
     </div>
   </footer>
 
-  <!-- Drawers & Modals (Customer Architecture) -->
+  <!-- Drawers & Modals (Reused from Core Architecture) -->
   <div class="drawer" id="dr"></div>
   <div class="drawer wishlist-drawer" id="wdr"></div>
   <div class="ov" id="ov">
     <div class="md" id="md"></div>
   </div>
+  <div id="pn"></div>
   <div class="toast" id="tt"></div>
 
   <!-- Libraries with Local Fallbacks -->
@@ -466,13 +469,15 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js"></script>
 
-  <!-- Modular Customer Application Architecture -->
+  <!-- Modular Application Architecture -->
   <script src="js/data.js"></script>
   <script src="js/security.js"></script>
   <script src="js/realtime.js"></script>
   <script src="js/backend.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/customer.js"></script>
+  <script src="js/worker.js"></script>
+  <script src="js/admin.js"></script>
   <script src="js/app.js"></script>
 </body>
 

@@ -212,6 +212,49 @@ nav.main-nav {
   transform: rotate(-6deg) scale(1.05);
 }
 
+/* Secret 5-Second Hold on Shop Logo for Staff Portal Access */
+.logo {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  position: relative;
+}
+
+.logo.holding i {
+  position: relative;
+  box-shadow: 0 0 0 3px var(--gd), 0 0 22px color-mix(in srgb, var(--gd) 75%, transparent);
+  animation: logoSecretHoldPulse 1s infinite alternate ease-in-out;
+  transform: scale(1.08);
+}
+
+.logo.holding i::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 15px;
+  border: 2px dashed var(--gd);
+  animation: logoSecretBorderSpin 5s linear infinite;
+  pointer-events: none;
+}
+
+.logo.hold-success i {
+  background: linear-gradient(135deg, var(--gd), #ffd700) !important;
+  color: #000 !important;
+  box-shadow: 0 0 30px var(--gd) !important;
+  transform: scale(1.15) !important;
+  transition: all 0.3s ease !important;
+}
+
+@keyframes logoSecretHoldPulse {
+  0% { transform: scale(1.03); filter: brightness(1.1); }
+  100% { transform: scale(1.09); filter: brightness(1.35); }
+}
+
+@keyframes logoSecretBorderSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .logo-text {
   display: flex;
   flex-direction: column;

@@ -644,6 +644,10 @@ function openLogin(role = "admin") {
     wpanel();
     return;
   }
+  if (typeof panel !== "function") {
+    window.location.href = "admin.html" + (role === "worker" ? "#worker" : "#admin");
+    return;
+  }
   App.openLoginModal(role);
 }
 

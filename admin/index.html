@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#8e1647">
+  <meta name="robots" content="noindex, nofollow">
+  <title>SAIFA ATELIER – Master Tailor &amp; Staff Management Portal</title>
+  <link rel="icon" href="../icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="../manifest.json">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="stylesheet" href="../css/login.css">
+  <script>(function () { try { var t = localStorage.getItem("saifa_theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); document.documentElement.setAttribute("data-theme", t); } catch (e) { } })();</script>
+  <style>
+    /* Standalone Admin Portal Layout */
+    html, body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--tx);
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .admin-auth-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      position: relative;
+      background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--br) 12%, transparent), transparent 70%), var(--bg);
+    }
+
+    .admin-auth-card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--sf);
+      border: 1.5px solid color-mix(in srgb, var(--gd) 35%, var(--ln));
+      border-radius: 24px;
+      padding: 36px 30px;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.12);
+      position: relative;
+      overflow: hidden;
+      animation: authCardIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes authCardIn {
+      from { opacity: 0; transform: translateY(16px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .admin-auth-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--br), var(--gd), var(--br));
+    }
+
+    .admin-crest-wrap {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--br) 15%, var(--sf2)), color-mix(in srgb, var(--gd) 22%, var(--sf2)));
+      border: 1.5px solid var(--gd);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin: 0 auto 14px;
+      box-shadow: 0 8px 20px color-mix(in srgb, var(--br) 20%, transparent);
+    }
+
+    .admin-auth-header {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    .admin-auth-header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.65rem;
+      color: var(--br);
+      margin: 0 0 6px;
+      letter-spacing: 0.02em;
+    }
+
+    .admin-auth-header p {
+      font-size: 0.86rem;
+      color: var(--mu);
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .admin-role-tabs {
+      display: flex;
+      background: var(--sf2);
+      border: 1px solid var(--ln);
+      border-radius: 14px;
+      padding: 4px;
+      margin-bottom: 20px;
+      gap: 4px;
+    }
+
+    .admin-role-tab {
+      flex: 1;
+      padding: 9px 12px;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--mu);
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .admin-role-tab.active {
+      background: linear-gradient(135deg, var(--br), color-mix(in srgb, var(--br) 85%, #000));
+      color: #fff;
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--br) 35%, transparent);
+    }
+
+    .admin-form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .admin-form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--tx);
+      margin-bottom: 6px;
+    }
+
+    .admin-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .admin-input-wrap i {
+      position: absolute;
+      left: 12px;
+      font-size: 1.05rem;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .admin-input-wrap input,
+    .admin-input-wrap select {
+      width: 100%;
+      padding: 11px 12px 11px 38px;
+      border-radius: 12px;
+      border: 1px solid var(--ln);
+      background: var(--sf2);
+      color: var(--tx);
+      font-family: inherit;
+      font-size: 0.92rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      box-sizing: border-box;
+    }
+
+    .admin-input-wrap input:focus,
+    .admin-input-wrap select:focus {
+      outline: none;
+      border-color: var(--gd);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--gd) 25%, transparent);
+    }
+
+    .admin-auth-submit-btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--br), color-mix(in srgb, var(--br) 85%, #000));
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border: 1px solid var(--gd);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 6px 18px color-mix(in srgb, var(--br) 35%, transparent);
+      transition: all 0.2s ease;
+      margin-top: 18px;
+    }
+
+    .admin-auth-submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px color-mix(in srgb, var(--br) 45%, transparent);
+    }
+
+    .admin-auth-submit-btn:active {
+      transform: translateY(0);
+    }
+
+    .admin-alert-box {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.84rem;
+      margin-bottom: 14px;
+      line-height: 1.4;
+      display: none;
+    }
+
+    .admin-alert-box.error {
+      background: color-mix(in srgb, var(--bad) 12%, var(--sf));
+      border: 1px solid var(--bad);
+      color: var(--bad);
+    }
+
+    .admin-auth-footer {
+      margin-top: 22px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--ln);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--mu);
+    }
+
+    .admin-store-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--br);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .admin-store-link:hover {
+      color: var(--gd);
+      text-decoration: underline;
+    }
+
+    /* Full-screen admin workspace container */
+    #pn {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 900;
+      background: var(--bg);
+      overflow: hidden;
+      display: none;
+    }
+
+    #pn.on {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ==========================================
+       AUTHENTICATION SCREEN (UNAUTHENTICATED VIEW)
+       ========================================== -->
+  <div class="admin-auth-container" id="adminAuthContainer">
+    <div class="admin-auth-card" id="adminAuthCard">
+      <div class="admin-crest-wrap">⚜️</div>
+      <div class="admin-auth-header">
+        <h1>SAIFA ATELIER</h1>
+        <p>Boutique Management &amp; Tailoring Workstation</p>
+      </div>
+
+      <!-- Role Switcher -->
+      <div class="admin-role-tabs">
+        <div class="admin-role-tab active" id="tabAdmin" onclick="setPortalRole('admin')">
+          👑 Master Tailor / Admin
+        </div>
+        <div class="admin-role-tab" id="tabWorker" onclick="setPortalRole('worker')">
+          🧵 In-House Artisan PIN
+        </div>
+      </div>
+
+      <!-- Error / Lockout Alert -->
+      <div class="admin-alert-box error" id="adminAuthAlert"></div>
+
+      <!-- Admin Login Form -->
+      <form id="formAdminLogin" onsubmit="handlePortalAdminSubmit(event)">
+        <div class="admin-form-group">
+          <label for="p_u">Username</label>
+          <div class="admin-input-wrap">
+            <i>👤</i>
+            <input id="p_u" type="text" autocomplete="username" placeholder="Enter admin username" required>
+          </div>
+        </div>
+        <div class="admin-form-group">
+          <label for="p_p">Master Password</label>
+          <div class="admin-input-wrap">
+            <i>🔑</i>
+            <input id="p_p" type="password" autocomplete="current-password" placeholder="Enter admin password" required>
+          </div>
+        </div>
+        <button type="submit" class="admin-auth-submit-btn" id="btnAdminSubmit">
+          <span>Sign In to Boutique Admin</span>
+          <i>➔</i>
+        </button>
+      </form>
+
+      <!-- Worker / Artisan Login Form -->
+      <form id="formWorkerLogin" onsubmit="handlePortalWorkerSubmit(event)" style="display:none">
+        <div class="admin-form-group">
+          <label for="p_wid">Artisan Mobile or ID</label>
+          <div class="admin-input-wrap">
+            <i>🧵</i>
+            <input id="p_wid" type="text" autocomplete="username" placeholder="Enter 10-digit mobile or Artisan ID" required>
+          </div>
+        </div>
+        <div class="admin-form-group">
+          <label for="p_pin">Security PIN / Password</label>
+          <div class="admin-input-wrap">
+            <i>🔒</i>
+            <input id="p_pin" type="password" autocomplete="current-password" placeholder="Enter confidential PIN" required>
+          </div>
+        </div>
+        <button type="submit" class="admin-auth-submit-btn" id="btnWorkerSubmit">
+          <span>Sign In to Tailor Workstation</span>
+          <i>➔</i>
+        </button>
+      </form>
+
+      <div class="admin-auth-footer">
+        <a href="../index.html" class="admin-store-link" target="_blank" rel="noopener">
+          🌐 View Storefront ↗
+        </a>
+        <span>🛡️ SHA-256 Protected</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       AUTHENTICATED ADMIN WORKSPACE CONTAINER
+       ========================================== -->
+  <div id="pn"></div>
+
+  <!-- Drawers & Modals Containers for Admin Views -->
+  <div class="drawer" id="dr"></div>
+  <div class="ov" id="ov">
+    <div class="md" id="md"></div>
+  </div>
+  <div class="toast" id="tt"></div>
+
+  <!-- Libraries & Firebase Sync -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+
+  <!-- Application Architecture -->
+  <script src="../js/data.js"></script>
+  <script src="../js/security.js"></script>
+  <script src="../js/realtime.js"></script>
+  <script src="../js/backend.js"></script>
+  <script src="../js/worker.js"></script>
+  <script src="../js/admin.js"></script>
+  <script src="../js/ai.js"></script>
+  <script src="../js/app.js"></script>
+
+  <!-- Dedicated Admin Portal Logic & Real-Time Sync Hook -->
+  <script>
+    let currentPortalRole = "admin";
+    let lastKnownOrderCount = 0;
+
+    // Web Audio Double Chime for New Order Notifications
+    function playOrderChime() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const now = ctx.currentTime;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(587.33, now); // D5
+        osc.frequency.setValueAtTime(880, now + 0.12); // A5
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+
+        osc.start(now);
+        osc.stop(now + 0.55);
+      } catch (e) {
+        console.warn("Audio chime notice:", e);
+      }
+    }
+
+    function setPortalRole(role) {
+      currentPortalRole = role;
+      const tabA = document.getElementById("tabAdmin");
+      const tabW = document.getElementById("tabWorker");
+      const formA = document.getElementById("formAdminLogin");
+      const formW = document.getElementById("formWorkerLogin");
+      const alertBox = document.getElementById("adminAuthAlert");
+
+      if (alertBox) alertBox.style.display = "none";
+
+      if (role === "admin") {
+        tabA.classList.add("active");
+        tabW.classList.remove("active");
+        formA.style.display = "block";
+        formW.style.display = "none";
+        const u = document.getElementById("p_u");
+        if (u) u.focus();
+      } else {
+        tabW.classList.add("active");
+        tabA.classList.remove("active");
+        formW.style.display = "block";
+        formA.style.display = "none";
+        const wid = document.getElementById("p_wid");
+        if (wid) wid.focus();
+      }
+    }
+
+    async function handlePortalAdminSubmit(e) {
+      e.preventDefault();
+      const u = document.getElementById("p_u")?.value.trim();
+      const p = document.getElementById("p_p")?.value;
+      const alertBox = document.getElementById("adminAuthAlert");
+      const btn = document.getElementById("btnAdminSubmit");
+
+      if (!u || !p) return;
+
+      const rateCheck = Security.checkRateLimit("login_admin", 5, 30);
+      if (!rateCheck.allowed) {
+        if (alertBox) {
+          alertBox.textContent = rateCheck.message;
+          alertBox.style.display = "block";
+        }
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+
+      try {
+        const cfgAdmin = S.cfg?.admin || DEF.admin;
+        const expectedUser = cfgAdmin.u || "admin";
+        const pHash = await Security.hash(p);
+        const expectedHash = cfgAdmin.pHash || (await Security.hash(cfgAdmin.p || "saifa@123"));
+
+        const isValid = (u === expectedUser) && (pHash === expectedHash || p === cfgAdmin.p);
+
+        if (isValid) {
+          Security.resetLoginAttempts("login_admin");
+          S.me = {
+            role: "admin",
+            name: "Boutique Administrator",
+            id: "admin",
+            sessionToken: Security.createSessionToken("admin", "admin")
+          };
+          saveLS("me", S.me);
+          try {
+            sessionStorage.setItem("saifa_admin_active", "1");
+          } catch (e) {}
+
+          toast("Welcome to SAIFA ATELIER! 👑");
+          launchPortalSession();
+        } else {
+          const rec = Security.recordFailedLogin("login_admin", 5, 30);
+          if (alertBox) {
+            alertBox.textContent = rec.message || "Invalid admin username or password.";
+            alertBox.style.display = "block";
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        toast("Login error. Please try again.");
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function handlePortalWorkerSubmit(e) {
+      e.preventDefault();
+      const wid = document.getElementById("p_wid")?.value.trim();
+      const pin = document.getElementById("p_pin")?.value.trim();
+      const alertBox = document.getElementById("adminAuthAlert");
+      const btn = document.getElementById("btnWorkerSubmit");
+
+      if (!wid || !pin) return;
+
+      const rateCheck = Security.checkRateLimit("login_worker", 5, 30);
+      if (!rateCheck.allowed) {
+        if (alertBox) {
+          alertBox.textContent = rateCheck.message;
+          alertBox.style.display = "block";
+        }
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+
+      try {
+        const workerList = S.workers || [];
+        const cleanWid = wid.replace(/\D/g, "");
+        const worker = workerList.find(w => {
+          const wPhone = (w.phone || "").replace(/\D/g, "");
+          return (w.id === wid || w.name.toLowerCase() === wid.toLowerCase() || (cleanWid && wPhone === cleanWid));
+        });
+
+        if (!worker) {
+          const rec = Security.recordFailedLogin("login_worker", 5, 30);
+          if (alertBox) {
+            alertBox.textContent = "Artisan record not found. Please contact the Master Tailor.";
+            alertBox.style.display = "block";
+          }
+          return;
+        }
+
+        const validPin = worker.pin || "1234";
+        if (pin === validPin) {
+          Security.resetLoginAttempts("login_worker");
+          S.me = {
+            role: "worker",
+            id: worker.id,
+            name: worker.name,
+            phone: worker.phone,
+            sessionToken: Security.createSessionToken(worker.id, "worker")
+          };
+          saveLS("me", S.me);
+          try {
+            sessionStorage.setItem("saifa_worker_active", "1");
+          } catch (e) {}
+
+          toast(`Welcome, ${worker.name}! 🧵`);
+          launchPortalSession();
+        } else {
+          const rec = Security.recordFailedLogin("login_worker", 5, 30);
+          if (alertBox) {
+            alertBox.textContent = rec.message || "Invalid Artisan PIN.";
+            alertBox.style.display = "block";
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        toast("Login error. Please try again.");
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function launchPortalSession() {
+      const authContainer = document.getElementById("adminAuthContainer");
+      const pn = document.getElementById("pn");
+
+      if (S.me && S.me.role === "admin") {
+        if (authContainer) authContainer.style.display = "none";
+        if (pn) {
+          pn.classList.add("on");
+          pn.style.display = "block";
+        }
+        document.body.classList.add("admin-open");
+        if (typeof panel === "function") panel();
+      } else if (S.me && S.me.role === "worker") {
+        if (authContainer) authContainer.style.display = "none";
+        if (pn) {
+          pn.classList.add("on");
+          pn.style.display = "block";
+        }
+        document.body.classList.add("admin-open");
+        if (typeof wpanel === "function") wpanel();
+      } else {
+        if (authContainer) authContainer.style.display = "flex";
+        if (pn) {
+          pn.classList.remove("on");
+          pn.style.display = "none";
+          pn.innerHTML = "";
+        }
+        document.body.classList.remove("admin-open");
+      }
+    }
+
+    // Override logout to return cleanly to admin portal auth screen
+    const origLogout = window.logoutSession;
+    window.logoutSession = function() {
+      if (typeof origLogout === "function") origLogout();
+      launchPortalSession();
+    };
+
+    // Realtime Incoming Order Chime & Table Sync
+    function initPortalRealtimeListener() {
+      lastKnownOrderCount = (S.orders || []).length;
+
+      window.addEventListener("saifa_realtime_event", e => {
+        const msg = e.detail;
+        if (!msg) return;
+
+        if (msg.type === "ORDER_CREATED") {
+          playOrderChime();
+          const newOrder = msg.payload?.order || (S.orders && S.orders[0]);
+          const orderId = newOrder ? (newOrder.id || newOrder.orderNo || "New") : "New";
+          toast(`🔔 Incoming Bespoke Order Received: ${orderId}!`);
+
+          if (S.me && S.me.role === "admin" && typeof panel === "function") {
+            panel();
+          }
+        } else if (msg.type === "ORDER_UPDATED" || msg.type === "PRODUCT_UPDATED") {
+          if (S.me && S.me.role === "admin" && typeof panel === "function") {
+            panel();
+          }
+        }
+      });
+    }
+
+    // Portal Bootstrap
+    document.addEventListener("DOMContentLoaded", () => {
+      initTheme();
+      Realtime.init();
+      initPortalRealtimeListener();
+
+      if (window.location.hash === "#worker") {
+        setPortalRole("worker");
+      }
+
+      // Check existing authenticated session
+      if (S.me && (S.me.role === "admin" || S.me.role === "worker")) {
+        launchPortalSession();
+      } else {
+        launchPortalSession();
+      }
+    });
+  </script>
+</body>
+
+</html>

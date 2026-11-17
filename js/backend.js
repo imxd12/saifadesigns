@@ -645,9 +645,28 @@ function findWorkerByLoginId(identifier) {
               S[stateKey] = mapped;
               saveLS(stateKey, mapped);
             } else {
-              // Cloud collection is completely empty or all records deleted
-              S[stateKey] = [];
-              saveLS(stateKey, []);
+              // If cloud node is uninitialized, preserve default seed data or existing local storage
+              let fallback = [];
+              if (stateKey === "prod") fallback = SEED_PROD;
+              else if (stateKey === "reviews") fallback = typeof SEED_REVIEWS !== "undefined" ? SEED_REVIEWS : [];
+              else if (stateKey === "team") fallback = typeof SEED_TEAM !== "undefined" ? SEED_TEAM : [];
+              else if (stateKey === "workers") fallback = typeof SEED_WORKERS !== "undefined" ? SEED_WORKERS : [];
+              else if (stateKey === "coupons") fallback = typeof SEED_COUPONS !== "undefined" ? SEED_COUPONS : [];
+              else fallback = loadLS(stateKey, []);
+
+              if (fallback && fallback.length > 0) {
+                S[stateKey] = fallback;
+                saveLS(stateKey, fallback);
+                // Seed cloud RTDB asynchronously so all devices stay in sync
+                try {
+                  const cloudObj = {};
+                  fallback.forEach(item => { if (item.id) cloudObj[item.id] = sanitizeFirebaseData(item); });
+                  rtdb.ref(col).set(cloudObj).catch(() => {});
+                } catch (e) {}
+              } else {
+                S[stateKey] = [];
+                saveLS(stateKey, []);
+              }
             }
             if (typeof refresh === "function") refresh();
             if (typeof panel === "function" && S.tab && S.me && S.me.role === "admin" && $("pn")?.classList.contains("on")) panel();

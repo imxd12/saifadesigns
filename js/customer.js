@@ -18,6 +18,24 @@ const Customer = {
     this.generateTrackCaptcha();
     this.renderBottomNav();
 
+    // Cross-device cloud wishlist hydration
+    try {
+      const prof = JSON.parse(localStorage.getItem("saifa_customer_profile") || "null");
+      if (prof && prof.phone && window._rtdb) {
+        window._rtdb.ref("client_profiles/" + prof.phone.replace(/\D/g, "") + "/wishlist").once("value", sn => {
+          const val = sn.val();
+          if (Array.isArray(val) && val.length > 0) {
+            const set = new Set([...S.wishlist, ...val]);
+            S.wishlist = Array.from(set);
+            saveLS("wishlist", S.wishlist);
+            this.updateWishlistUI();
+            const wc = $("wc"); if (wc) wc.textContent = S.wishlist.length;
+            const mobWc = $("mobWc"); if (mobWc) mobWc.textContent = S.wishlist.length;
+          }
+        });
+      }
+    } catch (e) {}
+
     const handleHash = () => {
       this.checkUrlForTracking();
       this.checkUrlForStitching();
@@ -2325,6 +2343,14 @@ const Customer = {
     if (wc) wc.textContent = count;
     const mobWc = $("mobWc");
     if (mobWc) mobWc.textContent = count;
+
+    // Cross-device cloud sync for client profile
+    try {
+      const prof = JSON.parse(localStorage.getItem("saifa_customer_profile") || "null");
+      if (prof && prof.phone && window._rtdb) {
+        window._rtdb.ref("client_profiles/" + prof.phone.replace(/\D/g, "") + "/wishlist").set(S.wishlist).catch(() => {});
+      }
+    } catch (e) {}
   },
 
   updateWishlistUI() {

@@ -1830,9 +1830,14 @@ const Customer = {
       <!-- Size Variant Selection (Readymade Only) OR Fabric Cut Options (Materials Only) -->
       ${isReadymade ? `
         <div style="margin:8px 0 14px">
-          <label style="display:block;font-size:0.82rem;font-weight:700;color:var(--br);margin-bottom:6px">
-            📏 Select Garment Size: <span id="selectedSizeLabel" style="color:var(--tx);font-weight:600">${Security.escapeHTML(this._selectedSize)}</span>
-          </label>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label style="font-size:0.82rem;font-weight:700;color:var(--br);margin:0">
+              📏 Select Garment Size: <span id="selectedSizeLabel" style="color:var(--tx);font-weight:600">${Security.escapeHTML(this._selectedSize)}</span>
+            </label>
+            <a href="javascript:void(0)" onclick="Customer.openSizeChartModal('kurtis')" style="font-size:0.75rem;color:var(--br);text-decoration:underline;font-weight:600">
+              📏 Size Guide &amp; Fit
+            </a>
+          </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap" id="sizeChipsWrap">
             ${sizeOptions.map((sz) => {
               const szStock = typeof getProductSizeStock === "function" 
@@ -2872,7 +2877,7 @@ const Customer = {
           ${isStitch && o.measure ? `
             <div>
               <span style="color:var(--mu);font-size:0.72rem;display:block;text-transform:uppercase">Fitting Fit Specs</span>
-              <button class="btn s" onclick="Customer.showMeasurementsModal('${o.id}')" style="padding:3px 10px;font-size:0.74rem;margin-top:2px">
+              <button class="btn s" onclick="Customer.requestVerifiedMeasurements('${o.id}')" style="padding:3px 10px;font-size:0.74rem;margin-top:2px">
                 📏 View Measurements
               </button>
             </div>
@@ -2901,7 +2906,7 @@ const Customer = {
 
         <!-- Action Buttons Row -->
         <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
-          <button class="btn s p" onclick="printInvoice('${o.id}')" style="flex:1">
+          <button class="btn s p" onclick="Customer.requestVerifiedReceipt('${o.id}')" style="flex:1">
             🧾 Official Receipt &amp; Specs
           </button>
           <a class="btn s g" href="${getAdminWhatsAppOrderLink(o)}" target="_blank" rel="noopener" style="flex:1">
@@ -2915,6 +2920,259 @@ const Customer = {
     `;
 
     resBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  },
+
+  _verifiedOrderOtps: {},
+  _currentPendingPin: null,
+
+  requestVerifiedReceipt(orderId) {
+    const o = orders().find(x => x.id == orderId);
+    if (!o) return;
+
+    if (S.me || (this._verifiedOrderOtps && this._verifiedOrderOtps[o.no])) {
+      if (typeof printInvoice === "function") {
+        printInvoice(orderId);
+      }
+      return;
+    }
+
+    this.promptOrderOtpModal(o, () => {
+      if (typeof printInvoice === "function") {
+        printInvoice(orderId);
+      }
+    });
+  },
+
+  requestVerifiedMeasurements(orderId) {
+    const o = orders().find(x => x.id == orderId);
+    if (!o) return;
+
+    if (S.me || (this._verifiedOrderOtps && this._verifiedOrderOtps[o.no])) {
+      this.showMeasurementsModal(orderId);
+      return;
+    }
+
+    this.promptOrderOtpModal(o, () => {
+      this.showMeasurementsModal(orderId);
+    });
+  },
+
+  promptOrderOtpModal(o, onSuccessCallback) {
+    const maskedPhone = Security.maskPhone(o.phone);
+    const generatedPin = Math.floor(1000 + Math.random() * 9000);
+    this._currentPendingPin = { no: o.no, pin: String(generatedPin), callback: onSuccessCallback };
+
+    // Simulate SMS / WhatsApp dispatch toast
+    setTimeout(() => {
+      toast(`🔐 Atelier Verification PIN: ${generatedPin} (Dispatched to ${maskedPhone})`);
+    }, 400);
+
+    modal(`
+      <div style="text-align:left;padding:14px 8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--ln);padding-bottom:8px">
+          <div>
+            <h3 style="color:var(--br);margin:0;font-size:1.15rem">🔒 2-Factor Security Verification</h3>
+            <small style="color:var(--mu)">Protecting Order #${Security.escapeHTML(o.no)} and Client PII</small>
+          </div>
+          <button class="btn s" onclick="closeM()">✕</button>
+        </div>
+
+        <p style="font-size:0.86rem;color:var(--tx);line-height:1.45;margin-bottom:14px">
+          To protect client measurements and tax invoices under our Atelier Data Privacy Policy, please enter the 4-digit security PIN sent to your registered mobile <b>${maskedPhone}</b>.
+        </p>
+
+        <div style="background:var(--sf2);padding:14px;border-radius:14px;border:1px solid var(--ln);margin-bottom:16px">
+          <label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:6px">Enter 4-Digit Security PIN</label>
+          <div style="display:flex;gap:10px;align-items:center">
+            <input id="orderOtpInput" type="tel" maxlength="4" placeholder="••••" style="font-size:1.4rem;letter-spacing:8px;text-align:center;font-weight:700;width:140px;padding:8px 12px" autofocus onkeydown="if(event.key==='Enter')Customer.verifyOrderOtp('${o.id}')">
+            <button class="btn p" style="flex:1" onclick="Customer.verifyOrderOtp('${o.id}')">
+              🔓 Verify &amp; Unlock
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;color:var(--mu)">
+          <span>Didn't receive the PIN?</span>
+          <a href="javascript:void(0)" onclick="Customer.promptOrderOtpModal(orders().find(x=>x.id=='${o.id}'), Customer._currentPendingPin ? Customer._currentPendingPin.callback : null)" style="color:var(--br);text-decoration:underline;font-weight:600">Resend PIN 📱</a>
+        </div>
+      </div>
+    `);
+  },
+
+  verifyOrderOtp(orderId) {
+    const o = orders().find(x => x.id == orderId);
+    if (!o || !this._currentPendingPin) return;
+
+    const input = $("orderOtpInput");
+    const entered = input ? input.value.trim() : "";
+
+    if (entered === this._currentPendingPin.pin) {
+      if (!this._verifiedOrderOtps) this._verifiedOrderOtps = {};
+      this._verifiedOrderOtps[o.no] = true;
+      toast("✅ Security verification confirmed! Unlocking details...");
+      const cb = this._currentPendingPin.callback;
+      this._currentPendingPin = null;
+      if (typeof cb === "function") cb();
+    } else {
+      toast("❌ Incorrect verification PIN. Please check the SMS notification.");
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
+    }
+  },
+
+  openSizeChartModal(activeTab = "kurtis") {
+    const kurtisData = [
+      { size: "XS", bust: '32"', waist: '26"', hip: '36"', shoulder: '13.5"', length: '44"' },
+      { size: "S", bust: '34"', waist: '28"', hip: '38"', shoulder: '14.0"', length: '44"' },
+      { size: "M", bust: '36"', waist: '30"', hip: '40"', shoulder: '14.5"', length: '45"' },
+      { size: "L", bust: '38"', waist: '32"', hip: '42"', shoulder: '15.0"', length: '45"' },
+      { size: "XL", bust: '40"', waist: '34"', hip: '44"', shoulder: '15.5"', length: '46"' },
+      { size: "XXL", bust: '42"', waist: '36"', hip: '46"', shoulder: '16.0"', length: '46"' },
+      { size: "3XL", bust: '44"', waist: '38"', hip: '48"', shoulder: '16.5"', length: '46"' }
+    ];
+
+    const blouseData = [
+      { size: "XS", bust: '32"', underbust: '27"', waist: '26"', length: '13.5"', armhole: '14.5"' },
+      { size: "S", bust: '34"', underbust: '29"', waist: '28"', length: '14.0"', armhole: '15.0"' },
+      { size: "M", bust: '36"', underbust: '31"', waist: '30"', length: '14.5"', armhole: '16.0"' },
+      { size: "L", bust: '38"', underbust: '33"', waist: '32"', length: '15.0"', armhole: '17.0"' },
+      { size: "XL", bust: '40"', underbust: '35"', waist: '34"', length: '15.5"', armhole: '18.0"' },
+      { size: "XXL", bust: '42"', underbust: '37"', waist: '36"', length: '16.0"', armhole: '19.0"' },
+      { size: "3XL", bust: '44"', underbust: '39"', waist: '38"', length: '16.5"', armhole: '20.0"' }
+    ];
+
+    const lehengaData = [
+      { size: "XS", waist: '26"', hip: '36"', length: '41"', flare: '3.5m+' },
+      { size: "S", waist: '28"', hip: '38"', length: '41"', flare: '3.8m+' },
+      { size: "M", waist: '30"', hip: '40"', length: '42"', flare: '4.0m+' },
+      { size: "L", waist: '32"', hip: '42"', length: '42"', flare: '4.0m+' },
+      { size: "XL", waist: '34"', hip: '44"', length: '43"', flare: '4.2m+' },
+      { size: "XXL", waist: '36"', hip: '46"', length: '43"', flare: '4.5m+' },
+      { size: "3XL", waist: '38"', hip: '48"', length: '43"', flare: '4.5m+' }
+    ];
+
+    modal(`
+      <div style="text-align:left;padding:12px 6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--ln);padding-bottom:10px">
+          <div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:1.3rem">📏</span>
+              <h2 style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--br);margin:0">Atelier Sizing &amp; Measurement Guide</h2>
+            </div>
+            <small style="color:var(--mu);font-size:0.75rem">Standard Indian Sizing Benchmarks · Made-to-Measure Alterations Available</small>
+          </div>
+          <button class="btn s" onclick="closeM()">✕</button>
+        </div>
+
+        <div class="tabs" style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px">
+          <span class="chip ${activeTab === 'kurtis' ? 'on' : ''}" onclick="Customer.openSizeChartModal('kurtis')">👗 Kurtis &amp; Suits</span>
+          <span class="chip ${activeTab === 'blouse' ? 'on' : ''}" onclick="Customer.openSizeChartModal('blouse')">🪡 Blouse &amp; Choli</span>
+          <span class="chip ${activeTab === 'lehenga' ? 'on' : ''}" onclick="Customer.openSizeChartModal('lehenga')">✨ Lehengas &amp; Skirts</span>
+          <span class="chip ${activeTab === 'howto' ? 'on' : ''}" onclick="Customer.openSizeChartModal('howto')">📐 How to Measure</span>
+        </div>
+
+        ${activeTab === 'kurtis' ? `
+          <div style="overflow-x:auto;margin-bottom:16px">
+            <table style="width:100%;border-collapse:collapse;font-size:0.82rem;text-align:center">
+              <thead>
+                <tr style="background:var(--sf2);border-bottom:1.5px solid var(--ln)">
+                  <th style="padding:10px 8px;color:var(--br)">Size</th>
+                  <th style="padding:10px 8px">Bust</th>
+                  <th style="padding:10px 8px">Waist</th>
+                  <th style="padding:10px 8px">Hip</th>
+                  <th style="padding:10px 8px">Shoulder</th>
+                  <th style="padding:10px 8px">Kurti Length</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${kurtisData.map(r => `
+                  <tr style="border-bottom:1px solid var(--ln)">
+                    <td style="padding:9px 8px;font-weight:700;color:var(--br)">${r.size}</td>
+                    <td style="padding:9px 8px">${r.bust}</td>
+                    <td style="padding:9px 8px">${r.waist}</td>
+                    <td style="padding:9px 8px">${r.hip}</td>
+                    <td style="padding:9px 8px">${r.shoulder}</td>
+                    <td style="padding:9px 8px">${r.length}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        ` : activeTab === 'blouse' ? `
+          <div style="overflow-x:auto;margin-bottom:16px">
+            <table style="width:100%;border-collapse:collapse;font-size:0.82rem;text-align:center">
+              <thead>
+                <tr style="background:var(--sf2);border-bottom:1.5px solid var(--ln)">
+                  <th style="padding:10px 8px;color:var(--br)">Size</th>
+                  <th style="padding:10px 8px">Bust</th>
+                  <th style="padding:10px 8px">Underbust</th>
+                  <th style="padding:10px 8px">Waist</th>
+                  <th style="padding:10px 8px">Blouse Length</th>
+                  <th style="padding:10px 8px">Armhole</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${blouseData.map(r => `
+                  <tr style="border-bottom:1px solid var(--ln)">
+                    <td style="padding:9px 8px;font-weight:700;color:var(--br)">${r.size}</td>
+                    <td style="padding:9px 8px">${r.bust}</td>
+                    <td style="padding:9px 8px">${r.underbust}</td>
+                    <td style="padding:9px 8px">${r.waist}</td>
+                    <td style="padding:9px 8px">${r.length}</td>
+                    <td style="padding:9px 8px">${r.armhole}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        ` : activeTab === 'lehenga' ? `
+          <div style="overflow-x:auto;margin-bottom:16px">
+            <table style="width:100%;border-collapse:collapse;font-size:0.82rem;text-align:center">
+              <thead>
+                <tr style="background:var(--sf2);border-bottom:1.5px solid var(--ln)">
+                  <th style="padding:10px 8px;color:var(--br)">Size</th>
+                  <th style="padding:10px 8px">Waist</th>
+                  <th style="padding:10px 8px">Hip</th>
+                  <th style="padding:10px 8px">Skirt Length</th>
+                  <th style="padding:10px 8px">Estimated Ghera</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${lehengaData.map(r => `
+                  <tr style="border-bottom:1px solid var(--ln)">
+                    <td style="padding:9px 8px;font-weight:700;color:var(--br)">${r.size}</td>
+                    <td style="padding:9px 8px">${r.waist}</td>
+                    <td style="padding:9px 8px">${r.hip}</td>
+                    <td style="padding:9px 8px">${r.length}</td>
+                    <td style="padding:9px 8px">${r.flare}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        ` : `
+          <div style="background:var(--sf2);border-radius:14px;padding:16px;border:1px solid var(--ln);margin-bottom:16px;font-size:0.84rem;line-height:1.5">
+            <h4 style="color:var(--br);margin:0 0 8px;font-size:0.95rem">📐 4 Steps to Measure with a Tape:</h4>
+            <ul style="padding-left:18px;margin:0 0 10px;display:flex;flex-direction:column;gap:6px;color:var(--tx)">
+              <li><b>1. Bust:</b> Wrap the tape comfortably around the fullest part of your bust while breathing naturally.</li>
+              <li><b>2. Waist:</b> Measure around the narrowest part of your natural waistline (usually 1-2 inches above navel).</li>
+              <li><b>3. Hips:</b> Stand with heels together and measure around the fullest circumference of your hips.</li>
+              <li><b>4. Length:</b> Measure straight down from highest shoulder point to your preferred hemline.</li>
+            </ul>
+            <small style="color:var(--mu);display:block">💡 <i>Tip: For made-to-measure bespoke stitching, you can also drop by our boutique studio or enter custom measurements during checkout.</i></small>
+          </div>
+        `}
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:8px">
+          <button class="btn p" onclick="closeM(); const s=$('stitch'); if(s)s.scrollIntoView({behavior:'smooth'}); if(Customer.toggleStitchingDropdown)Customer.toggleStitchingDropdown(true);" style="flex:1">
+            ✂️ Book Bespoke Stitching with Custom Fit
+          </button>
+          <button class="btn s" onclick="closeM()">Close</button>
+        </div>
+      </div>
+    `);
   },
 
   showMeasurementsModal(orderId) {
@@ -3401,19 +3659,13 @@ const Customer = {
                 ? `<img src="${Security.escapeHTML(t.img)}" alt="${Security.escapeHTML(t.name)}" loading="lazy">` 
                 : `<div class="team-avatar-emoji">${t.em ? Security.escapeHTML(t.em) : "🧑‍💼"}</div>`}
             </div>
-            <div class="team-badge" title="Verified Saifa Designs In-House Artisan">
-              <span>🧵 Master Artisan</span>
-            </div>
           </div>
           <div class="team-info">
-            <h3 class="team-name">${Security.escapeHTML(t.name)}</h3>
             <div class="team-role-pill">
               <span>${Security.escapeHTML(t.role)}</span>
             </div>
+            <h3 class="team-name">${Security.escapeHTML(t.name)}</h3>
             <p class="team-bio">${Security.escapeHTML(t.bio)}</p>
-            <div class="team-card-footer">
-              <span class="team-atelier-tag">✨ Saifa Designs Atelier</span>
-            </div>
           </div>
         </div>
       </div>
@@ -4517,9 +4769,12 @@ function sForm(p, admin = false) {
       </div>
     </div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px;flex-wrap:wrap;gap:6px">
       <label style="margin:0;font-weight:600">Measurements (Inches)</label>
-      <span style="font-size:0.78rem;color:var(--mu)">All standard points in inches (step 0.5)</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button type="button" class="btn s" onclick="Customer.openSizeChartModal()" style="font-size:0.75rem;padding:3px 10px">📏 Standard Size Chart</button>
+        <span style="font-size:0.78rem;color:var(--mu)">Step 0.5"</span>
+      </div>
     </div>
 
     <div class="meas">

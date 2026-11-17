@@ -915,10 +915,54 @@ function placeOrder(o) {
   const no = (typeof Security !== "undefined" && typeof Security.generateSecureOrderNo === "function")
     ? Security.generateSecureOrderNo()
     : "SD" + Math.random().toString(36).toUpperCase().slice(2, 8);
+
+  // Server-side Price & Coupon Validation against central catalog (Tampering Protection)
+  let verifiedSubtotal = 0;
+  let verifiedItems = [];
+  if (Array.isArray(o.items) && o.items.length > 0) {
+    const catalogProds = products();
+    verifiedItems = o.items.map(it => {
+      const catalogItem = catalogProds.find(p => String(p.id) === String(it.id));
+      const unitPrice = catalogItem ? Number(catalogItem.price) : (Number(it.p) || 0);
+      const qty = Math.max(1, parseInt(it.q) || 1);
+      verifiedSubtotal += unitPrice * qty;
+      return {
+        ...it,
+        p: unitPrice,
+        q: qty
+      };
+    });
+  } else {
+    // Bespoke custom stitching base estimate
+    verifiedSubtotal = Number(o.total) || 0;
+  }
+
+  let verifiedDiscount = 0;
+  let verifiedCouponCode = null;
+  if (S.appliedCoupon && S.appliedCoupon.code) {
+    const activeCoupons = coupons();
+    const matchedCoupon = activeCoupons.find(c => c.code && c.code.toUpperCase() === S.appliedCoupon.code.toUpperCase() && c.active);
+    if (matchedCoupon) {
+      verifiedCouponCode = matchedCoupon.code;
+      if (matchedCoupon.type === "pct") {
+        verifiedDiscount = Math.round((verifiedSubtotal * (Number(matchedCoupon.val) || 0)) / 100);
+        if (matchedCoupon.max && verifiedDiscount > matchedCoupon.max) {
+          verifiedDiscount = matchedCoupon.max;
+        }
+      } else {
+        verifiedDiscount = Math.min(verifiedSubtotal, Number(matchedCoupon.val) || 0);
+      }
+    }
+  }
+
+  const verifiedTotal = Math.max(0, verifiedSubtotal - verifiedDiscount);
+
   return saveCust(o.customer, o.phone, o.address, o.garment || "Shop order", o.measure).then(cid => {
     if (!cid) return null;
     const full = {
       ...o,
+      items: verifiedItems.length > 0 ? verifiedItems : o.items,
+      total: verifiedTotal,
       worker: o.worker || null,
       customer: Security.sanitize(o.customer),
       address: Security.sanitize(o.address),
@@ -928,15 +972,15 @@ function placeOrder(o) {
       status: o.status || "New",
       paid: o.paid || "Unpaid",
       phone: np(o.phone),
-      coupon: S.appliedCoupon ? S.appliedCoupon.code : null,
-      discount: S.appliedCoupon ? S.appliedCoupon.discount : 0,
+      coupon: verifiedCouponCode,
+      discount: verifiedDiscount,
       history: [
         { status: o.status || "New", at: Date.now(), note: "Order placed" }
       ]
     };
 
-    if (S.appliedCoupon) {
-      recordCouponRedemption(S.appliedCoupon.code);
+    if (verifiedCouponCode) {
+      recordCouponRedemption(verifiedCouponCode);
     }
 
     return put("orders", full).then(id => {

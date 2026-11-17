@@ -1743,14 +1743,14 @@ section {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  max-width: 940px;
+  max-width: 860px;
   margin: 0 auto;
 }
 
 .team-card {
   background: var(--sf);
   border: 1px solid color-mix(in srgb, var(--gd) 24%, var(--ln));
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
   position: relative;
@@ -1768,7 +1768,7 @@ section {
 .team-avatar-wrap {
   position: relative;
   width: 100%;
-  height: 105px;
+  height: 82px;
   overflow: hidden;
   background: linear-gradient(135deg, color-mix(in srgb, var(--br) 12%, transparent), color-mix(in srgb, var(--gd) 12%, transparent));
 }
@@ -1796,24 +1796,7 @@ section {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.2rem;
-}
-
-.team-badge {
-  position: absolute;
-  bottom: 5px;
-  right: 5px;
-  background: color-mix(in srgb, var(--sf) 92%, #000);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--gd);
-  border-radius: 99px;
-  padding: 1px 6px;
-  font-size: 0.58rem;
-  font-weight: 700;
-  color: var(--gd);
-  letter-spacing: 0.03em;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  font-size: 1.8rem;
 }
 
 .team-info {
@@ -1821,15 +1804,6 @@ section {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-}
-
-.team-name {
-  font-family: 'Playfair Display', serif;
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: var(--br);
-  margin: 0 0 2px;
-  line-height: 1.2;
 }
 
 .team-role-pill {
@@ -1840,17 +1814,26 @@ section {
   border: 1px solid color-mix(in srgb, var(--br) 20%, transparent);
   border-radius: 99px;
   padding: 1px 6px;
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   line-height: 1.25;
 }
 
+.team-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--br);
+  margin: 0 0 3px;
+  line-height: 1.2;
+}
+
 .team-bio {
-  font-size: 0.7rem;
-  line-height: 1.35;
+  font-size: 0.68rem;
+  line-height: 1.32;
   color: var(--mu);
-  margin: 0 0 6px;
+  margin: 0;
   flex-grow: 1;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -2016,51 +1999,55 @@ section {
 
 /* ==========================================
    HOW IT WORKS — 5-STEP CUSTOMER JOURNEY
+   Bulletproof Responsive Stepper Across All Devices
    ========================================== */
 .timeline-container {
   position: relative;
-  max-width: 1140px;
+  max-width: 1160px;
   margin: 0 auto;
+  padding: 0 10px;
 }
 
 .timeline-line {
   position: absolute;
-  top: 40px;
-  left: 10%;
-  right: 10%;
+  top: 38px;
+  left: 9%;
+  right: 9%;
   height: 2px;
   background: repeating-linear-gradient(90deg, var(--gd) 0, var(--gd) 8px, transparent 8px, transparent 14px);
   z-index: 1;
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
 .steps,
 .interactive-steps-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
-  max-width: 1140px;
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 14px !important;
+  max-width: 1160px;
   margin: 0 auto;
   position: relative;
+  z-index: 2;
 }
 
 .step,
 .interactive-step-card {
   background: var(--sf);
-  border: 1px solid color-mix(in srgb, var(--gd) 22%, var(--ln));
+  border: 1px solid color-mix(in srgb, var(--gd) 24%, var(--ln));
   border-radius: 16px;
-  padding: 18px 12px 14px;
+  padding: 16px 12px 14px;
   position: relative;
   text-align: center;
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
   cursor: pointer;
   z-index: 2;
   user-select: none;
-  min-height: 165px;
+  min-height: 180px;
+  box-sizing: border-box;
 }
 
 .step:hover,
@@ -2068,6 +2055,14 @@ section {
   transform: translateY(-4px);
   border-color: var(--gd);
   box-shadow: 0 10px 24px color-mix(in srgb, var(--br) 12%, transparent);
+}
+
+.step-indicator-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  flex-shrink: 0;
 }
 
 .step-num-badge {
@@ -2082,17 +2077,32 @@ section {
   font-family: 'Playfair Display', serif;
   font-weight: 800;
   font-size: 0.95rem;
-  margin-bottom: 8px;
   box-shadow: 0 4px 10px color-mix(in srgb, var(--br) 35%, transparent);
   border: 1.5px solid var(--gd);
   flex-shrink: 0;
 }
 
+.step-content-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+  width: 100%;
+}
+
+.step-header-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+
 .step-icon-emoji {
   font-size: 1.35rem;
-  margin-bottom: 6px;
-  display: block;
   line-height: 1;
+  display: block;
 }
 
 .step h3,
@@ -2101,8 +2111,21 @@ section {
   font-size: 0.92rem;
   font-weight: 700;
   color: var(--br);
-  margin: 0 0 6px;
+  margin: 0;
   line-height: 1.25;
+}
+
+.step-desc {
+  font-size: 0.74rem;
+  color: var(--mu);
+  line-height: 1.35;
+  margin: 4px 0 8px;
+  display: block;
+}
+
+.step-action-col {
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .step-cue {
@@ -2113,8 +2136,7 @@ section {
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--gd);
-  margin-top: auto;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 99px;
   background: color-mix(in srgb, var(--gd) 8%, var(--sf2));
   border: 1px solid color-mix(in srgb, var(--gd) 24%, transparent);
@@ -2163,62 +2185,66 @@ section {
   box-shadow: 0 4px 12px color-mix(in srgb, var(--br) 35%, transparent);
 }
 
-@media (max-width: 900px) {
+/* ----------------------------------------------------
+   RESPONSIVE TABLETS & PHONES: ELEGANT VERTICAL STEPPER
+   Prevents Any 2-Column Cramming, Overflow, or Lone Cards
+   ---------------------------------------------------- */
+@media (max-width: 992px) {
   .team {
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px;
-    max-width: 540px;
+    gap: 8px !important;
+    max-width: 480px !important;
     margin: 0 auto;
   }
   .team-avatar-wrap {
-    height: 85px !important;
+    height: 72px !important;
   }
   .team-info {
-    padding: 7px 8px !important;
+    padding: 6px 8px !important;
   }
   .team-name {
-    font-size: 0.86rem !important;
+    font-size: 0.82rem !important;
   }
   .team-role-pill {
     font-size: 0.58rem !important;
     padding: 1px 5px !important;
-    margin-bottom: 3px !important;
+    margin-bottom: 2px !important;
   }
   .team-bio {
-    font-size: 0.68rem !important;
-    line-height: 1.32 !important;
+    font-size: 0.66rem !important;
+    line-height: 1.3 !important;
     -webkit-line-clamp: 2 !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 0 !important;
   }
   .team-card-footer {
-    padding-top: 4px !important;
-    font-size: 0.58rem !important;
+    display: none !important;
   }
 
   .timeline-container {
-    padding: 0 6px;
-    max-width: 580px;
-    margin: 0 auto;
-    position: relative;
+    padding: 0 8px !important;
+    max-width: 600px !important;
+    margin: 0 auto !important;
+    position: relative !important;
   }
   .timeline-line {
     display: block !important;
     position: absolute !important;
-    top: 22px !important;
-    bottom: 22px !important;
+    top: 24px !important;
+    bottom: 24px !important;
     left: 32px !important;
     right: auto !important;
     width: 2px !important;
     height: auto !important;
     background: repeating-linear-gradient(180deg, var(--gd) 0, var(--gd) 8px, transparent 8px, transparent 14px) !important;
-    opacity: 0.6 !important;
+    opacity: 0.65 !important;
     z-index: 1 !important;
   }
   .steps,
   .interactive-steps-grid {
     display: flex !important;
     flex-direction: column !important;
-    gap: 10px !important;
+    grid-template-columns: none !important;
+    gap: 12px !important;
     width: 100% !important;
     position: relative !important;
     z-index: 2 !important;
@@ -2228,44 +2254,73 @@ section {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
+    justify-content: flex-start !important;
     text-align: left !important;
-    gap: 12px !important;
-    padding: 10px 14px !important;
+    gap: 14px !important;
+    padding: 12px 16px !important;
     border-radius: 14px !important;
     width: 100% !important;
     min-height: auto !important;
     box-sizing: border-box !important;
   }
-  .interactive-step-card .step-num-badge {
+  .step-indicator-col {
     margin-bottom: 0 !important;
-    width: 34px !important;
-    height: 34px !important;
-    font-size: 0.85rem !important;
     flex-shrink: 0 !important;
     z-index: 2 !important;
   }
-  .interactive-step-card .step-icon-emoji {
+  .step-num-badge {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 0.85rem !important;
     margin-bottom: 0 !important;
+    flex-shrink: 0 !important;
+    z-index: 2 !important;
+  }
+  .step-content-col {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    gap: 2px !important;
+  }
+  .step-header-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 0 !important;
+    flex-wrap: wrap !important;
+  }
+  .step-icon-emoji {
     font-size: 1.25rem !important;
+    margin-bottom: 0 !important;
     flex-shrink: 0 !important;
     line-height: 1 !important;
   }
-  .interactive-step-card .step-title {
+  .step-title {
     margin: 0 !important;
-    font-size: 0.9rem !important;
+    font-size: 0.92rem !important;
     line-height: 1.3 !important;
-    flex-grow: 1 !important;
-    flex-shrink: 1 !important;
-    min-width: 0 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    word-break: break-word !important;
+    white-space: normal !important;
   }
-  .interactive-step-card .step-cue {
+  .step-desc {
+    font-size: 0.74rem !important;
+    margin: 0 !important;
+    line-height: 1.3 !important;
+    display: block !important;
+  }
+  .step-action-col {
     margin-top: 0 !important;
     margin-left: auto !important;
-    font-size: 0.7rem !important;
-    padding: 3px 9px !important;
+    flex-shrink: 0 !important;
+  }
+  .step-cue {
+    font-size: 0.72rem !important;
+    padding: 4px 10px !important;
+    margin-top: 0 !important;
     white-space: nowrap !important;
     flex-shrink: 0 !important;
   }
@@ -2273,58 +2328,73 @@ section {
 
 @media (max-width: 480px) {
   .team {
-    gap: 8px !important;
+    gap: 6px !important;
+    max-width: 380px !important;
   }
   .team-avatar-wrap {
-    height: 76px !important;
+    height: 62px !important;
   }
   .team-info {
-    padding: 6px 7px !important;
+    padding: 5px 6px !important;
   }
   .team-name {
-    font-size: 0.82rem !important;
+    font-size: 0.78rem !important;
+  }
+  .team-role-pill {
+    font-size: 0.54rem !important;
+    padding: 1px 4px !important;
   }
   .team-bio {
-    font-size: 0.65rem !important;
+    font-size: 0.62rem !important;
+    line-height: 1.25 !important;
   }
 
   .timeline-container {
-    padding: 0 2px;
+    padding: 0 4px !important;
   }
   .timeline-line {
-    left: 26px !important;
-    top: 18px !important;
-    bottom: 18px !important;
+    left: 25px !important;
+    top: 16px !important;
+    bottom: 16px !important;
   }
   .step,
   .interactive-step-card {
-    padding: 8px 10px !important;
-    gap: 8px !important;
+    padding: 10px 12px !important;
+    gap: 10px !important;
     border-radius: 12px !important;
   }
-  .interactive-step-card .step-num-badge {
+  .step-num-badge {
     width: 30px !important;
     height: 30px !important;
     font-size: 0.78rem !important;
   }
-  .interactive-step-card .step-icon-emoji {
+  .step-icon-emoji {
     font-size: 1.15rem !important;
   }
-  .interactive-step-card .step-title {
-    font-size: 0.84rem !important;
+  .step-title {
+    font-size: 0.86rem !important;
   }
-  .interactive-step-card .step-cue {
-    font-size: 0.66rem !important;
-    padding: 2px 7px !important;
+  .step-desc {
+    font-size: 0.70rem !important;
+  }
+  .step-cue {
+    font-size: 0.68rem !important;
+    padding: 3px 8px !important;
   }
 }
 
 @media (max-width: 380px) {
-  .interactive-step-card .step-cue .cue-long {
+  .step-desc {
     display: none !important;
   }
-  .interactive-step-card .step-cue .cue-short {
+  .step-cue .cue-long {
+    display: none !important;
+  }
+  .step-cue .cue-short {
     display: inline !important;
+  }
+  .step-title {
+    font-size: 0.82rem !important;
   }
 }
 
@@ -4575,17 +4645,6 @@ img, video, canvas, svg {
   .fi,
   .interactive-feat-card {
     padding: 16px 18px;
-    border-radius: 14px;
-  }
-
-  .steps,
-  .interactive-steps-grid {
-    grid-template-columns: 1fr !important;
-    gap: 12px;
-  }
-
-  .step,
-  .interactive-step-card {
     border-radius: 14px;
   }
 

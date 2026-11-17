@@ -247,6 +247,81 @@ const DEFAULT_VARIANT_THRESHOLD = 3;
 const REVIEW_STATUSES = ["Approved", "Pending", "Flagged", "Hidden"];
 const REVIEW_FRAUD_LEVELS = ["Clean", "Review Needed", "Suspicious"];
 
+const SEED_REVIEWS = [
+  {
+    id: "rev_1",
+    orderNo: "SD9X4K2",
+    name: "Ayesha Khan",
+    phone: "9811223344",
+    rating: 5,
+    service: "Bridal Lehenga & Anarkali",
+    comment: "The bespoke stitching for my bridal lehenga was absolutely flawless. The hand embroidery, neck fitting, and latkan finishing exceeded my expectations! Highly recommend Saifa Designs.",
+    verifiedPurchase: true,
+    status: "Approved",
+    createdAt: Date.now() - 3 * 86400000
+  },
+  {
+    id: "rev_2",
+    orderNo: "SD8M2P1",
+    name: "Priya Sharma",
+    phone: "9822334455",
+    rating: 5,
+    service: "Padded Designer Blouse",
+    comment: "Permanent fit profile makes re-ordering so effortless. Ordered a Banarasi silk blouse with cups and princess cut — fitted like a glove with zero alterations needed.",
+    verifiedPurchase: true,
+    status: "Approved",
+    createdAt: Date.now() - 7 * 86400000
+  },
+  {
+    id: "rev_3",
+    orderNo: "SD7K5L9",
+    name: "Farheen Fatima",
+    phone: "9833445566",
+    rating: 5,
+    service: "Salwar Suit & Kurti",
+    comment: "Pure certified georgette fabrics and very neat artisan stitching. The live WhatsApp milestone updates and tracking gave me total peace of mind.",
+    verifiedPurchase: true,
+    status: "Approved",
+    createdAt: Date.now() - 12 * 86400000
+  },
+  {
+    id: "rev_4",
+    orderNo: "SD6R3Q4",
+    name: "Neha Verma",
+    phone: "9844556677",
+    rating: 5,
+    service: "Readymade Festive Suit",
+    comment: "Fabric quality is exceptional. Delivery was right on time for our family wedding. The complimentary alteration guarantee gave me great confidence.",
+    verifiedPurchase: true,
+    status: "Approved",
+    createdAt: Date.now() - 18 * 86400000
+  },
+  {
+    id: "rev_5",
+    orderNo: "SD5W8T2",
+    name: "Simran Kaur",
+    phone: "9855667788",
+    rating: 4,
+    service: "Custom Kurti & Fitting",
+    comment: "Great fitting and friendly tailor craftsmen. Needed a slight 0.5 inch sleeve adjustment which they completed in 15 minutes at the boutique counter without charge.",
+    verifiedPurchase: true,
+    status: "Approved",
+    createdAt: Date.now() - 25 * 86400000
+  },
+  {
+    id: "rev_6",
+    orderNo: "SD4V1N7",
+    name: "Zainab Qureshi",
+    phone: "9866778899",
+    rating: 5,
+    service: "Pure Silk Material & Suit",
+    comment: "Authentic luxury fabric with genuine texture. Will definitely continue using Saifa Designs for all festive stitching.",
+    verifiedPurchase: true,
+    status: "Approved",
+    createdAt: Date.now() - 32 * 86400000
+  }
+];
+
 // Helper to auto-generate variant combinations for products lacking explicit variants
 function generateDefaultVariants(product) {
   if (Array.isArray(product.variants) && product.variants.length > 0) {

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#8e1647">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Staff &amp; Artisan Atelier Portal – SAIFA DESIGNS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/login.css">
+  <script>(function () { try { var t = localStorage.getItem("saifa_theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); document.documentElement.setAttribute("data-theme", t); } catch (e) { } })();</script>
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      color: var(--tx);
+      font-family: 'Poppins', sans-serif;
+    }
+    .admin-entry-shell {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    .admin-entry-card {
+      background: var(--sf);
+      border: 1px solid color-mix(in srgb, var(--gd) 30%, var(--ln));
+      border-radius: 24px;
+      padding: 36px 32px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.08);
+      position: relative;
+      overflow: hidden;
+    }
+    .admin-entry-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--br), var(--gd));
+    }
+    .admin-lock-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--br) 12%, var(--sf2)), color-mix(in srgb, var(--gd) 18%, var(--sf2)));
+      border: 1px solid var(--gd);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      margin: 0 auto 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-entry-shell">
+    <div class="admin-entry-card">
+      <div class="admin-lock-icon">🔐</div>
+      <h1 style="font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--br);margin:0 0 6px">SAIFA ATELIER</h1>
+      <p style="color:var(--mu);font-size:0.86rem;margin-bottom:24px">Staff, Artisan &amp; Master Tailor Management Portal</p>
+      
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <button class="btn p" style="width:100%;padding:13px;font-size:0.95rem" onclick="openLogin('admin')">
+          👑 Admin / Manager Portal
+        </button>
+        <button class="btn" style="width:100%;padding:13px;font-size:0.95rem" onclick="openLogin('worker')">
+          🪡 In-House Artisan &amp; Tailor PIN Login
+        </button>
+        <a href="index.html" class="btn s" style="margin-top:8px;text-decoration:none">
+          ← Return to Customer Storefront
+        </a>
+      </div>
+      
+      <div style="margin-top:20px;padding-top:14px;border-top:1px dashed var(--ln);font-size:0.75rem;color:var(--mu)">
+        🛡️ Protected by progressive rate-limiting &amp; SHA-256 session verification
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer" id="dr"></div>
+  <div class="ov" id="ov">
+    <div class="md" id="md"></div>
+  </div>
+  <div id="pn"></div>
+  <div class="toast" id="tt"></div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/security.js"></script>
+  <script src="js/backend.js"></script>
+  <script src="js/customer.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/worker.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // If already logged in, go straight to panel
+      if (S.me && S.me.role === "admin" && typeof panel === "function") {
+        panel();
+      } else if (S.me && S.me.role === "worker" && typeof wpanel === "function") {
+        wpanel();
+      } else {
+        openLogin('admin');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -5,7 +5,41 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#8e1647">
-  <title>Materials &amp; Fabrics Studio – SAIFA DESIGNS Ladies Tailor &amp; Atelier</title>
+  <title>Materials &amp; Luxury Fabrics Studio – SAIFA DESIGNS Ladies Tailor &amp; Atelier</title>
+  <meta name="description" content="Explore pure Chanderi silk, Banarasi brocades, organza, and Jaipur cotton fabrics at SAIFA DESIGNS Atelier, New Delhi. Perfect for custom tailoring, bridal lehengas, and designer suits.">
+  <link rel="canonical" href="https://saifadesigns.com/product.html">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.json">
+  <meta property="og:title" content="Materials &amp; Luxury Fabrics Studio – SAIFA DESIGNS">
+  <meta property="og:description" content="Handpicked pure Chanderi silks, modal satins, organza, georgette, and pure mulmul cotton curated for bespoke tailoring.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://saifadesigns.com/product.html">
+  <meta property="og:image" content="https://saifadesigns.com/icon.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Materials &amp; Fabrics – SAIFA DESIGNS Atelier">
+  <meta name="twitter:description" content="Shop pure luxury fabrics for bespoke ladies tailoring in New Delhi.">
+  <meta name="twitter:image" content="https://saifadesigns.com/icon.svg">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Materials & Luxury Fabrics Studio – SAIFA DESIGNS",
+    "description": "Curated collection of pure silks, organza, georgette, and Jaipur cotton for bespoke tailoring.",
+    "url": "https://saifadesigns.com/product.html",
+    "provider": {
+      "@type": "ClothingStore",
+      "name": "SAIFA DESIGNS Atelier",
+      "telephone": "+919289241183",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Shop No. 12, Gulshan Market, Main Road",
+        "addressLocality": "New Delhi",
+        "postalCode": "110025",
+        "addressCountry": "IN"
+      }
+    }
+  }
+  </script>
   <link
     href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
     rel="stylesheet">
@@ -58,11 +92,6 @@
 
         <a class="btn s" id="inst" style="display:none;cursor:pointer">⬇ Install App</a>
 
-        <!-- Modern Staff & Artisan Login Icon Button (Desktop Discreet) -->
-        <a class="btn s login-icon-btn" id="lg" style="cursor:pointer" onclick="openLogin()" title="Staff &amp; Artisan Portal Login">
-          <span class="login-icon">🔑</span> <span class="login-label">Staff Login</span>
-        </a>
-
         <!-- Modern Wishlist Icon Button -->
         <a class="btn s wishlist-btn" id="wb" style="cursor:pointer" onclick="Customer.openWishlist(true)" title="View Saved Wishlist">
           <span class="wishlist-icon">💖</span> <span class="wishlist-label">Wishlist</span> <span class="cnt" id="wc">0</span>
@@ -97,13 +126,13 @@
         <a class="mob-lk" href="index.html#reviews" onclick="Customer.closeMobileNav()">⭐ Client Ratings</a>
         <a class="mob-lk" href="index.html#contact" onclick="Customer.closeMobileNav()">🏛️ Visit Boutique</a>
       </div>
-      <!-- Mobile Navigation Drawer Footer with Dedicated Login / My Account -->
+      <!-- Mobile Navigation Drawer Footer for Customer Measurements & Fitting Profile -->
       <div class="mobile-nav-footer">
-        <a class="mob-account-btn" href="javascript:void(0)" onclick="Customer.closeMobileNav(); openLogin()">
-          <span class="mob-acc-icon">👤</span>
+        <a class="mob-account-btn" href="index.html#stitch" onclick="Customer.closeMobileNav(); Customer.openStitchingForm()">
+          <span class="mob-acc-icon">✂️</span>
           <div class="mob-acc-text">
-            <strong>Login / My Account</strong>
-            <small>Staff, Artisan &amp; Client Portal</small>
+            <strong>Bespoke Fit Profile</strong>
+            <small>Save &amp; View Your Measurements</small>
           </div>
           <span class="mob-acc-arrow">➔</span>
         </a>
@@ -231,7 +260,91 @@
 
     <!-- Products Grid -->
     <div class="grid catalogue-grid" id="catalogueGrid">
-      <!-- Rendered dynamically by Customer.renderCatalogue -->
+      <!-- Prerendered Semantic Catalogue Preview (Hydrated & Enhanced by Customer.renderCatalogue) -->
+      <article class="card catalogue-card" data-id="s1">
+        <div class="pic" style="background:linear-gradient(135deg,#8e164722,#8e164788)">
+          <span class="ribbon ribbon-new">✨ Just In</span>
+          <img src="https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80" alt="Banarasi Silk Material" loading="lazy">
+        </div>
+        <div class="cb">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px">
+            <span class="tag">Material</span>
+            <span style="font-size:0.75rem;color:var(--mu)">Pure Silk &amp; Banarasi</span>
+          </div>
+          <h3>Banarasi Silk Material</h3>
+          <p class="desc">Rich golden zari weave on fine silk, ideal for bridal blouses, party lehengas and festive dupattas.</p>
+          <div class="product-attributes-strip">
+            <span class="attr-pill"><b>Cut:</b> 2.5 m</span>
+            <span class="attr-pill"><b>Shades:</b> Maroon, Gold</span>
+          </div>
+          <div class="price-row">
+            <div class="price">₹1,800</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card catalogue-card" data-id="s2">
+        <div class="pic" style="background:linear-gradient(135deg,#0f6b5c22,#0f6b5c88)">
+          <img src="https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=600&q=80" alt="Georgette Suit Material" loading="lazy">
+        </div>
+        <div class="cb">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px">
+            <span class="tag">Material</span>
+            <span style="font-size:0.75rem;color:var(--mu)">Flowy Georgette &amp; Chiffon</span>
+          </div>
+          <h3>Georgette Suit Material</h3>
+          <p class="desc">Flowy, lightweight party material with intricate digital prints and dyed matching dupatta.</p>
+          <div class="product-attributes-strip">
+            <span class="attr-pill"><b>Cut:</b> 3-pc set</span>
+            <span class="attr-pill"><b>Shades:</b> Teal, Pink</span>
+          </div>
+          <div class="price-row">
+            <div class="price">₹950</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card catalogue-card" data-id="s3">
+        <div class="pic" style="background:linear-gradient(135deg,#d9622b22,#d9622b88)">
+          <img src="https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&w=600&q=80" alt="Cotton Printed Material" loading="lazy">
+        </div>
+        <div class="cb">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px">
+            <span class="tag">Material</span>
+            <span style="font-size:0.75rem;color:var(--mu)">Jaipur Cotton</span>
+          </div>
+          <h3>Cotton Printed Material</h3>
+          <p class="desc">Comfortable handblock printed Jaipur cotton material, perfect for daily and summer office wear.</p>
+          <div class="product-attributes-strip">
+            <span class="attr-pill"><b>Cut:</b> 3-pc set</span>
+            <span class="attr-pill"><b>Shades:</b> Indigo, Mustard</span>
+          </div>
+          <div class="price-row">
+            <div class="price">₹650</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card catalogue-card" data-id="s9">
+        <div class="pic" style="background:linear-gradient(135deg,#9c27b022,#9c27b088)">
+          <img src="https://images.unsplash.com/photo-1610030469668-935a8947e25d?auto=format&fit=crop&w=600&q=80" alt="Embroidered Organza Tissue Fabric" loading="lazy">
+        </div>
+        <div class="cb">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px">
+            <span class="tag">Material</span>
+            <span style="font-size:0.75rem;color:var(--mu)">Organza &amp; Net</span>
+          </div>
+          <h3>Embroidered Organza Tissue Fabric</h3>
+          <p class="desc">Crisp ethereal organza fabric studded with delicate floral resham embroidery and scalloped borders.</p>
+          <div class="product-attributes-strip">
+            <span class="attr-pill"><b>Cut:</b> 3.0 m</span>
+            <span class="attr-pill"><b>Shades:</b> Lavender, Rose Gold</span>
+          </div>
+          <div class="price-row">
+            <div class="price">₹1,350</div>
+          </div>
+        </div>
+      </article>
     </div>
 
     <!-- Load More Pagination Control -->
@@ -283,6 +396,9 @@
           <li><a href="javascript:void(0)" onclick="cart(1)">Shopping Bag</a></li>
           <li><a href="index.html#reviews">Client Ratings &amp; Reviews</a></li>
           <li><a href="index.html#faq">Fitting &amp; Measurement Guide</a></li>
+          <li><a href="privacy.html" onclick="if(window.Customer){Customer.openPolicyModal('privacy');return false;}">🔒 Privacy Policy (DPDP Act)</a></li>
+          <li><a href="terms.html" onclick="if(window.Customer){Customer.openPolicyModal('terms');return false;}">📜 Terms of Service</a></li>
+          <li><a href="returns.html" onclick="if(window.Customer){Customer.openPolicyModal('returns');return false;}">🔄 Alterations &amp; Returns</a></li>
         </ul>
       </div>
 
@@ -292,7 +408,7 @@
           <span class="fc-icon">📍</span>
           <div>
             <b>Boutique Address</b>
-            <address>Shop No. 4, Ground Floor, Near Jama Masjid, Main Market, Mumbai, Maharashtra 400001</address>
+            <address id="footerAddressText">Shop No. 12, Gulshan Market, Main Road, New Delhi 110025</address>
           </div>
         </div>
         <div class="footer-contact-item">
@@ -326,7 +442,7 @@
 
     <div class="footer-bottom-bar" id="foot">
       <div class="footer-bottom-inner">
-        <span id="footCopy">© 2026 SAIFA DESIGNS · Ladies Tailor, Boutique &amp; Fabric Studio · All Rights Reserved</span>
+        <span id="footCopy">© 2026 SAIFA DESIGNS · Ladies Tailor, Boutique &amp; Fabric Studio · All Rights Reserved · <a href="javascript:void(0)" onclick="openLogin()" style="color:var(--mu);text-decoration:none;font-size:0.72rem;opacity:0.6" title="Atelier Staff Portal">Staff Portal</a></span>
         <button class="footer-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to Top">
           <span>Back to Top</span> <b>↑</b>
         </button>

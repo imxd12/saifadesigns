@@ -4639,7 +4639,7 @@ function addW() {
     role: finalRole,
     phone: ph,
     aadhaar: aadhaar,
-    address: addr || "Atelier Workshop, Mumbai",
+    address: addr || "Atelier Workshop, New Delhi",
     img: photo,
     status: "Active",
     joined: new Date().toISOString().slice(0, 10),

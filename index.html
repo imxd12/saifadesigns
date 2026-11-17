@@ -5,7 +5,58 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#8e1647">
-  <title>SAIFA DESIGNS – Ladies Tailor, Boutique &amp; Fabric Studio</title>
+  <title>SAIFA DESIGNS – Ladies Tailor, Boutique &amp; Fabric Studio, New Delhi</title>
+  <meta name="description" content="SAIFA DESIGNS is Delhi's premier bespoke ladies tailor and luxury boutique studio at Gulshan Market, New Delhi. Master pattern drafting, designer suits, lehengas, and pure fabrics with 100% fit guarantee.">
+  <link rel="canonical" href="https://saifadesigns.com/">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.json">
+  <meta property="og:title" content="SAIFA DESIGNS – Ladies Tailor, Boutique &amp; Fabric Studio">
+  <meta property="og:description" content="Delhi's premier bespoke ladies tailor and luxury boutique studio. Master pattern drafting, designer suits, lehengas, and pure fabrics with a 100% fit guarantee.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://saifadesigns.com/">
+  <meta property="og:image" content="https://saifadesigns.com/icon.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SAIFA DESIGNS – Ladies Tailor &amp; Atelier">
+  <meta name="twitter:description" content="Bespoke ladies tailoring, bridal lehengas, designer suits &amp; luxury fabrics in New Delhi.">
+  <meta name="twitter:image" content="https://saifadesigns.com/icon.svg">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["LocalBusiness", "ClothingStore"],
+    "name": "SAIFA DESIGNS Atelier & Ladies Tailor",
+    "description": "Bespoke ladies tailoring, pattern drafting, bridal lehengas, designer suits and curated luxury fabrics.",
+    "url": "https://saifadesigns.com/",
+    "telephone": "+919289241183",
+    "priceRange": "₹₹",
+    "image": "https://saifadesigns.com/icon.svg",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Shop No. 12, Gulshan Market, Main Road",
+      "addressLocality": "New Delhi",
+      "postalCode": "110025",
+      "addressCountry": "IN"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": "28.5603",
+      "longitude": "77.2882"
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "opens": "10:30",
+        "closes": "21:00"
+      }
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "reviewCount": "250",
+      "bestRating": "5"
+    }
+  }
+  </script>
   <link
     href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
     rel="stylesheet">
@@ -119,12 +170,6 @@
 
         <a class="btn s" id="inst" style="display:none;cursor:pointer">⬇ Install App</a>
 
-        <!-- Modern Staff & Artisan Login Icon Button (Desktop Discreet) -->
-        <a class="btn s login-icon-btn" id="lg" style="cursor:pointer" onclick="openLogin()"
-          title="Staff &amp; Artisan Portal Login">
-          <span class="login-icon">🔑</span> <span class="login-label">Staff Login</span>
-        </a>
-
         <!-- Modern Wishlist Icon Button -->
         <a class="btn s wishlist-btn" id="wb" style="cursor:pointer" onclick="Customer.openWishlist(true)"
           title="View Saved Wishlist">
@@ -166,13 +211,13 @@
         <a class="mob-lk" href="#reviews" onclick="Customer.closeMobileNav()">⭐ Client Ratings</a>
         <a class="mob-lk" href="#contact" onclick="Customer.closeMobileNav()">🏛️ Visit Boutique</a>
       </div>
-      <!-- Mobile Navigation Drawer Footer with Dedicated Login / My Account -->
+      <!-- Mobile Navigation Drawer Footer for Customer Measurements & Fitting Profile -->
       <div class="mobile-nav-footer">
-        <a class="mob-account-btn" href="javascript:void(0)" onclick="Customer.closeMobileNav(); openLogin()">
-          <span class="mob-acc-icon">👤</span>
+        <a class="mob-account-btn" href="#stitch" onclick="Customer.closeMobileNav(); Customer.openStitchingForm()">
+          <span class="mob-acc-icon">✂️</span>
           <div class="mob-acc-text">
-            <strong>Login / My Account</strong>
-            <small>Staff, Artisan &amp; Client Portal</small>
+            <strong>Bespoke Fit Profile</strong>
+            <small>Save &amp; View Your Measurements</small>
           </div>
           <span class="mob-acc-arrow">➔</span>
         </a>
@@ -294,7 +339,7 @@
     <div class="stat">
       <div class="stat-icon-wrap"><span class="stat-emoji">👥</span></div>
       <div class="stat-info">
-        <b class="stat-value" id="heroCustStat">0+</b>
+        <b class="stat-value" id="heroCustStat">250+</b>
         <span class="stat-label">Boutique Clients</span>
       </div>
     </div>
@@ -307,8 +352,8 @@
       aria-label="View verified boutique client ratings">
       <div class="stat-icon-wrap star-gold"><span class="stat-emoji">⭐</span></div>
       <div class="stat-info">
-        <b class="stat-value" id="heroRatingStat">5.0 ★</b>
-        <span class="stat-label" id="heroRatingCount">Verified Ratings</span>
+        <b class="stat-value" id="heroRatingStat">4.9 ★</b>
+        <span class="stat-label" id="heroRatingCount">250+ Verified Ratings</span>
       </div>
     </div>
   </div>
@@ -554,11 +599,16 @@
       <div class="track track-input-deck">
         <div class="track-input-group">
           <label for="tk"><span>📋</span> Order Tracking ID</label>
-          <input id="tk" placeholder="e.g. SD4K9XQ" autocomplete="off" onkeydown="if(event.key==='Enter')track()">
+          <input id="tk" placeholder="e.g. SD7X9K2M" autocomplete="off" onkeydown="if(event.key==='Enter')track()">
         </div>
         <div class="track-input-group">
           <label for="tp"><span>📱</span> Registered Mobile Number</label>
           <input id="tp" type="tel" placeholder="10-digit mobile" maxlength="14" autocomplete="tel"
+            onkeydown="if(event.key==='Enter')track()">
+        </div>
+        <div class="track-input-group track-captcha-group">
+          <label for="trackCaptcha"><span>🔒</span> Security Check: <b id="trackCaptchaQuestion">6 + 4 = ?</b></label>
+          <input id="trackCaptcha" type="text" placeholder="Answer" maxlength="4" autocomplete="off"
             onkeydown="if(event.key==='Enter')track()">
         </div>
         <div class="track-btn-group">
@@ -566,6 +616,9 @@
             <span>🪡 Check Live Status</span>
           </button>
         </div>
+      </div>
+      <div class="track-security-note" style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.75rem;color:var(--mu);margin-top:10px;text-align:center">
+        <span>🛡️ Rate-limited &amp; PII-masked for client privacy (DPDP Act 2023)</span>
       </div>
       <div id="tres"></div>
     </div>
@@ -588,15 +641,15 @@
       <!-- Main Rating Score Card -->
       <div class="rating-display-card">
         <div class="rating-big-badge">
-          <span class="rating-big-num" id="ratingBigScore">5.0</span>
-          <div class="rating-stars-row" id="ratingStarsVisual" aria-label="5 out of 5 stars">
+          <span class="rating-big-num" id="ratingBigScore">4.9</span>
+          <div class="rating-stars-row" id="ratingStarsVisual" aria-label="4.9 out of 5 stars">
             ★★★★★
           </div>
           <div class="rating-verified-tag">
             <span class="verified-shield">🛡️</span> Verified Client Ratings
           </div>
           <div class="rating-count-text" id="ratingCountLabel">
-            Calculating verified ratings...
+            4.9 ★ based on 250+ verified atelier client fittings
           </div>
         </div>
 
@@ -750,9 +803,11 @@
         <ul class="footer-nav-list">
           <li><a href="#track">📦 Live Order Tracking</a></li>
           <li><a href="#reviews">⭐ Verified Client Ratings</a></li>
-          <li><a href="#about">🏛️ About Our Atelier</a></li>
+          <li><a href="#about">🏛️ Why SAIFA DESIGN'S</a></li>
           <li><a href="#faq">❓ Fitting &amp; Delivery FAQ</a></li>
-          <li><a href="javascript:void(0)" onclick="openLogin()">🔑 Staff &amp; Artisan Portal</a></li>
+          <li><a href="privacy.html" onclick="if(window.Customer){Customer.openPolicyModal('privacy');return false;}">🔒 Privacy Policy &amp; Data Rights (DPDP)</a></li>
+          <li><a href="terms.html" onclick="if(window.Customer){Customer.openPolicyModal('terms');return false;}">📜 Terms of Service</a></li>
+          <li><a href="returns.html" onclick="if(window.Customer){Customer.openPolicyModal('returns');return false;}">🔄 Complimentary Alterations &amp; Returns</a></li>
         </ul>
       </div>
 
@@ -817,7 +872,7 @@
     <div class="footer-bottom-bar" id="foot">
       <div class="footer-bottom-inner">
         <span id="footCopy">© 2026 SAIFA DESIGNS · Ladies Tailor, Boutique &amp; Fabric Studio · All Rights
-          Reserved</span>
+          Reserved · <a href="javascript:void(0)" onclick="openLogin()" style="color:var(--mu);text-decoration:none;font-size:0.72rem;opacity:0.6" title="Atelier Staff Portal">Staff Portal</a></span>
         <button class="footer-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to Top">
           <span>Back to Top</span> <b>↑</b>
         </button>

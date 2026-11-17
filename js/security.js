@@ -49,49 +49,123 @@ const Security = {
     );
   },
 
-  // 3. Brute-Force Rate Limiting (Protects Admin & Worker Logins)
-  loginAttempts: {},
+  // 3. Persistent Brute-Force Rate Limiting (Survives Page Refresh via localStorage)
+  _getRateLimits() {
+    try {
+      return JSON.parse(localStorage.getItem("saifa_sec_rate_limits") || "{}");
+    } catch (e) {
+      return {};
+    }
+  },
+
+  _saveRateLimits(limits) {
+    try {
+      localStorage.setItem("saifa_sec_rate_limits", JSON.stringify(limits));
+    } catch (e) {}
+  },
 
   checkRateLimit(identifier, maxAttempts = 5, lockoutSeconds = 30) {
     const now = Date.now();
-    const record = this.loginAttempts[identifier] || { count: 0, lockedUntil: 0 };
+    const limits = this._getRateLimits();
+    const record = limits[identifier] || { count: 0, lockedUntil: 0, totalLockouts: 0 };
 
     if (record.lockedUntil > now) {
       const waitSec = Math.ceil((record.lockedUntil - now) / 1000);
       return {
         allowed: false,
-        message: `Too many failed attempts. Locked for security. Try again in ${waitSec}s.`
+        waitSec,
+        message: `Security Lockout: Too many attempts. Access paused for ${waitSec}s.`
       };
     }
 
     return { allowed: true };
   },
 
-  recordFailedLogin(identifier, maxAttempts = 5, lockoutSeconds = 30) {
+  recordFailedLogin(identifier, maxAttempts = 5, baseLockoutSeconds = 30) {
     const now = Date.now();
-    const record = this.loginAttempts[identifier] || { count: 0, lockedUntil: 0 };
-    record.count++;
+    const limits = this._getRateLimits();
+    const record = limits[identifier] || { count: 0, lockedUntil: 0, totalLockouts: 0 };
+    record.count = (record.count || 0) + 1;
 
     if (record.count >= maxAttempts) {
-      record.lockedUntil = now + lockoutSeconds * 1000;
+      // Progressive backoff: doubles lockout time for repeat offenders
+      record.totalLockouts = (record.totalLockouts || 0) + 1;
+      const penaltyMultiplier = Math.min(record.totalLockouts, 6);
+      const effectiveLockout = baseLockoutSeconds * penaltyMultiplier;
+      record.lockedUntil = now + effectiveLockout * 1000;
       record.count = 0; // Reset count for next cycle
-      this.loginAttempts[identifier] = record;
+      limits[identifier] = record;
+      this._saveRateLimits(limits);
       return {
         locked: true,
-        message: `Security Lockout: ${maxAttempts} failed attempts. Access locked for ${lockoutSeconds} seconds.`
+        waitSec: effectiveLockout,
+        message: `Security Lockout: ${maxAttempts} failed attempts. Access locked for ${effectiveLockout} seconds.`
       };
     }
 
-    this.loginAttempts[identifier] = record;
+    limits[identifier] = record;
+    this._saveRateLimits(limits);
     return {
       locked: false,
       remaining: maxAttempts - record.count,
-      message: `Invalid credentials. ${maxAttempts - record.count} attempt(s) remaining.`
+      message: `Invalid attempt. ${maxAttempts - record.count} attempt(s) remaining before lockout.`
     };
   },
 
   resetLoginAttempts(identifier) {
-    delete this.loginAttempts[identifier];
+    const limits = this._getRateLimits();
+    delete limits[identifier];
+    this._saveRateLimits(limits);
+  },
+
+  // 4. Cryptographically Strong Non-Sequential Order Token Generator
+  generateSecureOrderNo() {
+    try {
+      const arr = new Uint8Array(4);
+      if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+        crypto.getRandomValues(arr);
+        // Base-32 alphanumeric character set excluding ambiguous 0/O, 1/I
+        const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+        let token = "";
+        for (let i = 0; i < 6; i++) {
+          token += chars[arr[i % arr.length] % chars.length];
+        }
+        return "SD" + token;
+      }
+    } catch (e) {}
+    // Fallback using random string with timestamp mixing
+    return "SD" + Math.random().toString(36).toUpperCase().slice(2, 8);
+  },
+
+  // 5. PII Masking Utilities for Public Tracking Protection (IDOR Shield)
+  maskName(name) {
+    if (!name) return "Valued Client";
+    const parts = String(name).trim().split(/\s+/);
+    return parts.map(p => {
+      if (p.length <= 2) return p[0] + "*";
+      return p[0] + "*".repeat(p.length - 2) + p.slice(-1);
+    }).join(" ");
+  },
+
+  maskPhone(phone) {
+    if (!phone) return "";
+    const clean = String(phone).replace(/\D/g, "");
+    if (clean.length < 10) return "******";
+    return clean.slice(0, 2) + "******" + clean.slice(-2);
+  },
+
+  maskAddress(addr) {
+    if (!addr) return "Boutique Counter Trial";
+    const str = String(addr).trim();
+    if (/pickup|counter|shop|trial/i.test(str)) {
+      return "Boutique Counter Pickup / Trial";
+    }
+    const parts = str.split(",");
+    if (parts.length > 1) {
+      const city = parts[parts.length - 1].trim();
+      return `*** Area, ${city} (Full Address Protected)`;
+    }
+    return "*** Protected Address Details";
   },
 
   // 4. Session Integrity Token Generator

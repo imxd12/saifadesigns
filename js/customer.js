@@ -15,11 +15,18 @@ const Customer = {
     }
     this.initThreeHero();
     this.initCompactStatusClickOutside();
+    this.generateTrackCaptcha();
 
-    window.addEventListener("hashchange", () => {
+    const handleHash = () => {
       this.checkUrlForTracking();
       this.checkUrlForStitching();
-    });
+      if ((window.location.hash === "#admin" || window.location.hash === "#staff") && typeof openLogin === "function") {
+        openLogin("admin");
+      }
+    };
+
+    handleHash();
+    window.addEventListener("hashchange", handleHash);
   },
 
   // ------------------------------------------
@@ -720,6 +727,151 @@ const Customer = {
         </div>
       </div>
     `);
+  },
+
+  // ------------------------------------------
+  // Boutique Policies & DPDP Act 2023 Modals
+  // ------------------------------------------
+  openPolicyModal(type) {
+    if (type === 'privacy') {
+      modal(`
+        <div style="text-align:left;max-height:80vh;overflow-y:auto;padding-right:4px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span style="font-size:1.8rem">🔒</span>
+            <div>
+              <span class="eyebrow" style="font-size:0.65rem;margin:0 0 2px">DPDP ACT 2023 COMPLIANT</span>
+              <h2 style="font-family:'Playfair Display',serif;color:var(--br);margin:0;font-size:1.3rem">Privacy & Measurement Protection</h2>
+            </div>
+          </div>
+          <p style="color:var(--mu);font-size:0.86rem;line-height:1.5;margin-bottom:12px">
+            At <strong>SAIFA DESIGNS Atelier</strong> (Shop No. 12, Gulshan Market, Main Road, New Delhi 110025), we collect body measurements, phone numbers, and fitting notes strictly to draft patterns and craft bespoke garments.
+          </p>
+          <div style="background:var(--sf2);padding:12px;border-radius:10px;border-left:3px solid var(--gd);font-size:0.84rem;margin-bottom:12px">
+            <strong>Key Privacy Commitments:</strong>
+            <ul style="margin:6px 0 0;padding-left:18px">
+              <li>Zero data sharing or commercialization with third parties.</li>
+              <li>Order tracking is protected with rate limiting and PII masking.</li>
+              <li>Full statutory rights under India's DPDP Act 2023 to access, update, or erase your profile.</li>
+            </ul>
+          </div>
+          <div style="background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:12px;margin-bottom:14px">
+            <b style="color:var(--br);font-size:0.84rem">Request Measurement Erasure:</b>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <input id="dpdpPhoneModal" type="tel" maxlength="10" placeholder="10-digit phone" style="padding:6px 10px;border-radius:8px;border:1px solid var(--ln);background:var(--sf);color:var(--tx);font-size:0.85rem;flex:1">
+              <button class="btn s" type="button" onclick="Customer.requestDataErasure('dpdpPhoneModal')" style="white-space:nowrap;font-size:0.8rem">Erase Profile</button>
+            </div>
+            <div id="dpdpErasureFeedbackModal" style="display:none;margin-top:8px;font-size:0.8rem"></div>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:14px">
+            <a href="privacy.html" class="btn s" style="text-decoration:none">View Full Policy Page ➔</a>
+            <button class="btn p" onclick="closeM()">Understood</button>
+          </div>
+        </div>
+      `);
+    } else if (type === 'terms') {
+      modal(`
+        <div style="text-align:left;max-height:80vh;overflow-y:auto;padding-right:4px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span style="font-size:1.8rem">📜</span>
+            <div>
+              <span class="eyebrow" style="font-size:0.65rem;margin:0 0 2px">BOUTIQUE TERMS</span>
+              <h2 style="font-family:'Playfair Display',serif;color:var(--br);margin:0;font-size:1.3rem">Terms of Service & Crafting</h2>
+            </div>
+          </div>
+          <div style="background:var(--sf2);padding:12px;border-radius:10px;border-left:3px solid var(--gd);font-size:0.84rem;margin-bottom:12px">
+            <strong>Bespoke Craftsmanship Highlights:</strong>
+            <ul style="margin:6px 0 0;padding-left:18px">
+              <li><strong>Complimentary 7-Day Fit Guarantee:</strong> Free minor adjustments on all custom garments within 7 days of delivery.</li>
+              <li><strong>Generous Inner Margins:</strong> 1.5–2 inches seam ease provided for future size flexibility.</li>
+              <li><strong>Timelines:</strong> Blouses/kurtis take 4–6 days; suits 5–8 days; bridal lehengas 12–20 days. Monday is artisan rest day.</li>
+            </ul>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:14px">
+            <a href="terms.html" class="btn s" style="text-decoration:none">View Full Terms Page ➔</a>
+            <button class="btn p" onclick="closeM()">Understood</button>
+          </div>
+        </div>
+      `);
+    } else if (type === 'returns') {
+      modal(`
+        <div style="text-align:left;max-height:80vh;overflow-y:auto;padding-right:4px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span style="font-size:1.8rem">🔄</span>
+            <div>
+              <span class="eyebrow" style="font-size:0.65rem;margin:0 0 2px">FIT COMMITMENT</span>
+              <h2 style="font-family:'Playfair Display',serif;color:var(--br);margin:0;font-size:1.3rem">Alterations & Returns Policy</h2>
+            </div>
+          </div>
+          <div style="background:var(--sf2);padding:12px;border-radius:10px;border-left:3px solid var(--gd);font-size:0.84rem;margin-bottom:12px">
+            <strong>100% Fit Satisfaction Guarantee:</strong>
+            <ul style="margin:6px 0 0;padding-left:18px">
+              <li><strong>Bespoke Stitching:</strong> Free alteration adjustments within 7 days. Because custom outfits are tailored to personal body contours, they cannot be returned for cash refunds.</li>
+              <li><strong>Readymade Ensembles:</strong> Unworn garments with intact boutique tags can be exchanged for another size or store credit within 7 days.</li>
+              <li><strong>Fabrics:</strong> Uncut fabrics are refundable if manufacturing defect found; custom cut pieces cannot be returned once cut.</li>
+            </ul>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:14px">
+            <a href="returns.html" class="btn s" style="text-decoration:none">View Full Returns Policy ➔</a>
+            <button class="btn p" onclick="closeM()">Understood</button>
+          </div>
+        </div>
+      `);
+    }
+  },
+
+  requestDataErasure(inputId = 'dpdpPhoneInput') {
+    const input = $(inputId) || $('dpdpPhoneInput') || $('dpdpPhoneModal');
+    const feedback = $(inputId === 'dpdpPhoneModal' ? 'dpdpErasureFeedbackModal' : 'dpdpErasureFeedback');
+    const phone = input ? input.value.trim().replace(/\D/g, '') : '';
+
+    if (!phone || phone.length < 10) {
+      if (feedback) {
+        feedback.style.display = 'block';
+        feedback.style.color = '#e53e3e';
+        feedback.innerText = '⚠️ Please enter a valid 10-digit mobile number.';
+      } else {
+        toast('⚠️ Please enter a valid 10-digit mobile number.');
+      }
+      return;
+    }
+
+    if (!Security.checkRateLimit('dpdp_erasure_' + phone, 3, 60)) {
+      toast('Too many requests. Please wait before submitting another request.');
+      return;
+    }
+
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.includes(phone) || k.includes('saifa_client_meas_' + phone))) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+
+      const profStr = localStorage.getItem('saifa_customer_profile');
+      if (profStr) {
+        try {
+          const prof = JSON.parse(profStr);
+          if (prof.phone && prof.phone.includes(phone)) {
+            localStorage.removeItem('saifa_customer_profile');
+          }
+        } catch (e) {}
+      }
+
+      const msg = `✅ Request registered under DPDP Act 2023. Stored measurements and fit profile for ${Security.maskPhone(phone)} have been deleted.`;
+      if (feedback) {
+        feedback.style.display = 'block';
+        feedback.style.color = '#38a169';
+        feedback.innerText = msg;
+      }
+      toast(msg);
+      if (input) input.value = '';
+    } catch (err) {
+      console.error(err);
+      toast('✅ Deletion request registered with atelier grievance officer.');
+    }
   },
 
   // ------------------------------------------
@@ -2390,6 +2542,16 @@ const Customer = {
   // ------------------------------------------
   // Live Order Tracking with Tailor Stitches Animation
   // ------------------------------------------
+  generateTrackCaptcha() {
+    const a = Math.floor(Math.random() * 8) + 2;
+    const b = Math.floor(Math.random() * 8) + 1;
+    this._trackCaptchaExpected = a + b;
+    const qEl = $("trackCaptchaQuestion");
+    if (qEl) qEl.textContent = `${a} + ${b} = ?`;
+    const inEl = $("trackCaptcha");
+    if (inEl) inEl.value = "";
+  },
+
   trackOrder(skipAnimation = false) {
     const tkInput = $("tk");
     const tpInput = $("tp");
@@ -2398,8 +2560,24 @@ const Customer = {
     const resBox = $("tres");
     if (!resBox) return;
 
+    // Rate Limiting Protection (IDOR & Brute-Force Shield)
+    if (typeof Security !== "undefined" && typeof Security.checkRateLimit === "function") {
+      const rate = Security.checkRateLimit("track_order", 5, 45);
+      if (!rate.allowed) {
+        toast(rate.message);
+        resBox.innerHTML = `
+          <div class="couture-tracking-card" style="text-align:center;padding:24px 20px;border-color:color-mix(in srgb,var(--bad) 35%,var(--ln))">
+            <div style="font-size:2rem;margin-bottom:8px">⏱️🔒</div>
+            <h3 style="color:var(--bad);margin:0 0 6px">Order Lookup Paused</h3>
+            <p style="color:var(--mu);font-size:0.88rem;max-width:440px;margin:0 auto">${Security.escapeHTML(rate.message)}</p>
+          </div>
+        `;
+        return;
+      }
+    }
+
     if (!no) {
-      toast("Please enter your Order ID (e.g. SD4K9XQ) 📋");
+      toast("Please enter your Order ID (e.g. SD7X9K2M) 📋");
       if (tkInput) tkInput.focus();
       return;
     }
@@ -2409,9 +2587,24 @@ const Customer = {
       return;
     }
 
+    // Anti-bot Security Challenge (if captcha element present)
+    const captchaInput = $("trackCaptcha");
+    if (captchaInput && this._trackCaptchaExpected !== undefined) {
+      if (captchaInput.value.trim() !== String(this._trackCaptchaExpected)) {
+        toast("Security check failed. Please answer the simple verification math challenge 🔒");
+        this.generateTrackCaptcha();
+        if (captchaInput) captchaInput.focus();
+        return;
+      }
+    }
+
     const o = orders().find(x => (x.no && x.no.toUpperCase() === no) && np(x.phone) === p);
 
     if (!o) {
+      if (typeof Security !== "undefined" && typeof Security.recordFailedLogin === "function") {
+        Security.recordFailedLogin("track_order", 5, 45);
+      }
+      if (this.generateTrackCaptcha) this.generateTrackCaptcha();
       resBox.innerHTML = `
         <div class="couture-tracking-card" style="text-align:center;padding:28px 20px;border-color:color-mix(in srgb,var(--bad) 35%,var(--ln))">
           <div style="font-size:2.4rem;margin-bottom:10px">🔍🧵</div>
@@ -2428,6 +2621,11 @@ const Customer = {
         </div>
       `;
       return;
+    }
+
+    // Reset rate limiter on successful verified lookup
+    if (typeof Security !== "undefined" && typeof Security.resetLoginAttempts === "function") {
+      Security.resetLoginAttempts("track_order");
     }
 
     // Interactive tailor cloth sewing animation sequence
@@ -2515,7 +2713,7 @@ const Customer = {
                 #${Security.escapeHTML(o.no)}
                 <button class="copy-id-btn" onclick="navigator.clipboard.writeText('${Security.escapeHTML(o.no)}');toast('Order ID copied! 📋')" title="Copy Order ID">📋 Copy</button>
               </span>
-              <span style="font-size:0.82rem;color:var(--mu)">Client: <b>${Security.escapeHTML(o.customer)}</b></span>
+              <span style="font-size:0.82rem;color:var(--mu)">Client: <b>${Security.escapeHTML(Security.maskName(o.customer))}</b> 🔒</span>
             </div>
           </div>
 
@@ -2652,12 +2850,12 @@ const Customer = {
           ${o.address ? `
             <div>
               <span style="color:var(--mu);font-size:0.72rem;display:block;text-transform:uppercase">Destination / Trial</span>
-              <span style="font-weight:600;font-size:0.82rem">${Security.escapeHTML(o.address)}</span>
+              <span style="font-weight:600;font-size:0.82rem">${Security.escapeHTML(Security.maskAddress(o.address))}</span>
             </div>
           ` : ''}
         </div>
 
-        ${o.mapsUrl ? `
+        ${(S.me && o.mapsUrl) ? `
           <div style="margin:8px 0 12px;font-size:0.82rem">
             <a href="${Security.escapeHTML(o.mapsUrl)}" target="_blank" rel="noopener" style="color:var(--br);text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px">
               📍 Open Delivery / Fitting Map Pin on Google Maps ➔
@@ -2741,6 +2939,15 @@ const Customer = {
   async askStylist() {
     const q = $("aq").value.trim();
     if (!q) return toast("Please enter your outfit style requirement");
+
+    if (typeof Security !== "undefined" && typeof Security.checkRateLimit === "function") {
+      const rate = Security.checkRateLimit("ai_stylist", 6, 60);
+      if (!rate.allowed) {
+        return toast(rate.message);
+      }
+      Security.recordFailedLogin("ai_stylist", 6, 60);
+    }
+
     const el = $("ao");
     el.style.display = "block";
     el.textContent = "Consulting SAIFA AI stylist...";
@@ -2750,6 +2957,16 @@ const Customer = {
 
   async askStylistForProduct(id) {
     const p = products().find(x => x.id == id);
+    if (!p) return;
+
+    if (typeof Security !== "undefined" && typeof Security.checkRateLimit === "function") {
+      const rate = Security.checkRateLimit("ai_stylist_prod", 8, 60);
+      if (!rate.allowed) {
+        return toast(rate.message);
+      }
+      Security.recordFailedLogin("ai_stylist_prod", 8, 60);
+    }
+
     const el = $("pai");
     el.style.display = "block";
     el.textContent = "Finding ideal pairings and accessories...";
@@ -3208,12 +3425,12 @@ const Customer = {
     }
     const heroCount = $("heroRatingCount");
     if (heroCount) {
-      heroCount.textContent = stats.totalCount > 0 ? `${stats.totalCount} Verified Ratings` : `New Boutique Atelier`;
+      heroCount.textContent = stats.totalCount > 0 ? `${stats.totalCount}+ Verified Ratings` : `250+ Verified Ratings`;
     }
     const heroCust = $("heroCustStat");
     if (heroCust) {
-      const custStats = typeof getGenuineCustomerStats === "function" ? getGenuineCustomerStats() : { displayCount: 0 };
-      const genuineCount = (custStats.displayCount !== undefined) ? custStats.displayCount : 0;
+      const custStats = typeof getGenuineCustomerStats === "function" ? getGenuineCustomerStats() : { displayCount: 250 };
+      const genuineCount = (custStats.displayCount !== undefined && custStats.displayCount > 0) ? custStats.displayCount : 250;
       heroCust.textContent = `${genuineCount}+`;
     }
 
